@@ -19,7 +19,7 @@ evaluation:
 metrics:
   cross_task:
     - pearson_correlation
-    - spearman_correlation  
+    - spearman_correlation
     - rmse
     - auroc
     - auprc

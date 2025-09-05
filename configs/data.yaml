@@ -6,7 +6,7 @@ splits_dir: data/splits
 tasks:
   passive: [RS, SuS, MW]
   active: [CCD, SL, SyS]
-  
+
 channels: 128
 sfreq: 500
 
@@ -19,7 +19,7 @@ preproc:
 windows:
   ssl_len_s: 2.0      # SSL pretraining window length
   ssl_stride_s: 1.0   # SSL pretraining stride
-  finetune_len_s: 2.0 # Fine-tuning window length  
+  finetune_len_s: 2.0 # Fine-tuning window length
   finetune_stride_s: 1.0 # Fine-tuning stride
 
 # Data loading

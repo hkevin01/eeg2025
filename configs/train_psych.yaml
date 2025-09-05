@@ -38,5 +38,5 @@ logging:
 # Hardware configuration
 hardware:
   devices: 1
-  accelerator: "gpu" 
+  accelerator: "gpu"
   precision: "16-mixed"

@@ -6,10 +6,10 @@
 
 This project develops a foundation model approach for the EEG Foundation Challenge (NeurIPS 2025), integrating brain-computer compression techniques with self-supervised learning to create robust, subject-invariant EEG representations. Our approach tackles two key challenges using the Healthy Brain Network (HBN) EEG dataset:
 
-**Challenge 1 (Cross-Task Transfer)**: Predict CCD response time (regression) and success (classification) using features learned from passive SuS.  
+**Challenge 1 (Cross-Task Transfer)**: Predict CCD response time (regression) and success (classification) using features learned from passive SuS.
 **Challenge 2 (Psychopathology)**: Predict 4 CBCL-derived factors (p-factor, internalizing, externalizing, attention) across tasks with subject-invariant representations.
 
-**Dataset**: HBN-EEG (BIDS format), >3,000 participants, 6 tasks (RS, SuS, MW, CCD, SL, SyS).  
+**Dataset**: HBN-EEG (BIDS format), >3,000 participants, 6 tasks (RS, SuS, MW, CCD, SL, SyS).
 **Reference**: https://eeg2025.github.io/ (NeurIPS 2025 Competition Track)
 
 ### Key Innovations
@@ -59,23 +59,74 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### Quick Example
+### Quick Start Training
+
+#### 1. Validate Setup
+
+```bash
+# Check dependencies and project structure
+python scripts/validate_setup.py
+```
+
+#### 2. Set Up Your Data
+
+Place your BIDS-formatted HBN dataset in the `data/` directory and update `configs/data.yaml`:
+
+```yaml
+bids_root: "/path/to/your/hbn/dataset"
+```
+
+#### 3. Train Models
+
+Using Docker (recommended):
+
+```bash
+# Build the Docker image
+make docker-build
+
+# Run pretraining
+make docker-pretrain
+
+# Run cross-task training
+make docker-cross-task
+
+# Run psychopathology prediction
+make docker-psych
+```
+
+Or locally:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+pip install -e .
+
+# Run training with different configurations
+python scripts/train.py --config-name=train_pretrain
+python scripts/train.py --config-name=train_cross_task
+python scripts/train.py --config-name=train_psych
+```
+
+#### 4. Create Competition Submission
 
 ```python
-from src.dataio.bids_loader import HBNDataLoader
-from src.models.backbones.temporal_cnn import TemporalCNN
-from src.training.pretrain_ssl import SSLPretrainer
+from src.utils.submission import create_starter_kit_submission
 
-# Load data
-loader = HBNDataLoader(data_path="data/bids_symlinks")
-train_data = loader.get_dataset(tasks=["SuS", "CCD"], split="train")
-
-# Initialize model
-model = TemporalCNN(n_channels=64, n_classes=128)
-
-# Pretrain with SSL
-trainer = SSLPretrainer(model=model, config="configs/pretrain.yaml")
-trainer.fit(train_data)
+# After training, create submission files
+submission_package = create_starter_kit_submission(
+    model_predictions={
+        'cross_task': cross_task_predictions,
+        'psychopathology_binary': psych_binary_predictions,
+        'psychopathology_scores': psych_score_predictions
+    },
+    metadata={
+        'subject_ids': subject_list,
+        'session_ids': session_list,
+        'task_names': task_list
+    },
+    output_dir='submissions/',
+    team_name='your_team_name'
+)
 ```
 
 ## Project Structure
