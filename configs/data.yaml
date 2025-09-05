@@ -3,6 +3,75 @@ output_root: outputs
 runs_root: runs
 splits_dir: data/splits
 
+# Official challenge splits configuration
+splits:
+  version: v1.0  # Version of official splits to use
+  file_pattern: "official_splits_{version}.json"
+  checksum_validation: true
+  strict_isolation: true  # Enforce strict subject-level isolation
+
+# Challenge label files and schema
+labels:
+  # Challenge 1: CCD (Continuous Cognitive Demand) targets
+  ccd:
+    response_time:
+      description: "Response time regression target"
+      dtype: float
+      units: seconds
+      valid_range: [0.1, 10.0]
+    success:
+      description: "Success rate classification target"
+      dtype: float
+      units: probability
+      valid_range: [0.0, 1.0]
+
+  # Challenge 2: CBCL (Child Behavior Checklist) targets
+  cbcl:
+    p_factor:
+      description: "General psychopathology factor"
+      dtype: float
+      units: t_score
+      valid_range: [20, 120]
+    internalizing:
+      description: "Internalizing problems factor"
+      dtype: float
+      units: t_score
+      valid_range: [20, 120]
+    externalizing:
+      description: "Externalizing problems factor"
+      dtype: float
+      units: t_score
+      valid_range: [20, 120]
+    attention:
+      description: "Attention problems factor"
+      dtype: float
+      units: t_score
+      valid_range: [20, 120]
+    binary_label:
+      description: "Binary classification target (attention >= 65)"
+      dtype: int
+      units: categorical
+      valid_values: [0, 1]
+
+# Participant data schema
+participants:
+  required_columns: [participant_id, age, sex]
+  optional_columns: [handedness, group, site]
+  dtypes:
+    participant_id: str
+    age: float
+    sex: str
+    handedness: str
+    group: str
+    site: str
+
+# Phenotype data schema
+phenotype:
+  file_patterns: ["participants.tsv", "phenotype/*.tsv"]
+  encoding: utf-8
+  separator: "\t"
+  na_values: ["", "NA", "NaN", "NULL", "null", "n/a"]
+
 tasks:
   passive: [RS, SuS, MW]
   active: [CCD, SL, SyS]
@@ -16,13 +85,35 @@ preproc:
   reref: CAR  # Common Average Reference
   ica: false
 
+  # Normalization settings (leakage-free)
+  normalization:
+    method: robust  # robust or standard
+    per_session: true
+    fit_on_train_only: true
+    stats_dir: preprocessing_stats
+    stats_version: v1.0
+
 windows:
   ssl_len_s: 2.0      # SSL pretraining window length
   ssl_stride_s: 1.0   # SSL pretraining stride
   finetune_len_s: 2.0 # Fine-tuning window length
   finetune_stride_s: 1.0 # Fine-tuning stride
 
-# Data loading
+# Data loading with leakage protection
 batch_size: 64
 num_workers: 4
 pin_memory: true
+
+# Session-aware sampling
+sampling:
+  strategy: session_aware  # Prevent fold contamination
+  group_by: [subject_id, session_id]
+  shuffle_groups: true
+  drop_last: false
+
+# Validation settings
+validation:
+  check_split_integrity: true
+  check_normalization_leakage: true
+  log_epoch_stats: true
+  validate_label_schema: true

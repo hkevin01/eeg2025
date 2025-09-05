@@ -309,12 +309,262 @@ class ContrastiveHead(nn.Module):
         return F.normalize(projected, dim=1)
 
 
+class CCDRegressionHead(nn.Module):
+    """
+    Regression head for CCD reaction time (RT) prediction.
+
+    Predicts continuous reaction time values with proper normalization
+    and uncertainty estimation capabilities.
+    """
+
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dims: Optional[list] = None,
+        dropout_rate: float = 0.3,
+        activation: str = "relu",
+        use_batch_norm: bool = True,
+        predict_uncertainty: bool = False,
+        output_activation: Optional[str] = None
+    ):
+        """
+        Initialize CCD regression head.
+
+        Args:
+            input_dim: Dimension of input features
+            hidden_dims: List of hidden layer dimensions
+            dropout_rate: Dropout probability
+            activation: Activation function name
+            use_batch_norm: Whether to use batch normalization
+            predict_uncertainty: Whether to predict uncertainty estimates
+            output_activation: Output activation function (None, "sigmoid", "tanh")
+        """
+        super().__init__()
+
+        self.input_dim = input_dim
+        self.dropout_rate = dropout_rate
+        self.predict_uncertainty = predict_uncertainty
+        self.output_activation = output_activation
+
+        # Default hidden dimensions
+        if hidden_dims is None:
+            hidden_dims = [input_dim // 2, input_dim // 4]
+
+        # Activation function
+        if activation == "relu":
+            self.activation = nn.ReLU()
+        elif activation == "gelu":
+            self.activation = nn.GELU()
+        elif activation == "swish":
+            self.activation = nn.SiLU()
+        elif activation == "leaky_relu":
+            self.activation = nn.LeakyReLU(0.1)
+        else:
+            raise ValueError(f"Unknown activation: {activation}")
+
+        # Build layers
+        layers = []
+        prev_dim = input_dim
+
+        for hidden_dim in hidden_dims:
+            # Linear layer
+            layers.append(nn.Linear(prev_dim, hidden_dim))
+
+            # Batch normalization
+            if use_batch_norm:
+                layers.append(nn.BatchNorm1d(hidden_dim))
+
+            # Activation
+            layers.append(self.activation)
+
+            # Dropout
+            if dropout_rate > 0:
+                layers.append(nn.Dropout(dropout_rate))
+
+            prev_dim = hidden_dim
+
+        self.layers = nn.Sequential(*layers)
+
+        # Output layer(s)
+        if predict_uncertainty:
+            # Predict both mean and log variance
+            self.mean_head = nn.Linear(prev_dim, 1)
+            self.logvar_head = nn.Linear(prev_dim, 1)
+        else:
+            # Single output for RT prediction
+            self.output_head = nn.Linear(prev_dim, 1)
+
+        # Initialize weights
+        self._init_weights()
+
+    def _init_weights(self):
+        """Initialize layer weights."""
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                # Xavier/Glorot initialization
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+            elif isinstance(module, nn.BatchNorm1d):
+                nn.init.ones_(module.weight)
+                nn.init.zeros_(module.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for RT prediction.
+
+        Args:
+            x: Input features [batch_size, input_dim]
+
+        Returns:
+            RT predictions [batch_size, 1] or [batch_size, 2] if uncertainty
+        """
+        # Pass through hidden layers
+        features = self.layers(x)
+
+        # Output prediction(s)
+        if self.predict_uncertainty:
+            # Predict mean and log variance
+            mean = self.mean_head(features)
+            logvar = self.logvar_head(features)
+
+            # Apply output activation to mean if specified
+            if self.output_activation == "sigmoid":
+                mean = torch.sigmoid(mean)
+            elif self.output_activation == "tanh":
+                mean = torch.tanh(mean)
+
+            # Combine mean and logvar
+            output = torch.cat([mean, logvar], dim=-1)
+        else:
+            # Single RT prediction
+            output = self.output_head(features)
+
+            # Apply output activation if specified
+            if self.output_activation == "sigmoid":
+                output = torch.sigmoid(output)
+            elif self.output_activation == "tanh":
+                output = torch.tanh(output)
+
+        return output
+
+
+class CCDClassificationHead(nn.Module):
+    """
+    Classification head for CCD success prediction.
+
+    Predicts binary success/failure with calibrated probabilities
+    and optional class-wise confidence estimation.
+    """
+
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dims: Optional[list] = None,
+        dropout_rate: float = 0.3,
+        activation: str = "relu",
+        use_batch_norm: bool = True,
+        class_weights: Optional[torch.Tensor] = None
+    ):
+        """
+        Initialize CCD classification head.
+
+        Args:
+            input_dim: Dimension of input features
+            hidden_dims: List of hidden layer dimensions
+            dropout_rate: Dropout probability
+            activation: Activation function name
+            use_batch_norm: Whether to use batch normalization
+            class_weights: Weights for class balancing
+        """
+        super().__init__()
+
+        self.input_dim = input_dim
+        self.dropout_rate = dropout_rate
+        self.class_weights = class_weights
+
+        # Default hidden dimensions
+        if hidden_dims is None:
+            hidden_dims = [input_dim // 2, input_dim // 4]
+
+        # Activation function
+        if activation == "relu":
+            self.activation = nn.ReLU()
+        elif activation == "gelu":
+            self.activation = nn.GELU()
+        elif activation == "swish":
+            self.activation = nn.SiLU()
+        elif activation == "leaky_relu":
+            self.activation = nn.LeakyReLU(0.1)
+        else:
+            raise ValueError(f"Unknown activation: {activation}")
+
+        # Build layers
+        layers = []
+        prev_dim = input_dim
+
+        for hidden_dim in hidden_dims:
+            # Linear layer
+            layers.append(nn.Linear(prev_dim, hidden_dim))
+
+            # Batch normalization
+            if use_batch_norm:
+                layers.append(nn.BatchNorm1d(hidden_dim))
+
+            # Activation
+            layers.append(self.activation)
+
+            # Dropout
+            if dropout_rate > 0:
+                layers.append(nn.Dropout(dropout_rate))
+
+            prev_dim = hidden_dim
+
+        self.layers = nn.Sequential(*layers)
+
+        # Output layer (logits)
+        self.output_head = nn.Linear(prev_dim, 1)
+
+        # Initialize weights
+        self._init_weights()
+
+    def _init_weights(self):
+        """Initialize layer weights."""
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                # Xavier/Glorot initialization
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+            elif isinstance(module, nn.BatchNorm1d):
+                nn.init.ones_(module.weight)
+                nn.init.zeros_(module.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for success prediction.
+
+        Args:
+            x: Input features [batch_size, input_dim]
+
+        Returns:
+            Success logits [batch_size, 1]
+        """
+        # Pass through hidden layers
+        features = self.layers(x)
+
+        # Output logits
+        logits = self.output_head(features)
+
+        return logits
+
+
 def create_head(head_type: str, **kwargs) -> nn.Module:
     """
     Factory function to create classification heads.
 
     Args:
-        head_type: Type of head ('simple', 'multitask', 'attention', 'adversarial', 'contrastive')
+        head_type: Type of head ('simple', 'multitask', 'attention', 'adversarial', 'contrastive', 'ccd_regression', 'ccd_classification')
         **kwargs: Head-specific arguments
 
     Returns:
@@ -325,7 +575,9 @@ def create_head(head_type: str, **kwargs) -> nn.Module:
         'multitask': MultiTaskHead,
         'attention': AttentionHead,
         'adversarial': DomainAdversarialHead,
-        'contrastive': ContrastiveHead
+        'contrastive': ContrastiveHead,
+        'ccd_regression': CCDRegressionHead,
+        'ccd_classification': CCDClassificationHead
     }
 
     if head_type not in head_map:

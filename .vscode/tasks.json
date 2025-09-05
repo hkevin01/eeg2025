@@ -24,6 +24,30 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "test"
+		},
+		{
+			"label": "Validate EEG Challenge Infrastructure",
+			"type": "shell",
+			"command": "python3 simple_validation.py",
+			"args": [],
+			"group": "test"
+		},
+		{
+			"label": "Validate Enhanced Components",
+			"type": "shell",
+			"command": "python3 validate_enhancements.py",
+			"args": [],
+			"group": "test"
+		},
+		{
+			"label": "Run Cross-Task Metrics Tests",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python -m pytest tests/test_cross_metrics.py -v"
+		},
+		{
+			"label": "Run Cross-Task Simple Tests",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python test_cross_task_simple.py"
 		}
 	]
 }
