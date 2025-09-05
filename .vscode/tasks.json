@@ -8,6 +8,22 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "test"
+		},
+		{
+			"label": "Validate Enhancements",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python validate_enhancements.py",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Simple Validation",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python simple_validation.py",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
 		}
 	]
 }
