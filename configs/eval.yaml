@@ -1,0 +1,30 @@
+data: configs/data.yaml
+
+checkpoints:
+  cross_task: runs/cross_task/best.ckpt
+  psych: runs/psych/best.ckpt
+
+submission:
+  out_dir: outputs
+  cross_task_csv: outputs/submission_cross.csv
+  psych_csv: outputs/submission_psych.csv
+
+# Evaluation settings
+evaluation:
+  batch_size: 128
+  test_time_augmentation: false
+  ensemble: false
+
+# Metrics to compute
+metrics:
+  cross_task:
+    - pearson_correlation
+    - spearman_correlation  
+    - rmse
+    - auroc
+    - auprc
+  psych:
+    - pearson_correlation
+    - spearman_correlation
+    - rmse
+    - r2_score

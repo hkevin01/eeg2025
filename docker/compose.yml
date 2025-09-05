@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: eeg2025:latest
+    container_name: eeg2025-app
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTHONPATH=/workspace/eeg2025:/workspace
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ..:/workspace/eeg2025
+      # Mount your BIDS dataset read-only by editing the path below:
+      # - /path/to/HBN-EEG-BIDS:/data/hbn:ro
+      - ../outputs:/workspace/eeg2025/outputs
+      - ../runs:/workspace/eeg2025/runs
+      - ../logs:/workspace/eeg2025/logs
+    ports:
+      - "8888:8888"  # Jupyter
+      - "6006:6006"  # TensorBoard
+    tty: true
+    stdin_open: true

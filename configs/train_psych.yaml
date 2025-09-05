@@ -1,0 +1,42 @@
+seed: 7
+data: configs/data.yaml
+ssl_checkpoint: runs/pretrain/best.ckpt
+
+model:
+  backbone: temporal_cnn
+  emb_dim: 256
+
+invariance:
+  dann: true
+  subject_hidden: 128
+
+loss:
+  type: multitask_mse_uncertainty
+
+optim:
+  lr: 2e-4
+  weight_decay: 0.01
+  batch_size: 128
+  epochs: 40
+
+aug:
+  compression_views: true
+  wavelet_distortion_pct: 1.0
+  quant_snr_db: 25
+
+ckpt:
+  dir: runs/psych
+
+# Logging and monitoring
+logging:
+  tensorboard: true
+  wandb:
+    project: "eeg2025_psych"
+    entity: null
+    tags: ["psychopathology", "subject_invariant"]
+
+# Hardware configuration
+hardware:
+  devices: 1
+  accelerator: "gpu" 
+  precision: "16-mixed"

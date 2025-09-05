@@ -1,0 +1,22 @@
+{
+  "eeg_processing": {
+    "context": "When working with EEG data processing functions",
+    "prompt": "Consider EEG-specific requirements: sampling rates (250-1000Hz), channel layouts (10-20 system), typical preprocessing steps (filtering 0.1-40Hz, re-referencing, artifact removal), and epoch lengths (1-4 seconds for most analyses)."
+  },
+  "model_architecture": {
+    "context": "When designing neural network architectures for EEG",
+    "prompt": "Focus on temporal modeling with 1D convolutions or transformers. Consider input shapes (batch, channels, time), handle variable sequence lengths, implement proper normalization (often channel-wise), and ensure streaming capability for real-time applications."
+  },
+  "compression_algorithms": {
+    "context": "When implementing compression algorithms",
+    "prompt": "Prioritize perceptually relevant features for EEG signals. Consider frequency domain properties, preserve clinical markers, implement streaming compression, and balance compression ratio with reconstruction quality."
+  },
+  "self_supervised_learning": {
+    "context": "When implementing SSL objectives",
+    "prompt": "Design pretext tasks relevant to EEG: masked time modeling, contrastive learning across subjects/sessions, predictive coding, and temporal order prediction. Ensure subject-invariant representations."
+  },
+  "data_pipeline": {
+    "context": "When building data loading and preprocessing pipelines",
+    "prompt": "Follow BIDS standard, implement robust preprocessing (handle bad channels, artifacts), support streaming data loading, normalize properly (per-channel z-score), and maintain metadata throughout pipeline."
+  }
+}

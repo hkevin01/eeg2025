@@ -1,0 +1,92 @@
+{
+  // Chat & Copilot
+  "chat.tools.autoApprove": true,
+  "chat.agent.maxRequests": 100,
+  "github.copilot.chat.alternateGptPrompt.enabled": true,
+  "chat.todoListTool.enabled": true,
+
+  // General
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.eol": "\n",
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+
+  // TypeScript/JavaScript
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+
+  // Python
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  "python.formatting.provider": "black",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.linting.flake8Enabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.languageServer": "Pylance",
+  "python.defaultInterpreterPath": "/opt/conda/envs/eeg2025/bin/python",
+
+  // C/C++
+  "C_Cpp.default.cppStandard": "c++20",
+  "C_Cpp.default.cStandard": "c17",
+  "C_Cpp.clang_format_style": "{ BasedOnStyle: Google, IndentWidth: 2, ColumnLimit: 100 }",
+
+  // Java
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.format.settings.url": "${workspaceFolder}/configs/eclipse-java-formatter.xml",
+  "java.format.settings.profile": "GoogleStyle",
+  "java.configuration.runtimes": [
+    { "name": "JavaSE-21", "path": "/usr/lib/jvm/java-21-openjdk" }
+  ],
+
+  // Terminal Shell Integration (VS Code)
+  "terminal.integrated.shellIntegration.enabled": true,
+  "terminal.integrated.shellIntegration.decorationsEnabled": "both",
+  "terminal.integrated.shellIntegration.showCommandGuide": true,
+  "terminal.integrated.shellIntegration.history": 500,
+  "terminal.integrated.stickyScroll.enabled": true,
+
+  // Terminal IntelliSense (Preview)
+  "terminal.integrated.suggest.enabled": true,
+  "terminal.integrated.suggest.showStatusBar": true,
+
+  // EEG/ML Specific
+  "python.analysis.extraPaths": [
+    "./src",
+    "./src/models",
+    "./src/dataio",
+    "./src/training",
+    "./src/utils"
+  ],
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+  "jupyter.executeWithoutKernel": false,
+
+  // File Associations
+  "files.associations": {
+    "*.edf": "plaintext",
+    "*.bdf": "plaintext",
+    "*.fif": "plaintext",
+    "*.yaml": "yaml",
+    "*.yml": "yaml"
+  },
+
+  // Naming conventions enforcement
+  "python.linting.pylintArgs": [
+    "--disable=C0103,C0114,C0115,C0116",
+    "--variable-naming-style=snake_case",
+    "--function-naming-style=snake_case",
+    "--method-naming-style=snake_case",
+    "--class-naming-style=PascalCase",
+    "--module-naming-style=snake_case",
+    "--const-naming-style=UPPER_CASE"
+  ]
+}

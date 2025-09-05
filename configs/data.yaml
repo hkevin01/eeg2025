@@ -1,0 +1,28 @@
+bids_root: /data/hbn  # Update this path to your HBN-EEG BIDS dataset
+output_root: outputs
+runs_root: runs
+splits_dir: data/splits
+
+tasks:
+  passive: [RS, SuS, MW]
+  active: [CCD, SL, SyS]
+  
+channels: 128
+sfreq: 500
+
+preproc:
+  bandpass: [0.1, 40.0]
+  notch: 60.0
+  reref: CAR  # Common Average Reference
+  ica: false
+
+windows:
+  ssl_len_s: 2.0      # SSL pretraining window length
+  ssl_stride_s: 1.0   # SSL pretraining stride
+  finetune_len_s: 2.0 # Fine-tuning window length  
+  finetune_stride_s: 1.0 # Fine-tuning stride
+
+# Data loading
+batch_size: 64
+num_workers: 4
+pin_memory: true

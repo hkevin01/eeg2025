@@ -1,0 +1,49 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+      }
+    },
+    {
+      "name": "Python: Train Model",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/training/train_cross_task.py",
+      "console": "integratedTerminal",
+      "args": ["--config", "configs/train_cross_task.yaml"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+      }
+    },
+    {
+      "name": "Python: Pretrain SSL",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/training/pretrain_ssl.py",
+      "console": "integratedTerminal",
+      "args": ["--config", "configs/pretrain.yaml"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+      }
+    },
+    {
+      "name": "Python: Test Suite",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "console": "integratedTerminal",
+      "args": ["tests/", "-v"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+      }
+    }
+  ]
+}

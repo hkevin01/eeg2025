@@ -1,0 +1,43 @@
+seed: 123
+data: configs/data.yaml
+ssl_checkpoint: runs/pretrain/best.ckpt
+
+model:
+  backbone: transformer_tiny
+  freeze_ratio: 0.75  # Freeze 75% of backbone parameters
+
+heads:
+  regression: ccd_reg_head
+  classification: ccd_clf_head
+
+loss:
+  reg: corr_mse
+  clf: focal
+
+optim:
+  lr: 2e-4
+  weight_decay: 0.02
+  batch_size: 64
+  epochs: 30
+
+aug:
+  compression_views: true
+  wavelet_distortion_pct: 0.5
+  quant_snr_db: 30
+
+ckpt:
+  dir: runs/cross_task
+
+# Logging and monitoring
+logging:
+  tensorboard: true
+  wandb:
+    project: "eeg2025_cross_task"
+    entity: null
+    tags: ["cross_task", "finetune"]
+
+# Hardware configuration
+hardware:
+  devices: 1
+  accelerator: "gpu"
+  precision: "16-mixed"

@@ -1,0 +1,43 @@
+seed: 42
+data: configs/data.yaml
+
+model:
+  backbone: transformer_tiny
+  d_model: 128
+  n_layers: 4
+  n_heads: 4
+  emb_dim: 128
+
+ssl:
+  objectives: [masked, contrastive, predictive_residual]
+  mask_ratio: 0.2
+  temperature: 0.1
+  views:
+    wavelet_distortion_pct: 1.0
+    quant_snr_db: 25
+    channel_dropout: 0.1
+
+optim:
+  lr: 3e-4
+  weight_decay: 0.02
+  batch_size: 64
+  epochs: 50
+  scheduler: cosine
+
+ckpt:
+  dir: runs/pretrain
+  save_every: 5
+
+# Logging and monitoring
+logging:
+  tensorboard: true
+  wandb:
+    project: "eeg2025_pretrain"
+    entity: null
+    tags: ["ssl", "pretrain"]
+
+# Hardware configuration
+hardware:
+  devices: 1
+  accelerator: "gpu"
+  precision: "16-mixed"
