@@ -6,18 +6,66 @@ model:
   backbone: temporal_cnn
   emb_dim: 256
 
-invariance:
-  dann: true
-  subject_hidden: 128
+# Target psychopathology factors
+targets:
+  factors: ["p_factor", "internalizing", "externalizing", "attention"]
+  normalize_targets: true
 
+# Domain Adversarial Neural Network (DANN)
+invariance:
+  dann:
+    enabled: true
+    subject_hidden: 128
+
+    # GRL Lambda Schedule (warmup 0 → 0.2)
+    grl_schedule:
+      strategy: "linear_warmup"
+      initial_lambda: 0.0
+      final_lambda: 0.2
+      warmup_steps: 1000
+      total_steps: 10000
+
+    # Domain adversarial head config
+    domain_head:
+      hidden_dims: [128, 64]
+      dropout_rate: 0.3
+      activation: "relu"
+
+  # Optional site/scanner adversary (if metadata available)
+  site_adversary:
+    enabled: false  # Set to true if site metadata is available
+    metadata_key: "site"
+
+  # IRM penalty option (mutually compatible with DANN)
+  irm:
+    enabled: false
+    penalty_weight: 1.0
+    anneal_iterations: 500
+
+# Multi-task uncertainty weighting (learned log-variance)
 loss:
   type: multitask_mse_uncertainty
+  uncertainty_weighting:
+    enabled: true
+    learned_weights: true
+    initial_log_vars:
+      p_factor: 0.0
+      internalizing: 0.0
+      externalizing: 0.0
+      attention: 0.0
 
 optim:
   lr: 2e-4
   weight_decay: 0.01
   batch_size: 128
   epochs: 40
+
+# Early stopping on mean Pearson r
+early_stopping:
+  enabled: true
+  patience: 15
+  primary_metric: "mean_pearson_r"
+  mode: "max"
 
 aug:
   compression_views: true
@@ -26,14 +74,23 @@ aug:
 
 ckpt:
   dir: runs/psych
+  save_every: 5
+
+# Evaluation metrics - per-factor Pearson r reporting
+metrics:
+  primary_metrics: ["pearson_r", "rmse", "mae"]
+  report_per_factor: true
+  checkpoint_selection: "mean_pearson_r"
 
 # Logging and monitoring
 logging:
+  log_every: 20
+  eval_every: 100
   tensorboard: true
   wandb:
     project: "eeg2025_psych"
     entity: null
-    tags: ["psychopathology", "subject_invariant"]
+    tags: ["psychopathology", "subject_invariant", "dann"]
 
 # Hardware configuration
 hardware:
