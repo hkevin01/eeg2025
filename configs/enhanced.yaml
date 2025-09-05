@@ -1,0 +1,208 @@
+# Enhanced configuration for EEG Foundation Challenge 2025
+# Integrates Starter Kit requirements, domain adaptation, and competition settings
+
+defaults:
+  - _self_
+
+# Task configuration
+task:
+  name: "cross_task"  # Options: "pretraining", "cross_task", "psychopathology"
+
+  # Challenge-specific parameters
+  challenges:
+    challenge1:  # CCD Cross-Cognitive Domain
+      window_length: 2.0  # seconds
+      targets: ["response_time", "success"]
+      tasks: ["Nback", "ASSR", "WM"]
+
+    challenge2:  # CBCL Psychopathology
+      window_length: 2.0  # seconds
+      targets: ["p_factor", "internalizing", "externalizing", "attention", "binary_label"]
+      age_range: [5, 21]
+
+# Data configuration
+data:
+  bids_root: "/path/to/hbn/bids"  # Update this path
+
+  # EEG parameters
+  channels: 128  # Number of EEG channels
+  sample_rate: 128  # Hz
+  overlap: 0.0  # Window overlap (0.0 = no overlap)
+
+  # Window configurations per task
+  windows:
+    pretraining_len_s: 4.0
+    cross_task_len_s: 2.0
+    psychopathology_len_s: 2.0
+
+  # Data augmentation
+  compression_augmentation: true
+  compression_strengths: [0.1, 0.2, 0.3]  # Distortion levels for compression aug
+
+  # Official Starter Kit integration
+  use_starter_kit: true
+  use_official_splits: true
+  validate_against_starter_kit: true
+
+# Model configuration
+model:
+  # Backbone architecture
+  backbone:
+    type: "enhanced_cnn"  # Options: "enhanced_cnn", "robust_eeg"
+    num_channels: [64, 128, 256, 512]
+    kernel_size: 7
+    dropout: 0.3
+
+    # Enhanced features
+    use_se: true  # Squeeze-Excitation blocks
+    use_conformer: true  # ConformerTiny integration
+    conformer_dim: 256
+    conformer_depth: 4
+
+    # Robust EEG specific (if backbone.type == "robust_eeg")
+    channel_dropout: 0.1
+    use_channel_attention: true
+
+  # Task heads configuration
+  num_task_classes: 10  # Number of cognitive tasks
+
+  # SSL configuration (for pretraining)
+  ssl:
+    projection_dim: 128
+    hidden_dim: 256
+    dropout: 0.2
+    use_temporal_prediction: true
+    temporal_classes: 4
+
+# Domain adaptation configuration
+domain_adaptation:
+  enabled: true
+
+  # Domain specifications
+  num_subjects: 1000  # Approximate number of unique subjects
+  num_sites: 10       # Number of data collection sites
+
+  # DANN configuration
+  dann:
+    enabled: true
+    lambda_max: 1.0
+    gamma: 10.0
+
+  # MMD configuration
+  mmd:
+    enabled: true
+    kernel_type: "rbf"
+    kernel_params: {"gamma": 1.0}
+    weight: 0.1
+
+  # IRM configuration
+  irm:
+    enabled: false  # Can be expensive
+    penalty_weight: 1000.0
+    penalty_anneal_iters: 500
+
+  # Gradient reversal scheduling
+  grl_schedule:
+    type: "curriculum"  # Options: "linear", "exponential", "curriculum"
+    warmup_steps: 1000
+    max_steps: 10000
+
+# Training configuration
+training:
+  # Basic parameters
+  batch_size: 32
+  max_epochs: 100
+  learning_rate: 1e-3
+  weight_decay: 1e-4
+  betas: [0.9, 0.999]
+
+  # Optimization
+  use_scheduler: true
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 1
+  precision: "16-mixed"  # Use mixed precision for faster training
+
+  # Monitoring
+  check_val_every_n_epoch: 1
+
+  # Early stopping
+  early_stopping: true
+  early_stopping_patience: 15
+  early_stopping_min_delta: 0.001
+
+  # Advanced features
+  compression_aware: true
+  run_ablation: true  # Run ablation study
+
+  # Loss weights
+  loss_weights:
+    response_time: 1.0
+    success: 1.0
+    p_factor: 1.0
+    internalizing: 1.0
+    externalizing: 1.0
+    attention: 1.0
+    binary: 1.0
+    contrastive: 1.0
+
+  # Data loading
+  num_workers: 4
+  pin_memory: true
+
+  # Reproducibility
+  seed: 42
+
+# Paths configuration
+paths:
+  checkpoints: "checkpoints"
+  logs: "logs"
+  results: "results"
+  submissions: "submissions"
+
+# Logging configuration
+logging:
+  use_wandb: false  # Set to true and configure project if using W&B
+  wandb_project: "eeg-foundation-challenge"
+  log_every_n_steps: 50
+
+# Evaluation configuration
+evaluation:
+  # Which splits to evaluate
+  splits: ["val", "test"]
+
+  # Metrics configuration
+  compute_official_metrics: true
+  create_submission_files: true
+
+  # Aggregation rules (following Starter Kit specifications)
+  aggregation:
+    challenge1:  # Per trial
+      group_by: ["subject", "session", "task", "trial"]
+      agg_method: "mean"
+
+    challenge2:  # Per subject
+      group_by: ["subject", "session"]
+      agg_method: "mean"
+
+# Inference configuration
+inference:
+  # Real-time constraints
+  max_latency_ms: 2  # Maximum latency for 2-second window
+  batch_size: 1      # Real-time single sample processing
+
+  # Model optimization
+  compile_model: true
+  use_torchscript: false
+  quantization: false
+
+# Hydra configuration
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra:job.num}
+
+# Run configuration
+run_id: ${now:%Y%m%d_%H%M%S}
+experiment_name: "eeg_foundation_${task.name}_${run_id}"

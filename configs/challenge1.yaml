@@ -1,0 +1,81 @@
+# @package _global_
+
+# Challenge 1: CCD Cross-Cognitive Domain Configuration
+# Response time prediction and success classification
+
+defaults:
+  - base: enhanced
+  - _self_
+
+# Override task configuration
+task:
+  name: "cross_task"
+
+# Data configuration specific to Challenge 1
+data:
+  windows:
+    cross_task_len_s: 2.0  # Official window length for Challenge 1
+
+  # Challenge 1 specific augmentations
+  temporal_jitter: true
+  amplitude_scaling: true
+
+# Model configuration for Challenge 1
+model:
+  backbone:
+    # Optimized for cross-task generalization
+    use_conformer: true
+    conformer_depth: 6  # Deeper for better task representation
+    dropout: 0.2  # Lower dropout for better generalization
+
+  # Challenge 1 specific heads are defined in the main model
+
+# Domain adaptation for cross-task generalization
+domain_adaptation:
+  enabled: true
+
+  # Focus on task domain adaptation
+  dann:
+    enabled: true
+    lambda_max: 0.5  # Moderate adversarial strength
+
+  mmd:
+    enabled: true
+    weight: 0.05  # Moderate MMD penalty
+
+# Training configuration for Challenge 1
+training:
+  # Longer training for cross-task learning
+  max_epochs: 150
+
+  # Learning rate schedule
+  learning_rate: 5e-4  # Slightly lower for stability
+
+  # Loss weights for Challenge 1
+  loss_weights:
+    response_time: 2.0  # Higher weight for regression task
+    success: 1.0
+
+  # Early stopping on Challenge 1 metrics
+  early_stopping_patience: 20
+
+# Evaluation specific to Challenge 1
+evaluation:
+  # Challenge 1 official metrics
+  primary_metrics:
+    - "response_time_r"  # Pearson correlation for response time
+    - "success_auroc"    # AUROC for success prediction
+    - "mean_metric"      # Average of the two above
+
+  # Aggregation per trial (Challenge 1 requirement)
+  aggregation:
+    group_by: ["subject", "session", "task", "trial"]
+    agg_method: "mean"
+
+# Challenge 1 specific inference settings
+inference:
+  # Real-time prediction requirements
+  max_latency_ms: 2
+  target_accuracy:
+    response_time_r: 0.3  # Target Pearson r
+    success_auroc: 0.7    # Target AUROC

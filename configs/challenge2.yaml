@@ -1,0 +1,98 @@
+# @package _global_
+
+# Challenge 2: CBCL Psychopathology Configuration
+# Multi-target regression and binary classification
+
+defaults:
+  - base: enhanced
+  - _self_
+
+# Override task configuration
+task:
+  name: "psychopathology"
+
+# Data configuration specific to Challenge 2
+data:
+  windows:
+    psychopathology_len_s: 2.0  # Official window length for Challenge 2
+
+  # Challenge 2 specific considerations
+  age_stratified_splits: true
+  handle_missing_labels: true
+
+# Model configuration for Challenge 2
+model:
+  backbone:
+    # Optimized for individual differences
+    use_conformer: true
+    conformer_depth: 4  # Balanced depth
+    dropout: 0.3  # Standard dropout
+
+    # Enhanced attention for psychopathology features
+    use_se: true
+
+  # Multi-target regression heads are defined in the main model
+
+# Domain adaptation for psychopathology prediction
+domain_adaptation:
+  enabled: true
+
+  # Focus on subject-level domain adaptation
+  dann:
+    enabled: true
+    lambda_max: 1.0  # Strong adversarial for subject invariance
+
+  mmd:
+    enabled: true
+    weight: 0.1  # Stronger MMD for individual differences
+
+  # IRM for stable psychopathology features
+  irm:
+    enabled: true
+    penalty_weight: 500.0
+
+# Training configuration for Challenge 2
+training:
+  # Standard training length
+  max_epochs: 100
+
+  # Learning rate for multi-target regression
+  learning_rate: 1e-3
+
+  # Balanced loss weights for Challenge 2
+  loss_weights:
+    p_factor: 1.5      # Emphasis on general psychopathology
+    internalizing: 1.0
+    externalizing: 1.0
+    attention: 1.0
+    binary: 2.0        # Higher weight for binary classification
+
+  # Early stopping on Challenge 2 metrics
+  early_stopping_patience: 15
+
+# Evaluation specific to Challenge 2
+evaluation:
+  # Challenge 2 official metrics
+  primary_metrics:
+    - "p_factor_r"      # Pearson r for p-factor
+    - "internalizing_r" # Pearson r for internalizing
+    - "externalizing_r" # Pearson r for externalizing
+    - "attention_r"     # Pearson r for attention
+    - "binary_auroc"    # AUROC for binary classification
+    - "mean_r"          # Average Pearson r
+
+  # Aggregation per subject (Challenge 2 requirement)
+  aggregation:
+    group_by: ["subject", "session"]
+    agg_method: "mean"
+
+# Challenge 2 specific inference settings
+inference:
+  # Psychopathology prediction requirements
+  max_latency_ms: 2
+  target_accuracy:
+    mean_r: 0.2         # Target average Pearson r
+    binary_auroc: 0.65  # Target AUROC for binary classification
+
+  # Multi-target prediction
+  output_format: "multi_target"

@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Test Enhanced StarterKit",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python test_enhanced_starter_kit.py",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}
