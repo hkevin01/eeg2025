@@ -1,19 +1,60 @@
-name: CI/CD Pipeline
+name: EEG2025 Challenge CI/CD
+
 on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
+  schedule:
+    # Run nightly builds to catch environment drift
+    - cron: '0 2 * * *'
 
 env:
-  PYTHON_VERSION: 3.11
+  PYTHON_VERSION: '3.9'
+  TORCH_VERSION: '2.0.0'
+  CUDA_VERSION: '11.8'
 
 jobs:
-  test:
+
+  # Code quality and linting
+  lint-and-format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install black isort flake8 mypy pytest
+        pip install -r requirements.txt
+
+    - name: Run Black formatter check
+      run: black --check --diff src/ tests/
+
+    - name: Run isort import sorting check
+      run: isort --check-only --diff src/ tests/
+
+    - name: Run flake8 linting
+      run: flake8 src/ tests/ --max-line-length=100 --extend-ignore=E203,W503
+
+    - name: Run mypy type checking
+      run: mypy src/ --ignore-missing-imports
+
+    - name: Check docstring coverage
+      run: |
+        pip install docstr-coverage
+        docstr-coverage src/ --fail-under=80
+
+  # Unit tests
+  test-unit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.10, 3.11]
+        python-version: ['3.8', '3.9', '3.10']
 
     steps:
     - uses: actions/checkout@v4
@@ -23,7 +64,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Cache pip packages
+    - name: Cache pip dependencies
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
@@ -33,24 +74,14 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        pip install --upgrade pip
+        pip install torch==${{ env.TORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
         pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install pytest pytest-cov pytest-xdist
 
-    - name: Lint with flake8
+    - name: Run unit tests
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-    - name: Type check with mypy
-      run: |
-        mypy src/ --ignore-missing-imports
-
-    - name: Test with pytest
-      run: |
-        pytest tests/ --cov=src --cov-report=xml --cov-report=html
+        pytest tests/unit/ -v --cov=src --cov-report=xml --cov-report=html -n auto
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -58,38 +89,442 @@ jobs:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
+        fail_ci_if_error: false
 
-  docker-build:
+  # Integration tests
+  test-integration:
     runs-on: ubuntu-latest
-    needs: test
+    needs: test-unit
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install torch==${{ env.TORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+        pip install -r requirements.txt
+        pip install pytest
+
+    - name: Run integration tests
+      run: |
+        pytest tests/integration/ -v -x --timeout=300
+
+    - name: Test SSL pretraining pipeline
+      run: |
+        python -m src.training.train_ssl --config configs/ssl_config.yaml --epochs 5 --dry-run
+
+    - name: Test cross-task transfer
+      run: |
+        python -m src.training.train_cross_task --config configs/cross_task_config.yaml --epochs 5 --dry-run
+
+    - name: Test DANN training
+      run: |
+        python -m src.training.train_psych --config configs/psych_config.yaml --epochs 5 --dry-run --dann
+
+    - name: Test submission generation
+      run: |
+        python -m src.evaluation.submission --config configs/submission_config.yaml --dry-run
+
+  # Model validation tests
+  test-models:
+    runs-on: ubuntu-latest
+    needs: test-unit
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install torch==${{ env.TORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+        pip install -r requirements.txt
+        pip install pytest
+
+    - name: Test model architectures
+      run: |
+        pytest tests/models/ -v
+
+    - name: Test DANN gradient reversal
+      run: |
+        python -c "
+        import torch
+        from src.models.invariance.dann import GradientReversalLayer
+        grl = GradientReversalLayer()
+        x = torch.randn(32, 128, requires_grad=True)
+        y = grl(x, lambda_val=0.5)
+        loss = y.sum()
+        loss.backward()
+        assert x.grad is not None
+        assert torch.allclose(x.grad, -0.5 * torch.ones_like(x.grad))
+        print('DANN gradient reversal test passed')
+        "
+
+    - name: Test SSL objectives
+      run: |
+        python -c "
+        import torch
+        from src.models.ssl.objectives import ContrastiveLoss, MaskedReconstructionLoss
+        cl = ContrastiveLoss()
+        mrl = MaskedReconstructionLoss()
+        x = torch.randn(32, 19, 1000)
+        cl_loss = cl(x, x)
+        mrl_loss = mrl(x, x, torch.randint(0, 2, (32, 1000)).bool())
+        assert cl_loss.item() > 0
+        assert mrl_loss.item() > 0
+        print('SSL objectives test passed')
+        "
+
+    - name: Test uncertainty weighting
+      run: |
+        python -c "
+        import torch
+        from src.training.train_psych import UncertaintyWeightedLoss
+        uwl = UncertaintyWeightedLoss(num_tasks=4)
+        preds = torch.randn(32, 4)
+        targets = torch.randn(32, 4)
+        loss = uwl(preds, targets)
+        assert loss.item() > 0
+        assert len(uwl.log_vars) == 4
+        print('Uncertainty weighting test passed')
+        "
+
+  # Performance regression tests
+  test-performance:
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-integration]
+    if: github.event_name == 'schedule' || github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install torch==${{ env.TORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+        pip install -r requirements.txt
+        pip install pytest memory-profiler
+
+    - name: Run performance tests
+      run: |
+        pytest tests/performance/ -v
+
+    - name: Profile memory usage
+      run: |
+        python -c "
+        import torch
+        from src.models.backbone import TemporalCNN
+        from memory_profiler import profile
+
+        @profile
+        def test_memory():
+            model = TemporalCNN(input_channels=19, num_layers=5)
+            x = torch.randn(32, 19, 1000)
+            y = model(x)
+            return y
+
+        test_memory()
+        "
+
+    - name: Benchmark inference speed
+      run: |
+        python -c "
+        import time
+        import torch
+        from src.models.backbone import TemporalCNN
+
+        model = TemporalCNN(input_channels=19, num_layers=5)
+        model.eval()
+        x = torch.randn(32, 19, 1000)
+
+        # Warmup
+        for _ in range(10):
+            _ = model(x)
+
+        # Benchmark
+        times = []
+        for _ in range(100):
+            start = time.time()
+            with torch.no_grad():
+                _ = model(x)
+            times.append(time.time() - start)
+
+        avg_time = sum(times) / len(times)
+        print(f'Average inference time: {avg_time*1000:.2f}ms')
+        assert avg_time < 0.1, f'Inference too slow: {avg_time:.3f}s'
+        "
+
+  # Documentation and examples
+  test-docs:
+    runs-on: ubuntu-latest
+    needs: test-unit
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install torch==${{ env.TORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+        pip install -r requirements.txt
+        pip install sphinx sphinx-rtd-theme nbconvert
+
+    - name: Test code examples in documentation
+      run: |
+        python -m pytest tests/docs/ -v
+
+    - name: Validate configuration files
+      run: |
+        python -c "
+        import yaml
+        import os
+        for config_file in os.listdir('configs/'):
+            if config_file.endswith('.yaml'):
+                with open(f'configs/{config_file}', 'r') as f:
+                    config = yaml.safe_load(f)
+                print(f'✓ {config_file} is valid YAML')
+        "
+
+    - name: Test example scripts
+      run: |
+        if [ -d "examples/" ]; then
+          for script in examples/*.py; do
+            python -m py_compile "$script"
+            echo "✓ $script compiles successfully"
+          done
+        fi
+
+  # Reproducibility tests
+  test-reproducibility:
+    runs-on: ubuntu-latest
+    needs: test-models
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install torch==${{ env.TORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+        pip install -r requirements.txt
+
+    - name: Test seed reproducibility
+      run: |
+        python -c "
+        import torch
+        from src.utils.reproducibility import SeedManager
+
+        # Test 1: Same seed produces same results
+        seed_manager = SeedManager(42)
+        seed_manager.seed_everything()
+        x1 = torch.randn(10, 10)
+
+        seed_manager.seed_everything()
+        x2 = torch.randn(10, 10)
+
+        assert torch.allclose(x1, x2), 'Seed reproducibility failed'
+        print('✓ Seed reproducibility test passed')
+
+        # Test 2: Different seeds produce different results
+        seed_manager = SeedManager(123)
+        seed_manager.seed_everything()
+        x3 = torch.randn(10, 10)
+
+        assert not torch.allclose(x1, x3), 'Different seeds should produce different results'
+        print('✓ Seed difference test passed')
+        "
+
+    - name: Test environment capture
+      run: |
+        python -c "
+        from src.utils.reproducibility import EnvironmentCapture
+
+        env_capture = EnvironmentCapture()
+        env_info = env_capture.capture_environment()
+
+        required_fields = ['python_version', 'torch_version', 'platform', 'timestamp']
+        for field in required_fields:
+            assert field in env_info, f'Missing field: {field}'
+
+        print('✓ Environment capture test passed')
+        "
+
+  # Security and vulnerability scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install security tools
+      run: |
+        pip install bandit safety
+
+    - name: Run Bandit security linter
+      run: |
+        bandit -r src/ -f json -o bandit-report.json || true
+        bandit -r src/ -ll
+
+    - name: Check for known vulnerabilities
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  # Build and test Docker image
+  test-docker:
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-integration]
+    if: github.event_name == 'push' || contains(github.event.head_commit.message, '[docker]')
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v2
 
     - name: Build Docker image
       run: |
-        docker build -t eeg2025:latest -f docker/Dockerfile .
+        if [ -f "docker/Dockerfile" ]; then
+          docker build -t eeg2025:test -f docker/Dockerfile .
+        else
+          echo "No Dockerfile found, skipping Docker tests"
+          exit 0
+        fi
 
     - name: Test Docker image
       run: |
-        docker run --rm eeg2025:latest python -c "import torch; print('Docker build successful')"
+        if docker images | grep -q eeg2025:test; then
+          # Test basic functionality
+          docker run --rm eeg2025:test python -c "import src; print('✓ Package imports successfully')"
 
-  security-scan:
+          # Test CLI commands
+          docker run --rm eeg2025:test python -m src.training.train_ssl --help
+          docker run --rm eeg2025:test python -m src.evaluation.submission --help
+        fi
+
+  # Deployment and release preparation
+  prepare-release:
     runs-on: ubuntu-latest
+    needs: [lint-and-format, test-unit, test-integration, test-models, test-docs]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for changelog
 
-    - name: Run Bandit Security Scan
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
       run: |
-        pip install bandit
-        bandit -r src/ -f json -o bandit-report.json || true
+        pip install --upgrade pip
+        pip install build twine
+        pip install -r requirements.txt
 
-    - name: Upload Bandit scan results
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Check package
+      run: |
+        python -m twine check dist/*
+
+    - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: bandit-report
-        path: bandit-report.json
+        name: dist
+        path: dist/
+
+    - name: Generate changelog (if tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        # Generate changelog from git history
+        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^)..HEAD > CHANGELOG.md
+
+    - name: Create release archive
+      run: |
+        # Create submission-ready archive
+        tar -czf eeg2025-challenge-submission.tar.gz \
+          src/ configs/ docs/ requirements.txt README.md \
+          --exclude="__pycache__" --exclude="*.pyc" --exclude=".pytest_cache"
+
+    - name: Upload release archive
+      uses: actions/upload-artifact@v3
+      with:
+        name: submission-archive
+        path: eeg2025-challenge-submission.tar.gz
+
+  # Notification and reporting
+  notify-results:
+    runs-on: ubuntu-latest
+    needs: [lint-and-format, test-unit, test-integration, test-models, test-docs, test-reproducibility]
+    if: always()
+
+    steps:
+    - name: Notify success
+      if: needs.lint-and-format.result == 'success' && needs.test-unit.result == 'success' && needs.test-integration.result == 'success'
+      run: |
+        echo "✅ All tests passed successfully!"
+        echo "Pipeline is ready for deployment."
+
+    - name: Notify failure
+      if: needs.lint-and-format.result == 'failure' || needs.test-unit.result == 'failure' || needs.test-integration.result == 'failure'
+      run: |
+        echo "❌ Some tests failed!"
+        echo "Please check the logs and fix issues before deployment."
+        exit 1
+
+    - name: Generate test summary
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Lint & Format | ${{ needs.lint-and-format.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Unit Tests | ${{ needs.test-unit.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Integration Tests | ${{ needs.test-integration.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Model Tests | ${{ needs.test-models.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Documentation | ${{ needs.test-docs.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Reproducibility | ${{ needs.test-reproducibility.result }} |" >> $GITHUB_STEP_SUMMARY

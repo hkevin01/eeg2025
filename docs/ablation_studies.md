@@ -179,7 +179,7 @@ SSL pretraining shows consistent benefits across all data regimes:
 **SSL Benefit by Data Size:**
 
 - 25% data: +0.08 correlation (largest relative gain)
-- 50% data: +0.09 correlation  
+- 50% data: +0.09 correlation
 - 75% data: +0.08 correlation
 - 100% data: +0.07 correlation
 
@@ -204,7 +204,7 @@ The diminishing returns at larger data sizes suggest SSL is most valuable in dat
 **Most Critical Hyperparameters (ranked by impact):**
 
 1. **SSL pretraining epochs** (±0.05 correlation impact)
-2. **DANN lambda schedule** (±0.04 correlation impact)  
+2. **DANN lambda schedule** (±0.04 correlation impact)
 3. **Learning rate** (±0.03 correlation impact)
 4. **Augmentation intensity** (±0.02 correlation impact)
 5. **Architecture depth** (±0.02 correlation impact)
