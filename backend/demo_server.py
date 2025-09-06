@@ -87,19 +87,19 @@ def make_biquad_coeffs(sfreq: float, bp_lo: float, bp_hi: float, notch: float, Q
     """Create biquad filter coefficients for GPU processing."""
     if not GPU_AVAILABLE:
         return None, None, None
-    
+
     try:
         # Design filters
         sos_bp = butter(4, [bp_lo/(sfreq/2), bp_hi/(sfreq/2)], btype="bandpass", output="sos")
         b1, a1 = sos2tf(sos_bp[0:1, :])
         b2, a2 = sos2tf(sos_bp[1:2, :])
         b_nt, a_nt = iirnotch(notch/(sfreq/2), Q=Q)
-        
+
         def pack(b, a):
             b = b / a[0]
             a = a / a[0]
             return torch.tensor([b[0], b[1], b[2], a[1], a[2]], dtype=torch.float32, device=device)
-        
+
         return pack(b1, a1), pack(b2, a2), pack(b_nt, a_nt)
     except Exception as e:
         print(f"Filter coefficient creation failed: {e}")
@@ -144,27 +144,27 @@ def health():
 async def infer_once(cfg: InferenceConfig):
     """
     Run single inference with current configuration.
-    
+
     Returns latency metrics and model outputs for demonstration.
     """
     if model is None:
         raise HTTPException(status_code=500, detail="Model not initialized")
-    
+
     try:
         C = cfg.channels
         T = int(cfg.sfreq * cfg.window_s)
         B = 32
-        
+
         # Generate simulated EEG data
         x = torch.randn(B, C, T, device=device, dtype=torch.float32) * 0.5
-        
+
         # Optional montage/channel dropout simulation
         if cfg.channel_drop_prob > 0:
             mask = (torch.rand(B, C, 1, device=device) > cfg.channel_drop_prob).float()
             x = x * mask
-        
+
         total_start = time.perf_counter()
-        
+
         # GPU Preprocessing with timing
         fused_ms = 0.0
         if cfg.use_fused_preproc and GPU_AVAILABLE:
@@ -177,11 +177,11 @@ async def infer_once(cfg: InferenceConfig):
                 if device.type == "cuda":
                     torch.cuda.synchronize()
                 fused_ms = (time.perf_counter() - preproc_start) * 1000.0
-        
+
         # RMSNorm timing
         if cfg.use_rmsnorm and GPU_AVAILABLE:
             x = rmsnorm_time(x)
-        
+
         # Perceptual quantization timing
         quant_ms = 0.0
         if cfg.use_perceptual_quant and GPU_AVAILABLE and device.type == "cuda":
@@ -189,7 +189,7 @@ async def infer_once(cfg: InferenceConfig):
             x = perceptual_quantize_torch(x, snr_db=cfg.snr_db)
             torch.cuda.synchronize()
             quant_ms = (time.perf_counter() - quant_start) * 1000.0
-        
+
         # Forward pass timing
         forward_start = time.perf_counter()
         with torch.no_grad():
@@ -207,21 +207,21 @@ async def infer_once(cfg: InferenceConfig):
                         out = model(x)
                 else:
                     out = model(x)
-        
+
         if device.type == "cuda":
             torch.cuda.synchronize()
         fwd_ms = (time.perf_counter() - forward_start) * 1000.0
-        
+
         total_ms = (time.perf_counter() - total_start) * 1000.0
-        
+
         # Generate demo outputs (simulated EEG analysis results)
         if out.dim() == 2:
             # Response time (normalized and scaled to realistic range)
             rt = (torch.tanh(out[:, 0]).mean().item() + 1.0) * 300.0 + 200.0  # 200-800ms range
-            
+
             # Success probability
             succ = torch.sigmoid(out[:, 1] if out.shape[1] > 1 else out[:, 0]).mean().item()
-            
+
             # CBCL factors (normalized to [-1, 1] range)
             if out.shape[1] >= 4:
                 cbcl = torch.tanh(out.mean(dim=0)[:4]).tolist()
@@ -235,7 +235,7 @@ async def infer_once(cfg: InferenceConfig):
             rt = (torch.tanh(out_flat[0]).item() + 1.0) * 300.0 + 200.0
             succ = torch.sigmoid(out_flat[1] if len(out_flat) > 1 else out_flat[0]).item()
             cbcl = torch.tanh(out_flat[:4] if len(out_flat) >= 4 else torch.cat([out_flat, torch.zeros(4-len(out_flat))])).tolist()
-        
+
         return {
             "latency_ms": {
                 "preproc": fused_ms,
@@ -261,7 +261,7 @@ async def infer_once(cfg: InferenceConfig):
                 "device": str(device)
             }
         }
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")
 
@@ -272,18 +272,18 @@ async def get_demo_data():
     sfreq = 500
     duration = 2.0
     t = np.linspace(0, duration, int(sfreq * duration))
-    
+
     # Simulate EEG with multiple frequency components
     alpha = np.sin(2 * np.pi * 10 * t)  # 10 Hz alpha
     beta = 0.5 * np.sin(2 * np.pi * 20 * t)  # 20 Hz beta
     noise = 0.2 * np.random.randn(len(t))
-    
+
     eeg_sample = alpha + beta + noise
-    
+
     # Simple frequency spectrum (toy implementation)
     freqs = np.fft.fftfreq(len(t), 1/sfreq)[:len(t)//2]
     fft_vals = np.abs(np.fft.fft(eeg_sample))[:len(t)//2]
-    
+
     return {
         "time_series": eeg_sample.tolist()[:512],  # Subsample for demo
         "frequencies": freqs[:128].tolist(),

@@ -60,6 +60,18 @@
 			"type": "shell",
 			"command": "chmod +x /home/kevin/Projects/eeg2025/scripts/demo.sh",
 			"group": "build"
+		},
+		{
+			"label": "test_demo",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python tests/test_demo_integration.py",
+			"group": "test"
+		},
+		{
+			"label": "make_setup_executable",
+			"type": "shell",
+			"command": "chmod +x /home/kevin/Projects/eeg2025/scripts/setup_demo.sh",
+			"group": "build"
 		}
 	]
 }

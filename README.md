@@ -985,34 +985,59 @@ python train_advanced.py \
 
 ```bash
 eeg2025/
+├── backend/                             # Demo server
+│   └── demo_server.py                  # FastAPI backend for interactive demo
+├── web/                                # Frontend interface
+│   └── demo.html                       # Interactive GPU demo interface
 ├── src/
+│   ├── gpu/                            # GPU acceleration core
+│   │   ├── triton/                     # Triton kernels
+│   │   │   ├── fir_iir_fused.py       # Fused filtering (450+ lines)
+│   │   │   ├── rmsnorm.py             # Fast normalization (380+ lines)
+│   │   │   └── utils.py               # Kernel utilities
+│   │   ├── cupy/                      # CuPy implementations
+│   │   │   └── perceptual_quant.py    # Compression augmentation (600+ lines)
+│   │   └── __init__.py                # GPU module init
 │   ├── models/
 │   │   ├── invariance/
-│   │   │   ├── dann_multi.py           # Multi-adversary domain adaptation (400+ lines)
-│   │   │   └── dann.py                 # Base DANN implementation
-│   │   ├── adapters.py                 # Task-aware architecture (650+ lines)
-│   │   ├── compression_ssl.py          # Compression-augmented SSL (700+ lines)
-│   │   ├── gpu_optimization.py         # Performance optimization (800+ lines)
-│   │   ├── inference_benchmark.py      # Production benchmarking (600+ lines)
+│   │   │   ├── dann_multi.py          # Multi-adversary domain adaptation (400+ lines)
+│   │   │   └── dann.py                # Base DANN implementation
+│   │   ├── adapters.py                # Task-aware architecture (650+ lines)
+│   │   ├── compression_ssl.py         # Compression-augmented SSL (700+ lines)
+│   │   ├── gpu_optimization.py        # Performance optimization (800+ lines)
+│   │   ├── inference_benchmark.py     # Production benchmarking (600+ lines)
 │   │   ├── advanced_foundation_model.py # Unified integration (500+ lines)
-│   │   └── heads.py                    # Task-specific prediction heads
+│   │   └── heads.py                   # Task-specific prediction heads
 │   ├── data/
-│   │   ├── enhanced_pipeline.py        # Advanced data processing
-│   │   └── datasets.py                 # Dataset implementations
+│   │   ├── enhanced_pipeline.py       # Advanced data processing
+│   │   └── datasets.py                # Dataset implementations
 │   ├── training/
-│   │   ├── enhanced_trainer.py         # Advanced training utilities
-│   │   └── ssl_trainer.py              # Self-supervised training
+│   │   ├── enhanced_trainer.py        # Advanced training utilities
+│   │   └── ssl_trainer.py             # Self-supervised training
 │   └── utils/
-│       ├── augmentations.py            # EEG-specific augmentations
-│       ├── metrics.py                  # Evaluation metrics
-│       └── visualization.py            # Result visualization
+│       ├── augmentations.py           # EEG-specific augmentations
+│       ├── metrics.py                 # Evaluation metrics
+│       └── visualization.py           # Result visualization
+├── scripts/                           # Utilities and demos
+│   ├── train_advanced.py             # Main training script (400+ lines)
+│   ├── stream_infer_demo.py          # Streaming demo (800+ lines)
+│   ├── demo.sh                       # Demo management script
+│   ├── launch_demo.py                # Demo launcher
+│   └── organize_project.py           # Project organization utility
+├── tests/                            # Test suite
+│   ├── test_enhanced_model.py        # Model testing utilities
+│   ├── test_cross_task_simple.py     # Cross-task validation
+│   ├── simple_validation.py          # Basic validation
+│   └── validate_enhancements.py      # Enhancement validation
+├── docker/                           # Container configurations
+│   ├── docker-compose.demo.yml       # Demo deployment
+│   ├── Dockerfile.demo               # Demo container
+│   └── nginx.conf                    # Proxy configuration
 ├── configs/
-│   ├── enhanced.yaml                   # Main configuration
-│   ├── challenge1.yaml                 # Challenge 1 specific
-│   └── challenge2.yaml                 # Challenge 2 specific
-├── train_advanced.py                   # Main training script (400+ lines)
-├── test_enhanced_model.py              # Model testing utilities
-└── requirements.txt                    # Dependencies
+│   ├── enhanced.yaml                 # Main configuration
+│   ├── challenge1.yaml               # Challenge 1 specific
+│   └── challenge2.yaml               # Challenge 2 specific
+└── requirements.txt                  # Dependencies
 ```
 
 ### Implementation Statistics
@@ -2575,14 +2600,39 @@ deployment_targets = {
 }
 ```
 
-### 🚀 Quick Start: GPU-First Training
+### 🚀 Quick Start: Interactive GPU Demo
 
-#### Environment Setup
+#### 🎮 Live Interactive Demo
+
+Experience our GPU-first EEG processing in real-time with our interactive web interface:
+
+```bash
+# Option 1: Docker deployment (recommended)
+./scripts/demo.sh start
+
+# Option 2: Development server
+./scripts/demo.sh dev
+
+# View demo at: http://localhost:8080/demo/
+```
+
+**Demo Features**:
+
+- **Real-time GPU processing**: Toggle Triton kernels, CuPy compression, RMSNorm
+- **Live visualization**: Time-series and frequency domain plots
+- **Performance metrics**: Sub-millisecond latency tracking
+- **Robustness testing**: Channel dropout, compression stress tests
+- **Mobile responsive**: Works on phones, tablets, and desktops
+
+#### 🔧 Environment Setup
 
 ```bash
 # Install GPU dependencies
 pip install triton>=2.1.0 cupy-cuda12x>=12.0.0
 pip install torch>=2.1.0 torchaudio torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# Install demo dependencies
+pip install fastapi uvicorn[standard] scipy
 
 # Verify GPU stack
 python -c "
@@ -2598,7 +2648,7 @@ print(f'GPU: {torch.cuda.get_device_name()}')
 
 ```bash
 # Full GPU-first training with all optimizations
-python train_gpu_first.py \
+python scripts/train_advanced.py \
     --config configs/gpu/enhanced_gpu.yaml \
     --use_triton_kernels \
     --use_cupy_augmentation \

@@ -5,205 +5,205 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>EEG GPU Demo - Interactive Real-Time Processing</title>
 <style>
-  :root { 
-    --bg:#0f172a; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb; --acc:#22d3ee; 
-    --ok:#34d399; --warn:#f59e0b; --err:#ef4444; --purple:#a855f7; --orange:#f97316; 
+  :root {
+    --bg:#0f172a; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb; --acc:#22d3ee;
+    --ok:#34d399; --warn:#f59e0b; --err:#ef4444; --purple:#a855f7; --orange:#f97316;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { 
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; 
-    background: var(--bg); color: var(--fg); line-height: 1.5; 
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
   }
-  
-  header { 
-    padding: 16px 20px; border-bottom: 1px solid #1f2937; 
+
+  header {
+    padding: 16px 20px; border-bottom: 1px solid #1f2937;
     display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   }
   header h1 { font-size: 24px; font-weight: 700; }
-  header .chip { 
-    background: #0b2530; color: #7dd3fc; padding: 6px 12px; 
-    border-radius: 999px; font-size: 12px; font-weight: 600; 
+  header .chip {
+    background: #0b2530; color: #7dd3fc; padding: 6px 12px;
+    border-radius: 999px; font-size: 12px; font-weight: 600;
     border: 1px solid #164e63;
   }
-  header .status { 
-    margin-left: auto; display: flex; gap: 8px; align-items: center; 
+  header .status {
+    margin-left: auto; display: flex; gap: 8px; align-items: center;
   }
-  
-  main { 
-    display: grid; grid-template-columns: 360px 1fr; gap: 16px; 
-    padding: 16px; min-height: calc(100vh - 80px); 
+
+  main {
+    display: grid; grid-template-columns: 360px 1fr; gap: 16px;
+    padding: 16px; min-height: calc(100vh - 80px);
   }
-  @media (max-width: 1024px) { 
+  @media (max-width: 1024px) {
     main { grid-template-columns: 1fr; }
     .controls { order: 2; }
     .visualization { order: 1; }
   }
-  
-  .card { 
-    background: var(--card); border: 1px solid #1f2937; 
+
+  .card {
+    background: var(--card); border: 1px solid #1f2937;
     border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
   }
-  .card h2 { 
-    font-size: 16px; margin: 0 0 12px 0; color: var(--muted); 
+  .card h2 {
+    font-size: 16px; margin: 0 0 12px 0; color: var(--muted);
     font-weight: 600; display: flex; align-items: center; gap: 8px;
   }
-  .card h3 { 
-    font-size: 14px; margin: 16px 0 8px 0; color: var(--fg); 
-    font-weight: 600; 
+  .card h3 {
+    font-size: 14px; margin: 16px 0 8px 0; color: var(--fg);
+    font-weight: 600;
   }
-  
+
   .controls { display: flex; flex-direction: column; gap: 20px; }
   .visualization { display: flex; flex-direction: column; gap: 16px; }
-  
+
   .form-group { display: flex; flex-direction: column; gap: 8px; }
   .form-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  
-  label { 
-    font-size: 13px; color: var(--muted); font-weight: 500; 
+
+  label {
+    font-size: 13px; color: var(--muted); font-weight: 500;
     display: flex; align-items: center; gap: 8px;
   }
-  label input[type="checkbox"] { 
-    accent-color: var(--acc); transform: scale(1.1); 
+  label input[type="checkbox"] {
+    accent-color: var(--acc); transform: scale(1.1);
   }
-  
-  input[type="number"], input[type="range"] { 
-    background: #1f2937; border: 1px solid #374151; color: var(--fg); 
+
+  input[type="number"], input[type="range"] {
+    background: #1f2937; border: 1px solid #374151; color: var(--fg);
     padding: 8px 12px; border-radius: 6px; font-size: 13px;
   }
-  input[type="number"]:focus, input[type="range"]:focus { 
-    outline: none; border-color: var(--acc); 
+  input[type="number"]:focus, input[type="range"]:focus {
+    outline: none; border-color: var(--acc);
   }
-  input[type="range"] { 
-    height: 6px; padding: 0; appearance: none; background: #374151; 
+  input[type="range"] {
+    height: 6px; padding: 0; appearance: none; background: #374151;
   }
-  input[type="range"]::-webkit-slider-thumb { 
-    appearance: none; width: 20px; height: 20px; background: var(--acc); 
-    border-radius: 50%; cursor: pointer; 
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none; width: 20px; height: 20px; background: var(--acc);
+    border-radius: 50%; cursor: pointer;
   }
-  
-  button { 
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); 
-    border: none; color: #fff; padding: 10px 16px; border-radius: 8px; 
-    cursor: pointer; font-weight: 600; font-size: 13px; 
+
+  button {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border: none; color: #fff; padding: 10px 16px; border-radius: 8px;
+    cursor: pointer; font-weight: 600; font-size: 13px;
     transition: all 0.2s ease; border: 1px solid transparent;
   }
-  button:hover { 
-    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); 
-    transform: translateY(-1px); 
+  button:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    transform: translateY(-1px);
   }
-  button.secondary { 
-    background: linear-gradient(135deg, #374151 0%, #4b5563 100%); 
+  button.secondary {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
     border: 1px solid #6b7280;
   }
-  button.secondary:hover { 
-    background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%); 
+  button.secondary:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
   }
-  button:disabled { 
-    opacity: 0.5; cursor: not-allowed; transform: none; 
+  button:disabled {
+    opacity: 0.5; cursor: not-allowed; transform: none;
   }
-  
-  .preset-grid { 
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
+
+  .preset-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   }
-  .preset { 
-    background: linear-gradient(135deg, #0b2530 0%, #164e63 100%); 
-    color: #cbd5e1; border: 1px solid #1f2937; padding: 8px 12px; 
-    border-radius: 8px; cursor: pointer; font-size: 12px; 
+  .preset {
+    background: linear-gradient(135deg, #0b2530 0%, #164e63 100%);
+    color: #cbd5e1; border: 1px solid #1f2937; padding: 8px 12px;
+    border-radius: 8px; cursor: pointer; font-size: 12px;
     text-align: center; transition: all 0.2s ease; font-weight: 500;
   }
-  .preset:hover { 
-    background: linear-gradient(135deg, #164e63 0%, #0891b2 100%); 
-    color: #f0f9ff; transform: translateY(-1px); 
+  .preset:hover {
+    background: linear-gradient(135deg, #164e63 0%, #0891b2 100%);
+    color: #f0f9ff; transform: translateY(-1px);
   }
-  
-  .metrics-grid { 
-    display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; 
-    align-items: center; font-size: 13px; 
+
+  .metrics-grid {
+    display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px;
+    align-items: center; font-size: 13px;
   }
   .metric-label { color: var(--muted); }
-  .metric-value { 
-    font-weight: 600; padding: 4px 8px; background: #1f2937; 
-    border-radius: 4px; text-align: center; min-width: 60px; 
+  .metric-value {
+    font-weight: 600; padding: 4px 8px; background: #1f2937;
+    border-radius: 4px; text-align: center; min-width: 60px;
   }
-  
-  .bar-container { 
-    display: flex; flex-direction: column; gap: 8px; 
+
+  .bar-container {
+    display: flex; flex-direction: column; gap: 8px;
   }
-  .bar-row { 
-    display: grid; grid-template-columns: 100px 1fr 60px; gap: 8px; 
-    align-items: center; font-size: 12px; 
+  .bar-row {
+    display: grid; grid-template-columns: 100px 1fr 60px; gap: 8px;
+    align-items: center; font-size: 12px;
   }
-  .bar { 
-    height: 8px; background: #1f2937; border-radius: 999px; 
-    position: relative; overflow: hidden; 
+  .bar {
+    height: 8px; background: #1f2937; border-radius: 999px;
+    position: relative; overflow: hidden;
   }
-  .bar > div { 
-    position: absolute; top: 0; left: 0; bottom: 0; 
-    background: linear-gradient(90deg, var(--acc), var(--ok)); 
+  .bar > div {
+    position: absolute; top: 0; left: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--acc), var(--ok));
     transition: width 0.3s ease; border-radius: 999px;
   }
-  
-  .output-grid { 
-    display: flex; gap: 8px; flex-wrap: wrap; 
+
+  .output-grid {
+    display: flex; gap: 8px; flex-wrap: wrap;
   }
-  .output-pill { 
-    background: linear-gradient(135deg, #0b2530 0%, #164e63 100%); 
-    border: 1px solid #1f2937; padding: 8px 12px; border-radius: 999px; 
+  .output-pill {
+    background: linear-gradient(135deg, #0b2530 0%, #164e63 100%);
+    border: 1px solid #1f2937; padding: 8px 12px; border-radius: 999px;
     font-size: 12px; display: flex; align-items: center; gap: 6px;
     white-space: nowrap;
   }
-  .output-value { 
-    font-weight: 700; color: var(--acc); 
+  .output-value {
+    font-weight: 700; color: var(--acc);
   }
-  
-  .chart-container { 
-    position: relative; 
+
+  .chart-container {
+    position: relative;
   }
-  .chart-container label { 
-    position: absolute; top: 8px; left: 12px; z-index: 10; 
-    background: rgba(15, 23, 42, 0.8); padding: 4px 8px; 
+  .chart-container label {
+    position: absolute; top: 8px; left: 12px; z-index: 10;
+    background: rgba(15, 23, 42, 0.8); padding: 4px 8px;
     border-radius: 4px; font-size: 11px; font-weight: 600;
   }
-  canvas { 
-    width: 100%; height: 180px; background: #0b0f1a; 
-    border-radius: 8px; border: 1px solid #1f2937; 
+  canvas {
+    width: 100%; height: 180px; background: #0b0f1a;
+    border-radius: 8px; border: 1px solid #1f2937;
   }
-  
-  .status-indicator { 
-    width: 8px; height: 8px; border-radius: 50%; 
-    display: inline-block; margin-right: 6px; 
+
+  .status-indicator {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
   }
   .status-online { background: var(--ok); }
   .status-offline { background: var(--err); }
   .status-warning { background: var(--warn); }
-  
-  .feature-badges { 
-    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; 
+
+  .feature-badges {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
   }
-  .feature-badge { 
-    background: var(--purple); color: white; padding: 2px 6px; 
-    border-radius: 4px; font-size: 10px; font-weight: 600; 
+  .feature-badge {
+    background: var(--purple); color: white; padding: 2px 6px;
+    border-radius: 4px; font-size: 10px; font-weight: 600;
   }
-  .feature-badge.disabled { 
-    background: #374151; color: var(--muted); 
+  .feature-badge.disabled {
+    background: #374151; color: var(--muted);
   }
-  
-  .loading { 
-    opacity: 0.6; pointer-events: none; 
+
+  .loading {
+    opacity: 0.6; pointer-events: none;
   }
-  
-  @keyframes pulse { 
-    0%, 100% { opacity: 1; } 
-    50% { opacity: 0.5; } 
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
-  .pulsing { 
-    animation: pulse 1.5s ease-in-out infinite; 
+  .pulsing {
+    animation: pulse 1.5s ease-in-out infinite;
   }
-  
+
   /* Mobile responsiveness */
-  @media (max-width: 640px) { 
+  @media (max-width: 640px) {
     header { padding: 12px 16px; }
     header h1 { font-size: 20px; }
     main { padding: 12px; gap: 12px; }
@@ -247,7 +247,7 @@
           CuPy Perceptual Quantization (Compression SSL)
         </label>
       </div>
-      
+
       <h3>Filter Parameters</h3>
       <div class="form-grid">
         <div class="form-group">
@@ -288,7 +288,7 @@
           </div>
         </div>
       </div>
-      
+
       <h3>Test Scenarios</h3>
       <div class="preset-grid">
         <button class="preset" data-preset="clean">Clean Signal</button>
@@ -307,7 +307,7 @@
           <button id="auto" class="secondary">⏯️ Auto Play</button>
         </div>
       </div>
-      
+
       <div class="feature-badges" id="feature-status">
         <span class="feature-badge">Triton</span>
         <span class="feature-badge">CuPy</span>
@@ -414,7 +414,7 @@ async function initApp() {
   await checkHealth();
   setupEventListeners();
   initializeCharts();
-  
+
   // Initial demo data load
   await loadDemoData();
 }
@@ -424,21 +424,21 @@ async function checkHealth() {
   const healthEl = $("health-status");
   const statusIndicator = healthEl.querySelector(".status-indicator");
   const featureStatus = $("feature-status");
-  
+
   try {
     const response = await fetch(api("/health"));
     const health = await response.json();
-    
+
     serverStatus.online = health.status === "ok";
     serverStatus.gpu = health.cuda && health.gpu_components;
-    
+
     if (serverStatus.online) {
       statusIndicator.className = "status-indicator status-online";
       healthEl.innerHTML = `
         <span class="status-indicator status-online"></span>
         ${health.device} | GPU: ${health.cuda ? "✅" : "❌"}
       `;
-      
+
       // Update feature badges
       updateFeatureBadges(health);
     } else {
@@ -462,7 +462,7 @@ function updateFeatureBadges(health) {
     "CUDA": health.cuda,
     "RMSNorm": health.gpu_components
   };
-  
+
   Array.from(badges).forEach(badge => {
     const feature = badge.textContent;
     badge.className = features[feature] ? "feature-badge" : "feature-badge disabled";
@@ -474,16 +474,16 @@ function setupEventListeners() {
   // Range inputs with live updates
   $("snr").addEventListener("input", e => $("snr_val").textContent = e.target.value);
   $("drop").addEventListener("input", e => $("drop_val").textContent = parseFloat(e.target.value).toFixed(2));
-  
+
   // Control buttons
   $("run").addEventListener("click", runInference);
   $("auto").addEventListener("click", toggleAutoPlay);
-  
+
   // Preset scenarios
   $$(".preset").forEach(btn => {
     btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
   });
-  
+
   // Periodic health checks
   setInterval(checkHealth, 10000); // Every 10 seconds
 }
@@ -508,10 +508,10 @@ function applyPreset(preset) {
       snr: 28, montage_aug: true, drop: 0.08
     }
   };
-  
+
   const config = presets[preset];
   if (!config) return;
-  
+
   $("use_fused").checked = config.use_fused;
   $("use_rms").checked = config.use_rms;
   $("use_quant").checked = config.use_quant;
@@ -520,7 +520,7 @@ function applyPreset(preset) {
   $("montage_aug").checked = config.montage_aug;
   $("drop").value = config.drop;
   $("drop_val").textContent = config.drop.toFixed(2);
-  
+
   // Visual feedback
   $$(".preset").forEach(btn => btn.style.background = "");
   event.target.style.background = "linear-gradient(135deg, var(--acc), var(--purple))";
@@ -534,13 +534,13 @@ function drawTimeSeries(canvas, data) {
   canvas.width = rect.width * window.devicePixelRatio;
   canvas.height = rect.height * window.devicePixelRatio;
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  
+
   const W = rect.width, H = rect.height;
-  
+
   // Clear canvas
   ctx.fillStyle = "#0b0f1a";
   ctx.fillRect(0, 0, W, H);
-  
+
   // Draw grid
   ctx.strokeStyle = "#1f2937";
   ctx.lineWidth = 0.5;
@@ -551,13 +551,13 @@ function drawTimeSeries(canvas, data) {
     ctx.lineTo(W, y);
     ctx.stroke();
   }
-  
+
   // Draw signal
   if (data && data.length > 0) {
     ctx.strokeStyle = "#22d3ee";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    
+
     const N = data.length;
     for (let i = 0; i < N; i++) {
       const x = i / (N - 1) * W;
@@ -575,22 +575,22 @@ function drawSpectrum(canvas, freqs, power) {
   canvas.width = rect.width * window.devicePixelRatio;
   canvas.height = rect.height * window.devicePixelRatio;
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  
+
   const W = rect.width, H = rect.height;
-  
+
   // Clear canvas
   ctx.fillStyle = "#0b0f1a";
   ctx.fillRect(0, 0, W, H);
-  
+
   // Draw bars
   if (power && power.length > 0) {
     const N = power.length;
     const barWidth = W / N;
-    
+
     for (let i = 0; i < N; i++) {
       const x = i * barWidth;
       const barHeight = power[i] * H * 0.8;
-      
+
       // Gradient based on frequency
       const hue = (i / N) * 240; // Blue to red spectrum
       ctx.fillStyle = `hsl(${180 + hue/2}, 70%, 60%)`;
@@ -601,14 +601,14 @@ function drawSpectrum(canvas, freqs, power) {
 
 function initializeCharts() {
   // Initialize with placeholder data
-  const placeholderTime = Array.from({length: 512}, (_, i) => 
+  const placeholderTime = Array.from({length: 512}, (_, i) =>
     Math.sin(i * 0.05) * 0.5 + Math.sin(i * 0.013) * 0.3 + (Math.random() - 0.5) * 0.1
   );
   const placeholderFreq = Array.from({length: 50}, (_, i) => i * 1.0);
-  const placeholderPower = Array.from({length: 50}, (_, i) => 
+  const placeholderPower = Array.from({length: 50}, (_, i) =>
     Math.exp(-i * 0.1) * (0.5 + 0.5 * Math.sin(i * 0.3))
   );
-  
+
   drawTimeSeries($("ts"), placeholderTime);
   drawSpectrum($("spec"), placeholderFreq, placeholderPower);
 }
@@ -618,7 +618,7 @@ async function loadDemoData() {
   try {
     const response = await fetch(api("/demo_data"));
     const data = await response.json();
-    
+
     drawTimeSeries($("ts"), data.time_series);
     drawSpectrum($("spec"), data.frequencies, data.spectrum);
   } catch (error) {
@@ -629,13 +629,13 @@ async function loadDemoData() {
 // Performance Visualization
 function updatePerformanceMetrics(latency) {
   const maxLatency = Math.max(1, latency.total);
-  
+
   // Update values
   $("preproc_ms").textContent = latency.preproc.toFixed(2);
   $("quant_ms").textContent = latency.quant.toFixed(2);
   $("fwd_ms").textContent = latency.forward.toFixed(2);
   $("tot_ms").textContent = latency.total.toFixed(2);
-  
+
   // Update bars with animations
   requestAnimationFrame(() => {
     $("bar_pre").style.width = `${(latency.preproc / maxLatency * 100)}%`;
@@ -643,7 +643,7 @@ function updatePerformanceMetrics(latency) {
     $("bar_fwd").style.width = `${(latency.forward / maxLatency * 100)}%`;
     $("bar_total").style.width = `${Math.min(100, latency.total / 50 * 100)}%`; // 50ms target
   });
-  
+
   // Color code total latency
   const totalEl = $("tot_ms");
   if (latency.total < 2) {
@@ -671,16 +671,16 @@ async function runInference() {
     alert("Backend server is offline. Please start the demo server.");
     return;
   }
-  
+
   const runButton = $("run");
   const originalText = runButton.textContent;
-  
+
   try {
     // Update UI state
     runButton.disabled = true;
     runButton.textContent = "🔄 Processing...";
     runButton.classList.add("pulsing");
-    
+
     // Build request payload
     const payload = {
       channels: 128,
@@ -697,29 +697,29 @@ async function runInference() {
       channel_drop_prob: parseFloat($("drop").value),
       simulate: true
     };
-    
+
     // Send request
     const response = await fetch(api("/infer_once"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    
+
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
     }
-    
+
     const result = await response.json();
-    
+
     // Update visualizations
     await loadDemoData(); // Refresh charts
     updatePerformanceMetrics(result.latency_ms);
     updateModelOutputs(result.outputs);
-    
+
     // Update feature status
     const features = result.gpu_features;
     updateFeatureBadges(features);
-    
+
   } catch (error) {
     console.error("Inference failed:", error);
     alert(`Inference failed: ${error.message}`);
@@ -735,26 +735,26 @@ async function runInference() {
 function toggleAutoPlay() {
   isPlaying = !isPlaying;
   const autoButton = $("auto");
-  
+
   if (isPlaying) {
     autoButton.textContent = "⏹️ Stop";
     autoButton.style.background = "linear-gradient(135deg, var(--err), #dc2626)";
-    
+
     const runContinuously = async () => {
       if (!isPlaying) return;
-      
+
       await runInference();
-      
+
       if (isPlaying) {
         playTimer = setTimeout(runContinuously, 1000); // Every second
       }
     };
-    
+
     runContinuously();
   } else {
     autoButton.textContent = "⏯️ Auto Play";
     autoButton.style.background = "";
-    
+
     if (playTimer) {
       clearTimeout(playTimer);
       playTimer = null;
