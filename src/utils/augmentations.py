@@ -1,8 +1,9 @@
 """
-SSL augmentation pipeline for EEG data.
+Enhanced SSL augmentation pipeline for EEG data with compression-aware techniques.
 
 This module implements various augmentation techniques for self-supervised learning
-including time masking, channel dropout, temporal jitter, and compression distortions.
+including time masking, channel dropout, temporal jitter, compression distortions,
+and schedulable parameters for curriculum learning.
 """
 
 import torch
@@ -10,23 +11,81 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import pywt
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Dict, Any
 import random
+import math
+from scipy import signal
 
 
-class TimeMasking(nn.Module):
+class SchedulableAugmentation(nn.Module):
     """
-    Time masking augmentation for EEG signals.
+    Base class for augmentations with schedulable parameters.
+    
+    Enables dynamic adjustment of augmentation intensity during training.
+    """
+    
+    def __init__(self, 
+                 initial_param: float,
+                 final_param: float,
+                 param_name: str,
+                 schedule_strategy: str = "linear"):
+        """
+        Initialize schedulable augmentation.
+        
+        Args:
+            initial_param: Initial parameter value
+            final_param: Final parameter value
+            param_name: Name of the parameter to schedule
+            schedule_strategy: Scheduling strategy ("linear", "cosine", "exponential")
+        """
+        super().__init__()
+        self.initial_param = initial_param
+        self.final_param = final_param
+        self.param_name = param_name
+        self.schedule_strategy = schedule_strategy
+        self.current_step = 0
+        self.total_steps = 1000  # Default, should be set by scheduler
+        
+        # Set initial parameter
+        setattr(self, param_name, initial_param)
+    
+    def update_parameter(self, step: int, total_steps: int):
+        """Update parameter based on training progress."""
+        self.current_step = step
+        self.total_steps = total_steps
+        
+        progress = min(step / total_steps, 1.0)
+        
+        if self.schedule_strategy == "linear":
+            param_value = self.initial_param + progress * (self.final_param - self.initial_param)
+        elif self.schedule_strategy == "cosine":
+            param_value = self.initial_param + (self.final_param - self.initial_param) * \
+                         (1 - math.cos(math.pi * progress)) / 2
+        elif self.schedule_strategy == "exponential":
+            param_value = self.initial_param + (self.final_param - self.initial_param) * \
+                         (1 - math.exp(-5 * progress))
+        else:
+            param_value = self.final_param
+        
+        setattr(self, self.param_name, param_value)
+
+
+class TimeMasking(SchedulableAugmentation):
+    """
+    Time masking augmentation for EEG signals with schedulable mask ratio.
 
     Randomly masks contiguous time segments to encourage temporal robustness.
     """
 
-    def __init__(self, mask_ratio: float = 0.15, mask_value: float = 0.0):
-        super().__init__()
-        self.mask_ratio = mask_ratio
+    def __init__(self, 
+                 initial_mask_ratio: float = 0.1, 
+                 final_mask_ratio: float = 0.3,
+                 mask_value: float = 0.0,
+                 schedule_strategy: str = "linear"):
+        super().__init__(initial_mask_ratio, final_mask_ratio, "mask_ratio", schedule_strategy)
         self.mask_value = mask_value
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Apply time masking to input signal.
 
@@ -34,9 +93,10 @@ class TimeMasking(nn.Module):
             x: Input EEG signal [batch_size, n_channels, seq_len]
 
         Returns:
-            Time-masked signal
+            Time-masked signal and mask tensor
         """
         batch_size, n_channels, seq_len = x.shape
+        mask = torch.ones_like(x, dtype=torch.bool)
 
         if self.training:
             x_masked = x.clone()
@@ -52,22 +112,141 @@ class TimeMasking(nn.Module):
 
                     # Apply mask
                     x_masked[i, :, start_idx:start_idx + mask_len] = self.mask_value
+                    mask[i, :, start_idx:start_idx + mask_len] = False
 
-            return x_masked
+            return x_masked, mask
 
-        return x
+        return x, mask
 
 
-class ChannelDropout(nn.Module):
+class CompressionDistortion(SchedulableAugmentation):
     """
-    Channel dropout augmentation for EEG signals.
+    Compression-aware distortion using wavelet compression and perceptual quantization.
+    
+    Simulates realistic compression artifacts that models might encounter in deployment.
+    """
+    
+    def __init__(self,
+                 initial_distortion: float = 0.25,
+                 final_distortion: float = 1.5,
+                 wavelet: str = 'db4',
+                 quantization_levels: int = 256,
+                 snr_db_range: Tuple[float, float] = (25.0, 35.0),
+                 schedule_strategy: str = "cosine"):
+        """
+        Initialize compression distortion.
+        
+        Args:
+            initial_distortion: Initial distortion percentage
+            final_distortion: Final distortion percentage  
+            wavelet: Wavelet type for compression
+            quantization_levels: Number of quantization levels
+            snr_db_range: SNR range for perceptual quantization
+            schedule_strategy: Parameter scheduling strategy
+        """
+        super().__init__(initial_distortion, final_distortion, "distortion_pct", schedule_strategy)
+        self.wavelet = wavelet
+        self.quantization_levels = quantization_levels
+        self.snr_db_range = snr_db_range
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply compression distortion.
+        
+        Args:
+            x: Input EEG signal [batch_size, n_channels, seq_len]
+            
+        Returns:
+            Compression-distorted signal
+        """
+        if not self.training or self.distortion_pct == 0:
+            return x
+        
+        batch_size, n_channels, seq_len = x.shape
+        x_distorted = x.clone()
+        
+        for i in range(batch_size):
+            for j in range(n_channels):
+                signal_1d = x[i, j].cpu().numpy()
+                
+                # Apply distortion with probability
+                if np.random.random() < 0.7:  # 70% chance of distortion
+                    # Choose distortion type
+                    distortion_type = np.random.choice(['wavelet', 'quantization', 'both'], p=[0.4, 0.4, 0.2])
+                    
+                    if distortion_type in ['wavelet', 'both']:
+                        signal_1d = self._apply_wavelet_compression(signal_1d)
+                    
+                    if distortion_type in ['quantization', 'both']:
+                        signal_1d = self._apply_perceptual_quantization(signal_1d)
+                
+                x_distorted[i, j] = torch.tensor(signal_1d, dtype=x.dtype, device=x.device)
+        
+        return x_distorted
+    
+    def _apply_wavelet_compression(self, signal: np.ndarray) -> np.ndarray:
+        """Apply wavelet compression with coefficient thresholding."""
+        try:
+            # Wavelet decomposition
+            coeffs = pywt.wavedec(signal, self.wavelet, level=4)
+            
+            # Calculate threshold based on distortion percentage
+            all_coeffs = np.concatenate([c.flatten() for c in coeffs[1:]])  # Skip approximation
+            threshold = np.percentile(np.abs(all_coeffs), self.distortion_pct * 100)
+            
+            # Apply soft thresholding
+            coeffs_thresh = [coeffs[0]]  # Keep approximation coefficients
+            for detail_coeffs in coeffs[1:]:
+                coeffs_thresh.append(pywt.threshold(detail_coeffs, threshold, mode='soft'))
+            
+            # Reconstruct signal
+            reconstructed = pywt.waverec(coeffs_thresh, self.wavelet)
+            
+            # Ensure same length as input
+            if len(reconstructed) != len(signal):
+                reconstructed = reconstructed[:len(signal)]
+            
+            return reconstructed
+            
+        except Exception:
+            # Fallback to original signal if wavelet fails
+            return signal
+    
+    def _apply_perceptual_quantization(self, signal: np.ndarray) -> np.ndarray:
+        """Apply perceptual quantization with controlled SNR."""
+        # Calculate signal power
+        signal_power = np.mean(signal ** 2)
+        
+        # Target SNR (random within range)
+        target_snr_db = np.random.uniform(*self.snr_db_range)
+        target_snr_linear = 10 ** (target_snr_db / 10)
+        
+        # Calculate quantization step size for target SNR
+        quantization_noise_power = signal_power / target_snr_linear
+        quantization_step = np.sqrt(12 * quantization_noise_power)
+        
+        # Apply uniform quantization
+        quantized = np.round(signal / quantization_step) * quantization_step
+        
+        # Add small amount of dither to break limit cycles
+        dither = np.random.uniform(-quantization_step/2, quantization_step/2, size=signal.shape)
+        quantized += dither * 0.1
+        
+        return quantized
+
+
+class ChannelDropout(SchedulableAugmentation):
+    """
+    Channel dropout augmentation for EEG signals with schedulable dropout rate.
 
     Randomly sets entire channels to zero to encourage channel-robust representations.
     """
 
-    def __init__(self, dropout_prob: float = 0.1):
-        super().__init__()
-        self.dropout_prob = dropout_prob
+    def __init__(self, 
+                 initial_dropout: float = 0.05,
+                 final_dropout: float = 0.2,
+                 schedule_strategy: str = "linear"):
+        super().__init__(initial_dropout, final_dropout, "dropout_prob", schedule_strategy)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
