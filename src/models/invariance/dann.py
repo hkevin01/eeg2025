@@ -306,11 +306,11 @@ class GRLScheduler:
 class MultiAdversaryDANN(nn.Module):
     """
     Multi-adversary DANN model for simultaneous invariance across multiple domains.
-    
+
     Supports adversarial training across site, subject, session, age group, and task
     with individual lambda scheduling for each adversary.
     """
-    
+
     def __init__(self,
                  backbone: nn.Module,
                  task_head: nn.Module,
@@ -319,7 +319,7 @@ class MultiAdversaryDANN(nn.Module):
                  shared_grl: bool = False):
         """
         Initialize multi-adversary DANN.
-        
+
         Args:
             backbone: Feature extraction backbone
             task_head: Task-specific prediction head
@@ -328,12 +328,12 @@ class MultiAdversaryDANN(nn.Module):
             shared_grl: Whether to use shared GRL for all adversaries
         """
         super().__init__()
-        
+
         self.backbone = backbone
         self.task_head = task_head
         self.adversary_types = list(adversary_configs.keys())
         self.shared_grl = shared_grl
-        
+
         # Auto-detect feature dimension
         if feature_dim is None:
             with torch.no_grad():
@@ -342,9 +342,9 @@ class MultiAdversaryDANN(nn.Module):
                 if isinstance(dummy_features, tuple):
                     dummy_features = dummy_features[0]
                 feature_dim = dummy_features.shape[-1]
-        
+
         self.feature_dim = feature_dim
-        
+
         # Gradient reversal layers
         if shared_grl:
             self.grl = GradientReversalLayer(lambda_val=0.0)
@@ -354,40 +354,40 @@ class MultiAdversaryDANN(nn.Module):
                 adv_type.value: GradientReversalLayer(lambda_val=0.0)
                 for adv_type in self.adversary_types
             })
-        
+
         # Domain adversarial heads
         self.domain_heads = nn.ModuleDict()
         self.schedulers = {}
-        
+
         for adv_type, config in adversary_configs.items():
             # Create domain head
             head_config = config.get('head_config', {})
             head_config.setdefault('input_dim', feature_dim)
             head_config.setdefault('num_domains', config['num_domains'])
-            
+
             self.domain_heads[adv_type.value] = DomainAdversarialHead(**head_config)
-            
+
             # Create scheduler
             scheduler_config = config.get('scheduler_config', {})
             scheduler_config.setdefault('strategy', 'linear_warmup')
             scheduler_config.setdefault('initial_lambda', 0.0)
             scheduler_config.setdefault('final_lambda', 0.2)
             scheduler_config.setdefault('warmup_steps', 1000)
-            
+
             self.schedulers[adv_type] = GRLScheduler(**scheduler_config)
-    
-    def forward(self, 
+
+    def forward(self,
                 x: torch.Tensor,
                 domain_labels: Optional[Dict[AdversaryType, torch.Tensor]] = None,
                 return_features: bool = False) -> Dict[str, torch.Tensor]:
         """
         Forward pass with multi-adversary training.
-        
+
         Args:
             x: Input data [batch_size, channels, time]
             domain_labels: Domain labels for each adversary type
             return_features: Whether to return backbone features
-            
+
         Returns:
             Dictionary containing task predictions and domain predictions
         """
@@ -395,10 +395,10 @@ class MultiAdversaryDANN(nn.Module):
         features = self.backbone(x)
         if isinstance(features, tuple):
             features = features[0]
-        
+
         # Task prediction
         task_pred = self.task_head(features)
-        
+
         # Domain predictions
         domain_preds = {}
         for adv_type in self.adversary_types:
@@ -407,26 +407,26 @@ class MultiAdversaryDANN(nn.Module):
                 grl_features = self.grl(features)
             else:
                 grl_features = self.grls[adv_type.value](features)
-            
+
             # Domain prediction
             domain_pred = self.domain_heads[adv_type.value](grl_features)
             domain_preds[adv_type.value] = domain_pred
-        
+
         # Prepare output
         output = {
             'task_pred': task_pred,
             'domain_preds': domain_preds
         }
-        
+
         if return_features:
             output['features'] = features
-        
+
         return output
-    
+
     def update_lambda_values(self, domain_accuracies: Optional[Dict[AdversaryType, float]] = None):
         """
         Update lambda values for all adversaries.
-        
+
         Args:
             domain_accuracies: Current domain accuracies for adaptive scheduling
         """
@@ -434,7 +434,7 @@ class MultiAdversaryDANN(nn.Module):
             # Get current lambda from scheduler
             domain_acc = domain_accuracies.get(adv_type) if domain_accuracies else None
             lambda_val = self.schedulers[adv_type].step(domain_acc)
-            
+
             # Update GRL
             if self.shared_grl:
                 # For shared GRL, use maximum lambda across all adversaries
@@ -445,7 +445,7 @@ class MultiAdversaryDANN(nn.Module):
                 self.grl.set_lambda(current_lambda)
             else:
                 self.grls[adv_type.value].set_lambda(lambda_val)
-    
+
     def get_lambda_values(self) -> Dict[str, float]:
         """Get current lambda values for all adversaries."""
         if self.shared_grl:
@@ -455,39 +455,39 @@ class MultiAdversaryDANN(nn.Module):
                 adv_type.value: self.grls[adv_type.value].lambda_val
                 for adv_type in self.adversary_types
             }
-    
-    def compute_adversarial_loss(self, 
+
+    def compute_adversarial_loss(self,
                                 domain_preds: Dict[str, torch.Tensor],
                                 domain_labels: Dict[AdversaryType, torch.Tensor],
                                 weights: Optional[Dict[AdversaryType, float]] = None) -> torch.Tensor:
         """
         Compute weighted adversarial loss across all adversaries.
-        
+
         Args:
             domain_preds: Domain predictions from forward pass
             domain_labels: True domain labels
             weights: Weights for each adversary type
-            
+
         Returns:
             Combined adversarial loss
         """
         if weights is None:
             weights = {adv_type: 1.0 for adv_type in self.adversary_types}
-        
+
         total_loss = 0.0
         total_weight = 0.0
-        
+
         for adv_type in self.adversary_types:
             if adv_type in domain_labels:
                 pred = domain_preds[adv_type.value]
                 target = domain_labels[adv_type]
                 weight = weights.get(adv_type, 1.0)
-                
+
                 # Compute cross-entropy loss
                 loss = F.cross_entropy(pred, target, reduction='mean')
                 total_loss += weight * loss
                 total_weight += weight
-        
+
         if total_weight > 0:
             return total_loss / total_weight
         else:

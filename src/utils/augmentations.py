@@ -20,18 +20,18 @@ from scipy import signal
 class SchedulableAugmentation(nn.Module):
     """
     Base class for augmentations with schedulable parameters.
-    
+
     Enables dynamic adjustment of augmentation intensity during training.
     """
-    
-    def __init__(self, 
+
+    def __init__(self,
                  initial_param: float,
                  final_param: float,
                  param_name: str,
                  schedule_strategy: str = "linear"):
         """
         Initialize schedulable augmentation.
-        
+
         Args:
             initial_param: Initial parameter value
             final_param: Final parameter value
@@ -45,17 +45,17 @@ class SchedulableAugmentation(nn.Module):
         self.schedule_strategy = schedule_strategy
         self.current_step = 0
         self.total_steps = 1000  # Default, should be set by scheduler
-        
+
         # Set initial parameter
         setattr(self, param_name, initial_param)
-    
+
     def update_parameter(self, step: int, total_steps: int):
         """Update parameter based on training progress."""
         self.current_step = step
         self.total_steps = total_steps
-        
+
         progress = min(step / total_steps, 1.0)
-        
+
         if self.schedule_strategy == "linear":
             param_value = self.initial_param + progress * (self.final_param - self.initial_param)
         elif self.schedule_strategy == "cosine":
@@ -66,7 +66,7 @@ class SchedulableAugmentation(nn.Module):
                          (1 - math.exp(-5 * progress))
         else:
             param_value = self.final_param
-        
+
         setattr(self, self.param_name, param_value)
 
 
@@ -77,8 +77,8 @@ class TimeMasking(SchedulableAugmentation):
     Randomly masks contiguous time segments to encourage temporal robustness.
     """
 
-    def __init__(self, 
-                 initial_mask_ratio: float = 0.1, 
+    def __init__(self,
+                 initial_mask_ratio: float = 0.1,
                  final_mask_ratio: float = 0.3,
                  mask_value: float = 0.0,
                  schedule_strategy: str = "linear"):
@@ -122,10 +122,10 @@ class TimeMasking(SchedulableAugmentation):
 class CompressionDistortion(SchedulableAugmentation):
     """
     Compression-aware distortion using wavelet compression and perceptual quantization.
-    
+
     Simulates realistic compression artifacts that models might encounter in deployment.
     """
-    
+
     def __init__(self,
                  initial_distortion: float = 0.25,
                  final_distortion: float = 1.5,
@@ -135,10 +135,10 @@ class CompressionDistortion(SchedulableAugmentation):
                  schedule_strategy: str = "cosine"):
         """
         Initialize compression distortion.
-        
+
         Args:
             initial_distortion: Initial distortion percentage
-            final_distortion: Final distortion percentage  
+            final_distortion: Final distortion percentage
             wavelet: Wavelet type for compression
             quantization_levels: Number of quantization levels
             snr_db_range: SNR range for perceptual quantization
@@ -148,90 +148,90 @@ class CompressionDistortion(SchedulableAugmentation):
         self.wavelet = wavelet
         self.quantization_levels = quantization_levels
         self.snr_db_range = snr_db_range
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Apply compression distortion.
-        
+
         Args:
             x: Input EEG signal [batch_size, n_channels, seq_len]
-            
+
         Returns:
             Compression-distorted signal
         """
         if not self.training or self.distortion_pct == 0:
             return x
-        
+
         batch_size, n_channels, seq_len = x.shape
         x_distorted = x.clone()
-        
+
         for i in range(batch_size):
             for j in range(n_channels):
                 signal_1d = x[i, j].cpu().numpy()
-                
+
                 # Apply distortion with probability
                 if np.random.random() < 0.7:  # 70% chance of distortion
                     # Choose distortion type
                     distortion_type = np.random.choice(['wavelet', 'quantization', 'both'], p=[0.4, 0.4, 0.2])
-                    
+
                     if distortion_type in ['wavelet', 'both']:
                         signal_1d = self._apply_wavelet_compression(signal_1d)
-                    
+
                     if distortion_type in ['quantization', 'both']:
                         signal_1d = self._apply_perceptual_quantization(signal_1d)
-                
+
                 x_distorted[i, j] = torch.tensor(signal_1d, dtype=x.dtype, device=x.device)
-        
+
         return x_distorted
-    
+
     def _apply_wavelet_compression(self, signal: np.ndarray) -> np.ndarray:
         """Apply wavelet compression with coefficient thresholding."""
         try:
             # Wavelet decomposition
             coeffs = pywt.wavedec(signal, self.wavelet, level=4)
-            
+
             # Calculate threshold based on distortion percentage
             all_coeffs = np.concatenate([c.flatten() for c in coeffs[1:]])  # Skip approximation
             threshold = np.percentile(np.abs(all_coeffs), self.distortion_pct * 100)
-            
+
             # Apply soft thresholding
             coeffs_thresh = [coeffs[0]]  # Keep approximation coefficients
             for detail_coeffs in coeffs[1:]:
                 coeffs_thresh.append(pywt.threshold(detail_coeffs, threshold, mode='soft'))
-            
+
             # Reconstruct signal
             reconstructed = pywt.waverec(coeffs_thresh, self.wavelet)
-            
+
             # Ensure same length as input
             if len(reconstructed) != len(signal):
                 reconstructed = reconstructed[:len(signal)]
-            
+
             return reconstructed
-            
+
         except Exception:
             # Fallback to original signal if wavelet fails
             return signal
-    
+
     def _apply_perceptual_quantization(self, signal: np.ndarray) -> np.ndarray:
         """Apply perceptual quantization with controlled SNR."""
         # Calculate signal power
         signal_power = np.mean(signal ** 2)
-        
+
         # Target SNR (random within range)
         target_snr_db = np.random.uniform(*self.snr_db_range)
         target_snr_linear = 10 ** (target_snr_db / 10)
-        
+
         # Calculate quantization step size for target SNR
         quantization_noise_power = signal_power / target_snr_linear
         quantization_step = np.sqrt(12 * quantization_noise_power)
-        
+
         # Apply uniform quantization
         quantized = np.round(signal / quantization_step) * quantization_step
-        
+
         # Add small amount of dither to break limit cycles
         dither = np.random.uniform(-quantization_step/2, quantization_step/2, size=signal.shape)
         quantized += dither * 0.1
-        
+
         return quantized
 
 
@@ -242,7 +242,7 @@ class ChannelDropout(SchedulableAugmentation):
     Randomly sets entire channels to zero to encourage channel-robust representations.
     """
 
-    def __init__(self, 
+    def __init__(self,
                  initial_dropout: float = 0.05,
                  final_dropout: float = 0.2,
                  schedule_strategy: str = "linear"):
