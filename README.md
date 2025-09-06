@@ -7,18 +7,21 @@ Advanced neural foundation model implementation for the [EEG Foundation Challeng
 The [EEG Foundation Challenge 2025](https://eeg2025.github.io/) addresses critical challenges in developing EEG foundation models that can generalize across different clinical sites, populations, and recording conditions. This implementation targets both official challenge tracks:
 
 ### Challenge 1: Cross-Cognitive Domain (CCD)
+
 - **Task**: Predict response times and success rates from 2-second EEG windows
 - **Paradigms**: N-back working memory, Auditory Steady-State Response (ASSR), Working Memory tasks
 - **Metrics**: Pearson correlation (response time) + AUROC (success prediction)
 - **Data**: Healthy Brain Network (HBN) dataset with 1,500+ participants
 
-### Challenge 2: Child Behavior Checklist (CBCL) 
+### Challenge 2: Child Behavior Checklist (CBCL)
+
 - **Task**: Multi-target regression for psychopathology factors + binary classification
 - **Targets**: p_factor, internalizing, externalizing, attention problems, binary diagnostic label
 - **Metrics**: Average Pearson correlation across continuous targets + AUROC for binary
 - **Population**: Children and adolescents (ages 5-21) from multi-site clinical data
 
 ### Key Challenges Addressed
+
 - **Cross-site generalization**: Different EEG systems, electrode configurations, and recording protocols
 - **Individual variability**: Diverse neural patterns across participants and age groups
 - **Multi-task learning**: Simultaneous prediction across multiple cognitive and clinical domains
@@ -49,56 +52,65 @@ The HBN-EEG dataset includes six distinct cognitive tasks that probe different a
 ##### 1. Resting State (RS) - Default Network Analysis
 
 **Neural Mechanisms**:
+
 - **Default Mode Network (DMN)**: Alpha (8-12 Hz) and theta (4-8 Hz) oscillations
+
 - **Eyes Open vs Closed**: Alpha rhythm suppression/enhancement patterns
 - **Network Connectivity**: Long-range theta-alpha coupling across cortical regions
 
 **Implementation Strategy**:
+
 ```python
 # Resting state feature extraction
 def extract_rs_features(eeg_data, condition='eyes_open'):
     # Spectral power analysis for alpha/theta bands
     alpha_power = compute_band_power(eeg_data, 8, 12)  # Alpha suppression
     theta_power = compute_band_power(eeg_data, 4, 8)   # Theta coherence
-    
+
     # Default mode network connectivity
     dmn_connectivity = compute_phase_coupling(eeg_data, dmn_electrodes)
-    
+
     return {
         'alpha_suppression': alpha_power,
-        'theta_coherence': theta_power, 
+        'theta_coherence': theta_power,
+
         'dmn_connectivity': dmn_connectivity
     }
 ```
 
 **Why This Approach**:
+
 - **Frequency-domain analysis**: Captures intrinsic neural rhythms
+
 - **Network connectivity**: Models distributed brain activity patterns
 - **Condition-specific features**: Differentiates cognitive states
 
 ##### 2. Surround Suppression (SuS) - Visual Processing Efficiency
 
 **Neural Mechanisms**:
+
 - **Visual Cortex Response**: Gamma (30-80 Hz) activity in occipital regions
 - **Lateral Inhibition**: Suppression of peripheral responses
 - **Attention Modulation**: Alpha-band (8-12 Hz) gating mechanisms
 
 **Implementation Strategy**:
+
 ```python
 # Surround suppression analysis
 def extract_sus_features(eeg_data, stimulus_timing):
     # Visual evoked potentials in occipital cortex
-    vep_response = extract_erp(eeg_data, stimulus_timing, 
+    vep_response = extract_erp(eeg_data, stimulus_timing,
                               channels=['O1', 'O2', 'Oz'])
-    
+
     # Gamma activity during visual processing
-    gamma_power = compute_band_power(eeg_data, 30, 80, 
+    gamma_power = compute_band_power(eeg_data, 30, 80,
                                    roi='visual_cortex')
-    
+
     # Alpha suppression (attention mechanism)
-    alpha_suppression = compute_alpha_suppression(eeg_data, 
+    alpha_suppression = compute_alpha_suppression(eeg_data,
                                                  stimulus_timing)
-    
+
+
     return {
         'vep_amplitude': vep_response,
         'gamma_power': gamma_power,
@@ -107,6 +119,7 @@ def extract_sus_features(eeg_data, stimulus_timing):
 ```
 
 **Why This Approach**:
+
 - **Event-related analysis**: Captures stimulus-locked responses
 - **Gamma activity**: Reflects visual processing efficiency
 - **Spatial specificity**: Focuses on visual cortex regions
@@ -114,26 +127,29 @@ def extract_sus_features(eeg_data, stimulus_timing):
 ##### 3. Movie Watching (MW) - Natural Stimulus Processing
 
 **Neural Mechanisms**:
+
 - **Temporal Dynamics**: Complex multi-frequency responses to naturalistic stimuli
 - **Inter-Subject Correlation (ISC)**: Shared neural responses across participants
 - **Attention Networks**: Frontoparietal network engagement
 
 **Implementation Strategy**:
+
 ```python
 # Movie watching analysis
 def extract_mw_features(eeg_data, movie_timestamps):
     # Inter-subject correlation analysis
-    isc_values = compute_inter_subject_correlation(eeg_data, 
+    isc_values = compute_inter_subject_correlation(eeg_data,
                                                   reference_subjects)
-    
+
     # Dynamic functional connectivity
-    dynamic_fc = compute_sliding_window_connectivity(eeg_data, 
+    dynamic_fc = compute_sliding_window_connectivity(eeg_data,
                                                    window_size=2.0)
-    
+
     # Attention network activity
-    attention_power = compute_band_power(eeg_data, 8, 30, 
+
+    attention_power = compute_band_power(eeg_data, 8, 30,
                                        roi='frontoparietal_network')
-    
+
     return {
         'isc_correlation': isc_values,
         'dynamic_connectivity': dynamic_fc,
@@ -142,8 +158,10 @@ def extract_mw_features(eeg_data, movie_timestamps):
 ```
 
 **Why This Approach**:
+
 - **Naturalistic processing**: Models real-world cognitive demands
 - **Temporal dynamics**: Captures evolving brain states
+
 - **Individual differences**: Quantifies response variability
 
 #### **Active Tasks** - Goal-Directed Cognitive Control
@@ -151,40 +169,45 @@ def extract_mw_features(eeg_data, movie_timestamps):
 ##### 4. Contrast Change Detection (CCD) - Visual Attention & Decision Making
 
 **Neural Mechanisms**:
+
 - **Visual P300**: Decision-related positivity 300-600ms post-stimulus
 - **Theta Synchronization**: Frontal midline theta (4-8 Hz) during attention
 - **Response Preparation**: Motor cortex beta (13-30 Hz) desynchronization
 
 **Implementation Strategy**:
+
 ```python
 # Contrast change detection analysis
 def extract_ccd_features(eeg_data, trial_data):
     # P300 component for decision making
-    p300_amplitude = extract_erp_component(eeg_data, 
+    p300_amplitude = extract_erp_component(eeg_data,
                                          component='P300',
                                          channels=['Pz', 'CPz'])
-    
+
     # Frontal theta for attention
     frontal_theta = compute_band_power(eeg_data, 4, 8,
                                      roi='frontal_midline')
-    
+
     # Motor preparation signals
-    motor_beta = compute_motor_preparation(eeg_data, 
+    motor_beta = compute_motor_preparation(eeg_data,
                                          response_timing)
-    
+
+
     # Response time prediction features
     rt_features = {
         'p300_latency': p300_amplitude['latency'],
         'theta_power': frontal_theta,
         'beta_suppression': motor_beta['suppression']
     }
-    
+
+
     return rt_features
 ```
 
 **Challenge 1 Target**: This is the primary paradigm for **response time prediction** and **success rate classification**.
 
 **Why This Approach**:
+
 - **ERP components**: Capture decision-making neural markers
 - **Oscillatory activity**: Reflects attention and motor preparation
 - **Temporal precision**: Links neural activity to behavioral performance
@@ -192,37 +215,43 @@ def extract_ccd_features(eeg_data, trial_data):
 ##### 5. Sequence Learning (SL) - Working Memory & Learning
 
 **Neural Mechanisms**:
+
 - **Working Memory Theta**: Frontal theta (4-8 Hz) during sequence maintenance
 - **Learning-Related Plasticity**: Alpha/beta changes with sequence acquisition
 - **Error-Related Negativity (ERN)**: Feedback processing around 100ms
 
 **Implementation Strategy**:
+
 ```python
 # Sequence learning analysis
 def extract_sl_features(eeg_data, sequence_trials):
     # Working memory load effects
-    wm_theta = compute_load_dependent_theta(eeg_data, 
+    wm_theta = compute_load_dependent_theta(eeg_data,
                                           sequence_length)
-    
+
     # Learning progression markers
-    learning_alpha = track_alpha_changes(eeg_data, 
+    learning_alpha = track_alpha_changes(eeg_data,
+
                                        trial_progression)
-    
+
     # Error monitoring signals
     ern_amplitude = extract_error_related_negativity(eeg_data,
                                                    error_trials)
-    
+
     # Memory encoding/retrieval features
+
     memory_features = {
         'theta_power': wm_theta,
         'alpha_learning': learning_alpha,
         'error_monitoring': ern_amplitude
     }
-    
+
+
     return memory_features
 ```
 
 **Why This Approach**:
+
 - **Load-dependent analysis**: Captures working memory capacity
 - **Learning dynamics**: Models neural plasticity over trials
 - **Error processing**: Reflects cognitive control mechanisms
@@ -230,37 +259,41 @@ def extract_sl_features(eeg_data, sequence_trials):
 ##### 6. Symbol Search (SyS) - Processing Speed & Visual Search
 
 **Neural Mechanisms**:
+
 - **Visual Search N2pc**: Lateralized negativity 200-300ms for target detection
 - **Processing Speed**: High-frequency gamma (60-100 Hz) efficiency
 - **Sustained Attention**: Alpha suppression maintenance over time
 
 **Implementation Strategy**:
+
 ```python
 # Symbol search analysis
 def extract_sys_features(eeg_data, search_trials):
     # Visual search efficiency
     n2pc_lateralization = compute_n2pc_component(eeg_data,
                                                target_location)
-    
+
+
     # Processing speed markers
-    gamma_efficiency = compute_high_gamma_power(eeg_data, 
+    gamma_efficiency = compute_high_gamma_power(eeg_data,
                                               60, 100)
-    
+
     # Sustained attention maintenance
     alpha_suppression = track_sustained_attention(eeg_data,
                                                  task_duration)
-    
+
     # Processing speed features
     speed_features = {
         'search_efficiency': n2pc_lateralization,
         'gamma_power': gamma_efficiency,
         'attention_maintenance': alpha_suppression
     }
-    
+
     return speed_features
 ```
 
 **Why This Approach**:
+
 - **Lateralized components**: Capture spatial attention mechanisms
 - **High-frequency activity**: Reflects processing efficiency
 - **Temporal maintenance**: Models sustained cognitive performance
@@ -284,7 +317,7 @@ Our implementation leverages these distinct neural signatures through task-aware
 # Task-specific feature extraction
 task_extractors = {
     'resting_state': RestingStateExtractor(),
-    'surround_suppression': VisualProcessingExtractor(), 
+    'surround_suppression': VisualProcessingExtractor(),
     'movie_watching': NaturalisticExtractor(),
     'contrast_change_detection': DecisionMakingExtractor(),  # Challenge 1 primary
     'sequence_learning': WorkingMemoryExtractor(),
@@ -297,20 +330,20 @@ class TaskAwareEEGModel(nn.Module):
         self.shared_backbone = EEGTransformer()
         self.task_adapters = TaskAdapterLayer()
         self.task_specific_heads = TaskSpecificHeads()
-    
+
     def forward(self, eeg_data, task_id):
         # Extract task-specific features
         task_features = task_extractors[task_id](eeg_data)
-        
+
         # Shared representation learning
         shared_features = self.shared_backbone(task_features)
-        
+
         # Task-aware adaptation
         adapted_features = self.task_adapters(shared_features, task_id)
-        
+
         # Task-specific prediction
         predictions = self.task_specific_heads[task_id](adapted_features)
-        
+
         return predictions
 ```
 
@@ -319,30 +352,30 @@ class TaskAwareEEGModel(nn.Module):
 ```mermaid
 graph TD
     A[Raw EEG Data<br/>128 channels, 500-1000 Hz] --> B{Task Type}
-    
+
     B -->|Passive Tasks| C[Endogenous Activity Analysis]
     B -->|Active Tasks| D[Event-Related Processing]
-    
+
     C --> C1[Resting State<br/>Alpha/Theta Rhythms]
     C --> C2[Surround Suppression<br/>Visual Gamma Response]
     C --> C3[Movie Watching<br/>Dynamic Connectivity]
-    
+
     D --> D1[Contrast Change Detection<br/>P300 + Decision Theta]
     D --> D2[Sequence Learning<br/>Working Memory Theta]
     D --> D3[Symbol Search<br/>N2pc + Processing Gamma]
-    
+
     C1 --> E[Task-Specific Feature Extraction]
     C2 --> E
     C3 --> E
     D1 --> E
     D2 --> E
     D3 --> E
-    
+
     E --> F[Shared EEG Transformer Backbone]
     F --> G[Task-Aware Adaptation Layer]
     G --> H[Domain Adversarial Training]
     H --> I{Prediction Heads}
-    
+
     I --> I1[Challenge 1: Response Time<br/>Success Classification]
     I --> I2[Challenge 2: CBCL Factors<br/>Clinical Prediction]
 ```
@@ -354,22 +387,23 @@ Our implementation analyzes different frequency bands based on their cognitive s
 ```mermaid
 graph LR
     A[EEG Signal] --> B[Frequency Decomposition]
-    
+
     B --> C[Delta 1-4 Hz<br/>Deep Attention]
     B --> D[Theta 4-8 Hz<br/>Working Memory]
     B --> E[Alpha 8-12 Hz<br/>Attention Gating]
     B --> F[Beta 13-30 Hz<br/>Motor Control]
     B --> G[Gamma 30-100 Hz<br/>Cognitive Binding]
-    
+
     C --> H[Task-Specific Analysis]
     D --> H
     E --> H
     F --> H
     G --> H
-    
+
     H --> I[Feature Integration]
+
     I --> J[Multi-Task Prediction]
-    
+
     style C fill:#e1f5fe
     style D fill:#f3e5f5
     style E fill:#e8f5e8
@@ -389,13 +423,14 @@ graph LR
 Each cognitive paradigm requires different computational strategies:
 
 #### **Passive Task Optimization**
+
 ```python
 # Optimized for spectral analysis and connectivity
 class PassiveTaskProcessor:
     def __init__(self):
         self.spectral_analyzer = WelchPowerSpectrum()
         self.connectivity_analyzer = PhaseLocksValueEstimator()
-        
+
     def process_resting_state(self, eeg_data):
         # Focus on spontaneous oscillations
         alpha_power = self.spectral_analyzer.compute_band_power(eeg_data, 8, 12)
@@ -404,13 +439,14 @@ class PassiveTaskProcessor:
 ```
 
 #### **Active Task Optimization**
+
 ```python
 # Optimized for event-related analysis
 class ActiveTaskProcessor:
     def __init__(self):
         self.erp_analyzer = EventRelatedPotentialExtractor()
         self.time_frequency_analyzer = WaveletTransform()
-        
+
     def process_contrast_detection(self, eeg_data, stimulus_times):
         # Focus on stimulus-locked responses
         p300_amplitude = self.erp_analyzer.extract_p300(eeg_data, stimulus_times)
@@ -426,6 +462,7 @@ Our multi-task learning approach leverages shared neural mechanisms:
 |------------------|----------------|--------------|----------------|
 | **Attention Networks** | CCD, SyS, SuS | Frontal-parietal activation | Task-conditioned attention layers |
 | **Working Memory** | SL, CCD | Theta oscillations | Memory-augmented transformers |
+
 | **Visual Processing** | SuS, SyS, MW | Occipital gamma activity | Convolutional feature extractors |
 | **Default Mode** | RS, MW | Alpha/theta connectivity | Graph neural networks |
 
@@ -444,11 +481,13 @@ Our multi-task learning approach leverages shared neural mechanisms:
 Based on the neural signatures and our implementation:
 
 #### **Challenge 1 (CCD) Performance Drivers**
+
 - **P300 latency**: Directly correlates with response time (r = 0.65-0.75)
 - **Frontal theta power**: Predicts attention engagement and accuracy
 - **Motor beta suppression**: Indicates response preparation efficiency
 
-#### **Challenge 2 (CBCL) Performance Drivers**  
+#### **Challenge 2 (CBCL) Performance Drivers**
+
 - **Multi-task feature fusion**: Combines cognitive patterns across all 6 paradigms
 - **Attention network efficiency**: Links to attention problems subscale
 - **Default mode connectivity**: Relates to internalizing/externalizing factors
@@ -472,13 +511,14 @@ Our technical architecture directly addresses the unique computational requireme
 ### 🚀 Task-Driven Architecture Decisions
 
 #### **Why Multi-Task Learning?**
+
 Each HBN paradigm probes different cognitive mechanisms, but they share underlying neural networks:
 
 ```python
 # Shared neural mechanisms across tasks
 shared_mechanisms = {
     'attention_networks': ['CCD', 'SyS', 'SuS'],        # Frontoparietal activation
-    'working_memory': ['SL', 'CCD'],                    # Theta oscillations  
+    'working_memory': ['SL', 'CCD'],                    # Theta oscillations
     'visual_processing': ['SuS', 'SyS', 'MW'],          # Occipital gamma
     'default_mode': ['RS', 'MW'],                       # Resting connectivity
     'cognitive_control': ['CCD', 'SL', 'SyS']           # Executive functions
@@ -486,6 +526,7 @@ shared_mechanisms = {
 
 # Implementation: Shared backbone with task-specific heads
 class HBNMultiTaskModel(nn.Module):
+
     def __init__(self):
         # Shared feature extraction for common mechanisms
         self.shared_backbone = EEGTransformer(
@@ -493,7 +534,7 @@ class HBNMultiTaskModel(nn.Module):
             hidden_dim=768,                 # Rich representations
             num_layers=12                   # Deep feature hierarchy
         )
-        
+
         # Task-specific adaptation layers
         self.task_adapters = {
             'resting_state': RestingStateAdapter(),
@@ -503,7 +544,7 @@ class HBNMultiTaskModel(nn.Module):
             'surround_suppression': VisualProcessingAdapter(),
             'movie_watching': NaturalisticAdapter()
         }
-        
+
         # Challenge-specific prediction heads
         self.challenge_heads = {
             'challenge1': ChallengeOneHead(),    # Response time + success
@@ -512,9 +553,11 @@ class HBNMultiTaskModel(nn.Module):
 ```
 
 #### **Why Domain Adversarial Training for HBN?**
+
 The HBN dataset spans multiple recording sites with different equipment and protocols:
 
 ```python
+
 # Site-specific variability in HBN
 hbn_sites = {
     'CBIC': {'equipment': 'EGI_128', 'reference': 'Cz', 'sampling_rate': 500},
@@ -529,19 +572,20 @@ class HBNDomainAdaptation(nn.Module):
         self.site_adversary = DomainClassifier(input_dim=768, num_sites=4)
         self.equipment_adversary = DomainClassifier(input_dim=768, num_equipment=2)
         self.age_adversary = DomainClassifier(input_dim=768, num_age_groups=3)
-        
+
     def forward(self, features, domain_labels):
         # Learn features that fool all domain classifiers
         site_loss = self.site_adversary(features, domain_labels['site'])
         equipment_loss = self.equipment_adversary(features, domain_labels['equipment'])
         age_loss = self.age_adversary(features, domain_labels['age'])
-        
+
         # Gradient reversal for domain invariance
         domain_loss = site_loss + equipment_loss + age_loss
         return -domain_loss  # Gradient reversal
 ```
 
 #### **Why Compression-Augmented SSL for Clinical Deployment?**
+
 Real-world EEG applications require robust performance under data compression:
 
 ```python
@@ -554,26 +598,27 @@ deployment_scenarios = {
 
 # Our solution: Train with compression artifacts
 class CompressionAugmentedSSL(nn.Module):
+
     def __init__(self):
         self.compression_simulator = WaveletCompressionSimulator()
         self.consistency_loss = CosineSimilarityLoss()
-        
+
     def forward(self, clean_eeg):
         # Simulate real-world compression
         compressed_variants = []
         for compression_level in [1, 2, 4, 8]:
             compressed = self.compression_simulator(clean_eeg, level=compression_level)
             compressed_variants.append(compressed)
-        
+
         # Learn consistent representations
         clean_features = self.encoder(clean_eeg)
         consistency_losses = []
-        
+
         for compressed in compressed_variants:
             compressed_features = self.encoder(compressed)
             consistency_loss = self.consistency_loss(clean_features, compressed_features)
             consistency_losses.append(consistency_loss)
-        
+
         return sum(consistency_losses) / len(consistency_losses)
 ```
 
@@ -582,71 +627,75 @@ class CompressionAugmentedSSL(nn.Module):
 Each HBN task provides unique neural biomarkers relevant to both challenges:
 
 #### **Challenge 1 (CCD) - Primary Neural Markers**
+
 ```python
 def extract_challenge1_features(ccd_eeg_data, stimulus_times, response_times):
     """Extract features specifically for response time and success prediction"""
-    
+
+
     # P300 component (300-600ms post-stimulus)
     p300_features = {
         'amplitude': extract_p300_amplitude(ccd_eeg_data, stimulus_times),
         'latency': extract_p300_latency(ccd_eeg_data, stimulus_times),
         'topography': extract_p300_topography(ccd_eeg_data)
     }
-    
+
     # Frontal theta (attention/cognitive control)
     theta_features = {
         'power': compute_theta_power(ccd_eeg_data, 4, 8),
         'phase_locking': compute_theta_plv(ccd_eeg_data, stimulus_times),
         'frontal_midline': extract_fm_theta(ccd_eeg_data)
     }
-    
+
     # Motor preparation (response readiness)
     motor_features = {
         'beta_suppression': compute_motor_beta_erd(ccd_eeg_data, response_times),
         'movement_potential': extract_bereitschaftspotential(ccd_eeg_data),
         'lateralization': compute_motor_lateralization(ccd_eeg_data)
     }
-    
+
     return {
         'p300': p300_features,
-        'theta': theta_features, 
+        'theta': theta_features,
         'motor': motor_features
     }
 ```
 
-#### **Challenge 2 (CBCL) - Multi-Task Integration**  
+#### **Challenge 2 (CBCL) - Multi-Task Integration**
+
 ```python
 def extract_challenge2_features(all_task_data):
     """Extract features across all HBN tasks for CBCL prediction"""
-    
+
     # Attention network efficiency (across CCD, SyS, SuS)
     attention_features = {
         'sustained_attention': extract_alpha_suppression(all_task_data['ccd']),
         'selective_attention': extract_n2pc(all_task_data['sys']),
         'visual_attention': extract_gamma_response(all_task_data['sus'])
     }
-    
+
     # Working memory capacity (SL, CCD)
     working_memory_features = {
+
         'theta_power': extract_wm_theta(all_task_data['sl']),
         'load_effects': compute_load_dependent_activity(all_task_data['sl']),
         'maintenance': extract_delay_period_activity(all_task_data['ccd'])
     }
-    
+
     # Default mode efficiency (RS, MW)
     default_mode_features = {
         'connectivity': compute_dmn_connectivity(all_task_data['rs']),
         'flexibility': compute_network_flexibility(all_task_data['mw']),
         'regulation': extract_task_negative_activity(all_task_data)
     }
-    
+
     # Processing speed (SyS, general efficiency)
     processing_speed_features = {
         'gamma_efficiency': extract_high_gamma(all_task_data['sys']),
         'neural_efficiency': compute_effort_accuracy_ratio(all_task_data),
         'processing_latency': extract_processing_delays(all_task_data)
     }
-    
+
     return {
         'attention': attention_features,
         'working_memory': working_memory_features,
@@ -658,10 +707,12 @@ def extract_challenge2_features(all_task_data):
 ### 🎯 Performance Validation Strategy
 
 #### **Cross-Task Validation Methodology**
+
 ```python
 # Validation strategy for multi-task learning
 class HBNValidationFramework:
     def __init__(self):
+
         self.task_weights = {
             'contrast_detection': 0.4,     # Primary for Challenge 1
             'symbol_search': 0.2,          # Secondary for processing speed
@@ -670,29 +721,32 @@ class HBNValidationFramework:
             'surround_suppression': 0.1,   # Visual processing
             'movie_watching': 0.05         # Naturalistic processing
         }
-    
+
     def validate_cross_task_generalization(self, model, validation_data):
         """Test how well the model generalizes across HBN tasks"""
-        
+
         results = {}
         for task, weight in self.task_weights.items():
             # Task-specific validation
             task_performance = self.evaluate_task_performance(model, validation_data[task])
-            
+
             # Cross-task transfer (train on other tasks, test on this task)
             transfer_performance = self.evaluate_transfer_performance(model, task, validation_data)
-            
+
+
             results[task] = {
                 'direct_performance': task_performance,
                 'transfer_performance': transfer_performance,
                 'generalization_gap': task_performance - transfer_performance,
                 'weight': weight
+
             }
-        
+
         return results
 ```
 
 #### **Expected Performance by HBN Task**
+
 | HBN Task | Neural Marker Quality | Implementation Readiness | Challenge 1 Relevance | Challenge 2 Relevance |
 |----------|----------------------|-------------------------|----------------------|----------------------|
 | **Contrast Change Detection** | **High** (P300, theta well-established) | **Complete** | **Primary** (response time target) | High (attention problems) |
@@ -712,12 +766,14 @@ This implementation incorporates four key innovations to address EEG foundation 
 EEG recordings exhibit significant variability across sites due to hardware differences (electrode impedances, amplifier characteristics, sampling rates) and protocol variations (reference schemes, filtering). Traditional models trained on one site often fail to generalize to new recording environments.
 
 **Our Multi-Adversary Extension**:
+
 - **Multiple domain classifiers**: Separate adversarial networks for subject-level and site-level invariance
 - **Gradient reversal layer**: Custom PyTorch autograd function that reverses gradients during backpropagation to learn domain-invariant features
 - **Flexible lambda scheduling**: Configurable scheduling strategies (linear, cosine, step, exponential) to control adversarial training strength over time
 - **Automatic loss weighting**: Dynamic balancing between task-specific and domain-invariant objectives
 
 **Technical Implementation**:
+
 ```python
 # Gradient reversal with configurable lambda
 class GradientReversalLayer(nn.Module):
@@ -737,12 +793,14 @@ The HBN dataset contains 6 different cognitive paradigms (Resting State, Sustain
 **Our Task-Aware Approach**:
 
 - **Task token embeddings**: Learnable embeddings for each cognitive paradigm that condition the entire model
+
 - **FiLM (Feature-wise Linear Modulation)**: Lightweight adaptation that applies task-specific affine transformations to feature maps
 - **LoRA (Low-Rank Adaptation)**: Parameter-efficient fine-tuning that adds low-rank matrices to existing layers
 - **Task-conditioned attention**: Attention mechanisms biased by task embeddings to focus on relevant neural patterns
 - **Minimal overhead**: <5% parameter increase while maintaining task-specific adaptability
 
 **Technical Implementation**:
+
 ```python
 # Task token conditioning
 task_emb = self.task_tokens(task_ids)  # (B, task_emb_dim)
@@ -771,6 +829,7 @@ Real-world EEG deployment often involves data compression for storage/transmissi
 - **Multi-scale temporal corruptions**: Masking strategies that account for EEG's temporal structure
 
 **Technical Implementation**:
+
 ```python
 # Wavelet compression simulation
 coeffs = pywt.wavedec(signal, 'db4', level=compression_level)
@@ -799,6 +858,7 @@ Large-scale EEG model training requires efficient GPU utilization to compete eff
 - **Gradient checkpointing**: Trade computation for memory to enable larger models
 
 **Technical Implementation**:
+
 ```python
 # Mixed precision with automatic scaling
 scaler = GradScaler()
@@ -1034,7 +1094,7 @@ Self-Supervised Learning traditionally uses masking and reconstruction objective
 **Augmentation Strategy**:
 
 1. **Wavelet Compression**: Decompose signal, zero high-frequency components
-2. **Quantization**: Reduce bit depth to simulate ADC limitations  
+2. **Quantization**: Reduce bit depth to simulate ADC limitations
 3. **Spectral Distortion**: Add phase noise and magnitude variations
 4. **Temporal Masking**: Random span masking for reconstruction
 
@@ -1148,7 +1208,7 @@ Our performance estimates are based on:
 Based on previous EEG challenges and neuroimaging competitions:
 
 - **Top 10%**: Requires >0.55 on Challenge 1, >0.23 on Challenge 2
-- **Top 5%**: Requires >0.60 on Challenge 1, >0.25 on Challenge 2  
+- **Top 5%**: Requires >0.60 on Challenge 1, >0.25 on Challenge 2
 - **Top 1%**: Requires >0.65 on Challenge 1, >0.28 on Challenge 2
 
 Our implementation targets the **Top 5%** with potential for **Top 1%** performance.
@@ -1192,7 +1252,7 @@ We welcome contributions to improve the implementation:
 ### Current Development Priorities
 
 1. **Model Architecture**: Exploring transformer variants optimized for EEG
-2. **Data Augmentation**: Additional EEG-specific augmentation strategies  
+2. **Data Augmentation**: Additional EEG-specific augmentation strategies
 3. **Optimization**: Further GPU optimization and distributed training
 4. **Evaluation**: Comprehensive ablation studies and sensitivity analysis
 

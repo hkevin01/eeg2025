@@ -223,7 +223,7 @@ task:
 task:
   challenges:
     challenge2:
-      window_length: 2.0        # 2-second windows  
+      window_length: 2.0        # 2-second windows
       targets: ["p_factor", "internalizing", "externalizing", "attention", "binary_label"]
       age_range: [5, 21]
       metrics: ["pearson_r", "auroc"]
