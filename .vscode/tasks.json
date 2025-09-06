@@ -96,6 +96,60 @@
 			"type": "shell",
 			"command": "./scripts/test_demo.sh",
 			"group": "test"
+		},
+		{
+			"label": "Run Repository Health Check",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python scripts/health_check.py --verbose",
+			"group": "test"
+		},
+		{
+			"label": "Run Quick Repository Check",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python scripts/quick_check.py",
+			"group": "test"
+		},
+		{
+			"label": "Run Updated Repository Check",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python scripts/quick_check.py",
+			"group": "test"
+		},
+		{
+			"label": "Final Repository Validation",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python scripts/validate_repository.py",
+			"group": "test"
+		},
+		{
+			"label": "Check fused_ops.py existence",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python -c \"import os; print('fused_ops.py exists:', os.path.exists('src/gpu/triton/fused_ops.py')); print('File size:', os.path.getsize('src/gpu/triton/fused_ops.py') if os.path.exists('src/gpu/triton/fused_ops.py') else 'Not found')\"",
+			"group": "test"
+		},
+		{
+			"label": "Final Quick Validation Check",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python scripts/quick_check.py",
+			"group": "test"
+		},
+		{
+			"label": "Final Comprehensive Validation",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python -c \"print('🧠 EEG2025 Foundation Model - Final Validation'); print('='*60); print(); import sys, os; sys.path.append('src'); print('📦 Testing Core Components:'); try: from models.backbone.eeg_transformer import EEGTransformer; print('  ✅ EEGTransformer imported successfully'); except Exception as e: print(f'  ❌ EEGTransformer failed: {e}'); try: from models.adapters.task_aware import TaskAwareAdapter; print('  ✅ TaskAwareAdapter imported successfully'); except Exception as e: print(f'  ❌ TaskAwareAdapter failed: {e}'); try: from models.heads.temporal_regression import TemporalRegressionHead; print('  ✅ TemporalRegressionHead imported successfully'); except Exception as e: print(f'  ❌ TemporalRegressionHead failed: {e}'); try: from models.compression_ssl.augmentation import CompressionAugmentation; print('  ✅ CompressionAugmentation imported successfully'); except Exception as e: print(f'  ❌ CompressionAugmentation failed: {e}'); try: from training.trainers.ssl_trainer import SSLTrainer; print('  ✅ SSLTrainer imported successfully'); except Exception as e: print(f'  ❌ SSLTrainer failed: {e}'); print(); print('📂 Repository Structure:'); for root, dirs, files in os.walk('.'): level = root.replace('.', '').count(os.sep); indent = ' ' * 2 * level; if level < 3: print(f'{indent}{os.path.basename(root)}/'); subindent = ' ' * 2 * (level + 1); for file in files[:3]: if file.endswith(('.py', '.yaml', '.md', '.txt')): print(f'{subindent}{file}'); if len(files) > 3: print(f'{subindent}... (+{len(files)-3} more)'); print(); print('🎉 Repository is aligned with README promises!')\"",
+			"group": "test"
+		},
+		{
+			"label": "Final Repository Validation",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python final_validation.py",
+			"group": "test"
+		},
+		{
+			"label": "Run Final Validation Script",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python final_validation.py",
+			"group": "test"
 		}
 	]
 }

@@ -1,0 +1,298 @@
+# Base Training Configuration
+# ==========================
+
+# Experiment Metadata
+experiment:
+  name: "eeg2025_baseline"
+  description: "EEG Foundation Model for 2025 Competition"
+  tags: ["eeg", "ssl", "domain-adaptation", "hbn"]
+  version: "1.0.0"
+
+# Model Architecture
+model:
+  # Core backbone
+  backbone_type: "transformer"
+  d_model: 768
+  n_layers: 12
+  n_heads: 12
+  dropout: 0.1
+
+  # EEG-specific
+  n_channels: 128
+  max_sequence_length: 2048
+  patch_size: 32
+
+  # Positional encoding
+  pos_encoding_type: "learnable"  # learnable, sinusoidal, rotary
+
+  # Task-aware adaptation
+  use_task_adapters: true
+  num_tasks: 6  # HBN: RS, SuS, MW, CCD, SL, SyS
+  adapter_configs:
+    type: "both"  # film, lora, both
+    film_hidden_dim: 256
+    lora_rank: 16
+    lora_alpha: 32
+    dropout: 0.1
+
+  # Multi-adversary domain adaptation
+  domain_adaptation:
+    enabled: true
+    domains:
+      subject:
+        n_classes: 100
+        weight: 1.0
+      site:
+        n_classes: 4
+        weight: 0.5
+      montage:
+        n_classes: 3
+        weight: 0.3
+    lambda_schedule:
+      type: "cosine"  # linear, cosine, exponential
+      max_value: 1.0
+      warmup_steps: 1000
+
+# Compression-Augmented SSL
+ssl:
+  enabled: true
+
+  # Compression augmentation
+  compression:
+    wavelet_family: "db4"
+    compression_levels: [0.1, 0.2, 0.3, 0.5, 0.7]
+    noise_injection: 0.02
+
+  # Spectral distortion
+  spectral:
+    freq_mask_prob: 0.3
+    freq_mask_width: 16
+    time_mask_prob: 0.3
+    time_mask_width: 32
+
+  # Contrastive learning
+  contrastive:
+    temperature: 0.1
+    projection_dim: 256
+    queue_size: 4096
+
+  # Loss configuration
+  loss_weights:
+    consistency: 1.0
+    contrastive: 0.5
+    reconstruction: 0.1
+
+  # Curriculum learning
+  curriculum:
+    enabled: true
+    start_light: true
+    progression_epochs: 20
+    final_difficulty: 1.0
+
+# Prediction Heads
+heads:
+  # Temporal regression
+  temporal_regression:
+    enabled: true
+    hidden_dims: [512, 256]
+    output_dim: 128
+    use_uncertainty: true
+
+  # Calibrated classification
+  classification:
+    enabled: true
+    n_classes: 2
+    hidden_dims: [512, 256]
+    use_temperature_scaling: true
+
+  # Psychopathology
+  psychopathology:
+    enabled: true
+    disorders: ["adhd", "asd", "anxiety", "depression"]
+    hidden_dims: [512, 256, 128]
+    use_multi_scale: true
+
+# Training Configuration
+training:
+  # Optimization
+  optimizer:
+    type: "adamw"
+    lr: 5e-5
+    weight_decay: 0.01
+    betas: [0.9, 0.999]
+    eps: 1e-8
+
+  # Scheduling
+  scheduler:
+    type: "cosine_with_warmup"
+    warmup_epochs: 5
+    max_epochs: 100
+    min_lr: 1e-7
+
+  # Batch configuration
+  batch_size: 32
+  eval_batch_size: 64
+  gradient_accumulation_steps: 1
+
+  # Gradient clipping
+  max_grad_norm: 1.0
+
+  # Regularization
+  dropout: 0.1
+  droppath: 0.1
+  label_smoothing: 0.1
+
+  # Multi-task weighting
+  task_weights:
+    ssl: 1.0
+    domain_adaptation: 0.1
+    temporal_regression: 1.0
+    classification: 1.0
+    psychopathology: 0.5
+
+  # Loss scaling
+  loss_scaling:
+    enabled: false
+    init_scale: 2**16
+    scale_factor: 2.0
+    scale_window: 2000
+
+# Data Configuration
+data:
+  # Dataset
+  dataset_name: "hbn"
+  data_root: "data/hbn"
+  cache_dir: "cache"
+
+  # Preprocessing
+  preprocessing:
+    sampling_rate: 500
+    low_freq: 0.5
+    high_freq: 40.0
+    notch_freq: 60.0
+
+  # Windowing
+  window_length: 2.0  # seconds
+  window_overlap: 0.5
+
+  # Splits
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+  # Stratification
+  stratify_by: ["site", "age_group", "sex"]
+
+  # Augmentation
+  augmentation:
+    enabled: true
+    prob: 0.3
+    methods:
+      - "time_shift"
+      - "amplitude_scale"
+      - "frequency_shift"
+      - "electrode_dropout"
+
+  # Loading
+  dataloader:
+    num_workers: 8
+    pin_memory: true
+    persistent_workers: true
+    prefetch_factor: 2
+
+# Validation Configuration
+validation:
+  # Frequency
+  check_val_every_n_epoch: 1
+  val_check_interval: 1.0
+
+  # Metrics
+  metrics:
+    - "accuracy"
+    - "f1_score"
+    - "auroc"
+    - "calibration_error"
+    - "domain_confusion"
+
+  # Early stopping
+  early_stopping:
+    monitor: "val_loss"
+    patience: 10
+    min_delta: 0.001
+    mode: "min"
+
+# Checkpointing
+checkpointing:
+  # Frequency
+  save_every_n_epochs: 5
+  save_top_k: 3
+
+  # Monitoring
+  monitor: "val_accuracy"
+  mode: "max"
+
+  # Paths
+  checkpoint_dir: "checkpoints"
+  save_last: true
+
+  # Resume
+  resume_from_checkpoint: null
+
+# Environment
+environment:
+  # Compute
+  accelerator: "auto"  # auto, gpu, cpu, tpu
+  devices: "auto"
+  precision: "16-mixed"  # 32, 16, bf16, 16-mixed, bf16-mixed
+
+  # Reproducibility
+  seed: 42
+  deterministic: false
+  benchmark: true
+
+  # Memory
+  max_memory_gb: null
+  gradient_checkpointing: false
+
+# Logging
+logging:
+  # Loggers
+  loggers:
+    - type: "tensorboard"
+      save_dir: "logs/tensorboard"
+    - type: "csv"
+      save_dir: "logs/csv"
+
+  # Frequency
+  log_every_n_steps: 50
+
+  # What to log
+  log_graph: false
+  log_model: false
+
+  # Progress bars
+  enable_progress_bar: true
+  refresh_rate: 1
+
+# Debugging
+debug:
+  # Fast dev run
+  fast_dev_run: false
+
+  # Limits
+  limit_train_batches: null
+  limit_val_batches: null
+  limit_test_batches: null
+
+  # Profiling
+  profiler: null  # simple, advanced, pytorch
+
+  # Overfit
+  overfit_batches: 0.0
+
+  # Sanity checks
+  num_sanity_val_steps: 2
+
+  # Gradients
+  track_grad_norm: false
+  detect_anomaly: false

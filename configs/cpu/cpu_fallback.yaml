@@ -1,0 +1,184 @@
+# CPU Fallback Configuration
+# ==========================
+
+# Model Configuration
+model:
+  backbone_type: "transformer"
+  d_model: 512  # Reduced for CPU
+  n_layers: 6   # Reduced for CPU
+  n_heads: 8    # Reduced for CPU
+  dropout: 0.1
+  n_channels: 128
+
+  # Task-aware adaptation
+  use_task_adapters: true
+  num_tasks: 6  # HBN paradigms: RS, SuS, MW, CCD, SL, SyS
+  adapter_type: "film"  # Use lighter FiLM only for CPU
+
+  # Multi-adversary DANN
+  use_domain_adaptation: true
+  domain_configs:
+    subject: 50  # Reduced for CPU
+    site: 4
+    montage: 3
+  lambda_schedule: "linear"  # Simpler schedule
+  max_lambda: 0.5
+
+# CPU Optimization
+cpu:
+  # Threading
+  num_threads: 4
+  intraop_num_threads: 4
+  interop_num_threads: 1
+
+  # Memory optimization
+  pin_memory: false
+  use_memory_efficient_attention: true
+  gradient_checkpointing: false  # Less memory pressure on CPU
+
+  # Quantization
+  use_quantization: false  # Disabled for compatibility
+
+  # Compilation (usually slower on CPU)
+  use_torch_compile: false
+
+# Compression-Augmented SSL (Simplified)
+compression_ssl:
+  enabled: true
+
+  # Lighter augmentation for CPU
+  wavelet_family: "haar"  # Simpler wavelet
+  compression_levels: [0.3, 0.7]  # Fewer levels
+  noise_std: 0.01
+
+  # No curriculum for simplicity
+  use_curriculum: false
+
+  # Loss weights
+  consistency_weight: 1.0
+  contrastive_weight: 0.3
+  temperature: 0.2
+
+# Training Configuration
+training:
+  batch_size: 8   # Smaller batch for CPU
+  max_epochs: 50  # Fewer epochs for testing
+  learning_rate: 1e-4
+  weight_decay: 0.01
+  warmup_epochs: 2
+
+  # Gradient settings
+  max_grad_norm: 1.0
+  accumulate_grad_batches: 4  # Simulate larger batch
+
+  # Optimization
+  optimizer: "adamw"
+  scheduler: "cosine_with_warmup"
+
+  # Multi-task learning
+  task_weights:
+    ssl: 1.0
+    domain_adaptation: 0.05  # Reduced for CPU
+    main_task: 2.0
+
+# Data Configuration
+data:
+  # Paths
+  data_root: "data/hbn"
+  cache_dir: "cache"
+
+  # Processing
+  window_length: 1.0  # Shorter windows for CPU
+  overlap: 0.25
+  sampling_rate: 250  # Lower sampling rate
+
+  # Augmentation
+  use_data_augmentation: false  # Disabled for speed
+
+  # Loading
+  num_workers: 2  # Fewer workers for CPU
+  pin_memory: false
+  prefetch_factor: 1
+
+# Benchmarking (CPU-appropriate)
+benchmark:
+  enabled: true
+
+  # Test configurations
+  batch_sizes: [1, 4, 8]
+  sequence_lengths: [250, 500, 1000]
+
+  # Measurement
+  n_warmup: 5
+  n_iterations: 20
+
+  # Relaxed targets for CPU
+  target_p95_latency_ms: 500
+  target_throughput_qps: 2
+  target_memory_gb: 4
+
+# Logging
+logging:
+  level: "INFO"
+  log_to_file: true
+  log_to_wandb: false
+
+  # Performance monitoring
+  log_cpu_usage: true
+  log_memory_usage: true
+  log_frequency: 100  # steps
+
+  # Disable GPU-specific profiling
+  enable_profiler: false
+
+# Inference Optimization
+inference:
+  # No GPU-specific optimizations
+  use_quantization: false
+  use_tensorrt: false
+  export_onnx: true
+  onnx_opset_version: 11
+
+  # CPU-friendly streaming
+  enable_streaming: true
+  buffer_size: 1024  # Smaller buffer
+  use_kv_cache: false  # Simpler for CPU
+
+# Development/Testing Deployment
+deployment:
+  # Server configuration
+  backend: "fastapi"
+  host: "127.0.0.1"
+  port: 8000
+  workers: 1
+
+  # Health checks
+  enable_health_check: true
+  health_check_interval: 60
+
+  # Monitoring
+  enable_metrics: false  # Disabled for simplicity
+
+  # Resource limits
+  max_batch_size: 16
+  timeout_seconds: 60
+  memory_limit_gb: 4
+
+# Testing Configuration
+testing:
+  # Use synthetic data for quick tests
+  use_synthetic_data: true
+  synthetic_subjects: 10
+  synthetic_sessions: 20
+
+  # Quick validation
+  quick_test_epochs: 2
+  validation_frequency: 10
+
+  # Numerical stability
+  check_gradients: true
+  gradient_threshold: 1e6
+
+  # CPU-specific checks
+  check_cpu_compatibility: true
+  verify_no_cuda_calls: true

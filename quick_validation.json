@@ -1,0 +1,110 @@
+{
+  "timestamp": 1757196148.9621935,
+  "validation_type": "quick_check",
+  "checks": {
+    "Python Version": {
+      "status": "PASS",
+      "elapsed_time": 3.0994415283203125e-06,
+      "details": {
+        "python_version": "3.12.3 (main, Aug 14 2025, 17:47:21) [GCC 13.3.0]",
+        "version_info": [
+          3,
+          12,
+          3
+        ]
+      }
+    },
+    "Project Structure": {
+      "status": "PASS",
+      "elapsed_time": 0.00023818016052246094,
+      "details": {
+        "total_files_checked": 8,
+        "total_dirs_checked": 14,
+        "missing_files": [],
+        "missing_dirs": [],
+        "files_present": 8,
+        "dirs_present": 14
+      }
+    },
+    "Configuration Files": {
+      "status": "PASS",
+      "elapsed_time": 0.03827977180480957,
+      "details": {
+        "yaml_available": true,
+        "config_status": {
+          "configs/gpu/enhanced_gpu.yaml": "VALID",
+          "configs/cpu/cpu_fallback.yaml": "VALID",
+          "configs/training/base_config.yaml": "VALID"
+        },
+        "issues": [],
+        "total_configs": 3
+      }
+    },
+    "Test Files": {
+      "status": "PASS",
+      "elapsed_time": 0.0002048015594482422,
+      "details": {
+        "test_status": {
+          "tests/test_dann_multi.py": "VALID",
+          "tests/test_adapters.py": "VALID",
+          "tests/test_compression_ssl.py": "VALID",
+          "tests/test_gpu_ops.py": "VALID",
+          "tests/test_heads.py": "VALID"
+        },
+        "issues": [],
+        "total_tests": 5
+      }
+    },
+    "Source Files": {
+      "status": "PASS",
+      "elapsed_time": 0.0005028247833251953,
+      "details": {
+        "source_status": {
+          "src/models/backbone/eeg_transformer.py": "VALID (quality: 4/4)",
+          "src/models/adapters/task_aware.py": "VALID (quality: 4/4)",
+          "src/models/heads/temporal_regression.py": "VALID (quality: 4/4)",
+          "src/models/invariance/dann_multi.py": "VALID (quality: 4/4)",
+          "src/models/compression_ssl/augmentation.py": "VALID (quality: 4/4)",
+          "src/training/trainers/ssl_trainer.py": "VALID (quality: 4/4)",
+          "src/gpu/triton/fused_ops.py": "VALID (quality: 4/4)",
+          "src/gpu/cupy/perceptual_quant.py": "VALID (quality: 3/4)"
+        },
+        "issues": [],
+        "total_sources": 8
+      }
+    },
+    "Scripts": {
+      "status": "PASS",
+      "elapsed_time": 0.000522613525390625,
+      "details": {
+        "script_status": {
+          "scripts/train.py": "VALID (features: 2/3)",
+          "scripts/inference.py": "VALID (features: 3/3)",
+          "scripts/bench_inference.py": "VALID (features: 3/3)",
+          "scripts/validate_repository.py": "VALID (features: 3/3)",
+          "scripts/health_check.py": "VALID (features: 3/3)"
+        },
+        "issues": [],
+        "total_scripts": 5
+      }
+    },
+    "Documentation": {
+      "status": "PASS",
+      "elapsed_time": 0.00145721435546875,
+      "details": {
+        "doc_status": {
+          "README.md": "VALID (quality: 3/3)",
+          "web/README.md": "VALID (quality: 3/3)"
+        },
+        "issues": [],
+        "total_docs": 2
+      }
+    }
+  },
+  "summary": {
+    "overall_status": "GOOD",
+    "passed": 7,
+    "total": 7,
+    "success_rate": 1.0
+  }
+}

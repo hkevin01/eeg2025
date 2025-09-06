@@ -1,0 +1,187 @@
+# GPU-Enhanced Configuration
+# ========================
+
+# Model Configuration
+model:
+  backbone_type: "transformer"
+  d_model: 768
+  n_layers: 12
+  n_heads: 12
+  dropout: 0.1
+  n_channels: 128
+
+  # Task-aware adaptation
+  use_task_adapters: true
+  num_tasks: 6  # HBN paradigms: RS, SuS, MW, CCD, SL, SyS
+  adapter_type: "both"  # film, lora, both
+
+  # Multi-adversary DANN
+  use_domain_adaptation: true
+  domain_configs:
+    subject: 100
+    site: 4
+    montage: 3
+  lambda_schedule: "cosine"
+  max_lambda: 1.0
+
+# GPU Optimization
+gpu:
+  # Mixed precision training
+  use_amp: true
+  amp_opt_level: "O1"
+
+  # Torch compilation
+  use_torch_compile: true
+  compile_mode: "max-autotune"  # default, reduce-overhead, max-autotune
+
+  # Memory optimization
+  gradient_checkpointing: true
+  max_memory_fraction: 0.9
+  empty_cache_frequency: 100  # steps
+
+  # Fused operations
+  use_triton_kernels: true
+  use_cupy_acceleration: true
+
+  # Kernel configurations
+  triton:
+    fused_filtering: true
+    fused_rmsnorm: true
+    block_size: 512
+
+  cupy:
+    perceptual_quantization: true
+    use_dlpack: true
+
+# Compression-Augmented SSL
+compression_ssl:
+  enabled: true
+
+  # Augmentation parameters
+  wavelet_family: "db4"
+  compression_levels: [0.1, 0.3, 0.5, 0.7]
+  noise_std: 0.02
+
+  # Scheduling
+  use_curriculum: true
+  start_light: true
+  progression_epochs: 20
+
+  # Loss weights
+  consistency_weight: 1.0
+  contrastive_weight: 0.5
+  temperature: 0.1
+
+# Training Configuration
+training:
+  batch_size: 32
+  max_epochs: 100
+  learning_rate: 5e-5
+  weight_decay: 0.01
+  warmup_epochs: 5
+
+  # Gradient settings
+  max_grad_norm: 1.0
+  accumulate_grad_batches: 1
+
+  # Optimization
+  optimizer: "adamw"
+  scheduler: "cosine_with_warmup"
+
+  # Multi-task learning
+  task_weights:
+    ssl: 1.0
+    domain_adaptation: 0.1
+    main_task: 2.0
+
+# Data Configuration
+data:
+  # Paths
+  data_root: "data/hbn"
+  cache_dir: "cache"
+
+  # Processing
+  window_length: 2.0  # seconds
+  overlap: 0.5
+  sampling_rate: 500
+
+  # Augmentation
+  use_data_augmentation: true
+  augmentation_prob: 0.3
+
+  # Loading
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 2
+
+# Benchmarking
+benchmark:
+  enabled: true
+
+  # Test configurations
+  batch_sizes: [1, 8, 16, 32]
+  sequence_lengths: [500, 1000, 2000]
+
+  # Measurement
+  n_warmup: 10
+  n_iterations: 100
+
+  # Targets (README claims)
+  target_p95_latency_ms: 50
+  target_throughput_qps: 20
+  target_memory_gb: 2
+
+# Logging
+logging:
+  level: "INFO"
+  log_to_file: true
+  log_to_wandb: false
+
+  # Performance monitoring
+  log_gpu_memory: true
+  log_throughput: true
+  log_frequency: 50  # steps
+
+  # Profiling
+  enable_profiler: false
+  profiler_schedule: "warmup=5;active=10;repeat=2"
+
+# Inference Optimization
+inference:
+  # Quantization
+  use_quantization: false
+  quantization_backend: "fbgemm"  # fbgemm, qnnpack
+
+  # TensorRT (if available)
+  use_tensorrt: false
+  tensorrt_precision: "fp16"
+
+  # ONNX export
+  export_onnx: false
+  onnx_opset_version: 11
+
+  # Streaming
+  enable_streaming: true
+  buffer_size: 4096
+  use_kv_cache: true
+
+# Production Deployment
+deployment:
+  # Server configuration
+  backend: "fastapi"
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+
+  # Health checks
+  enable_health_check: true
+  health_check_interval: 30
+
+  # Monitoring
+  enable_metrics: true
+  metrics_port: 9090
+
+  # Resource limits
+  max_batch_size: 64
+  timeout_seconds: 30
+  memory_limit_gb: 8
