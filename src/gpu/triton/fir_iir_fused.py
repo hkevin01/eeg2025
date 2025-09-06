@@ -60,12 +60,12 @@ def fused_filter_kernel(
     x2_bp1 = tl.zeros([BLOCK_C], dtype=tl.float32)
     y1_bp1 = tl.zeros([BLOCK_C], dtype=tl.float32)
     y2_bp1 = tl.zeros([BLOCK_C], dtype=tl.float32)
-    
+
     x1_bp2 = tl.zeros([BLOCK_C], dtype=tl.float32)
     x2_bp2 = tl.zeros([BLOCK_C], dtype=tl.float32)
     y1_bp2 = tl.zeros([BLOCK_C], dtype=tl.float32)
     y2_bp2 = tl.zeros([BLOCK_C], dtype=tl.float32)
-    
+
     x1_nt = tl.zeros([BLOCK_C], dtype=tl.float32)
     x2_nt = tl.zeros([BLOCK_C], dtype=tl.float32)
     y1_nt = tl.zeros([BLOCK_C], dtype=tl.float32)
@@ -79,13 +79,13 @@ def fused_filter_kernel(
         t = t_start + ti
         if t >= T:
             break
-            
+
         # Load x[:, t]
         x_ptr_t = x_ptr + base_bc + c_offsets * stride_c + t * stride_t
         xn = tl.load(x_ptr_t, mask=c_mask, other=0.0)
 
         # Bandpass biquad 1
-        y_bp1 = biquad_step(xn, x1_bp1, x2_bp1, y1_bp1, y2_bp1, 
+        y_bp1 = biquad_step(xn, x1_bp1, x2_bp1, y1_bp1, y2_bp1,
                            bp1_b0, bp1_b1, bp1_b2, bp1_a1, bp1_a2)
         # Update states for bp1
         x2_bp1 = x1_bp1
@@ -149,7 +149,7 @@ def fused_bandpass_notch_car(
 ) -> torch.Tensor:
     """
     GPU-fused bandpass + notch + CAR filtering.
-    
+
     Args:
         x: (B, C, T) float32 CUDA tensor
         biquad_bp1: (5,) tensor [b0,b1,b2,a1,a2] for first bandpass stage
@@ -158,18 +158,18 @@ def fused_bandpass_notch_car(
         block_t: Time block size for parallelization
         block_c: Channel block size for parallelization
         workspace: Optional workspace tensor for CAR computation
-        
+
     Returns:
         y: (B, C, T) filtered tensor with CAR applied
-        
-    Note: 
+
+    Note:
         For streaming applications, maintain biquad states across calls.
         Current implementation resets states per block for simplicity.
     """
     assert_device_cuda(x)
     x = to_contig_float(x)
     B, C, T = validate_eeg_shape(x)
-    
+
     # Create output tensor
     y = torch.empty_like(x)
 
@@ -202,16 +202,16 @@ def fused_bandpass_notch_car(
 
 
 def make_biquad_coeffs(
-    sfreq: float, 
-    bp_lo: float = 0.1, 
-    bp_hi: float = 40.0, 
-    notch: float = 60.0, 
-    Q: float = 30.0, 
+    sfreq: float,
+    bp_lo: float = 0.1,
+    bp_hi: float = 40.0,
+    notch: float = 60.0,
+    Q: float = 30.0,
     device: str = "cuda"
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Generate biquad coefficients for bandpass and notch filters.
-    
+
     Args:
         sfreq: Sampling frequency in Hz
         bp_lo: Bandpass low cutoff in Hz
@@ -219,7 +219,7 @@ def make_biquad_coeffs(
         notch: Notch frequency in Hz
         Q: Quality factor for notch filter
         device: Target device for tensors
-        
+
     Returns:
         Tuple of (bp1_coeffs, bp2_coeffs, notch_coeffs) each as (5,) tensors
     """
@@ -228,27 +228,27 @@ def make_biquad_coeffs(
         from scipy.signal import butter, iirnotch, sos2tf
     except ImportError:
         raise ImportError("scipy required for filter coefficient generation")
-    
+
     # Bandpass filter (4th order = 2 biquads)
-    sos_bp = butter(4, [bp_lo/(sfreq/2), bp_hi/(sfreq/2)], 
+    sos_bp = butter(4, [bp_lo/(sfreq/2), bp_hi/(sfreq/2)],
                     btype="bandpass", output="sos")
     b1, a1 = sos2tf(sos_bp[0:1, :])
     b2, a2 = sos2tf(sos_bp[1:2, :])
-    
+
     # Notch filter
     b_nt, a_nt = iirnotch(notch/(sfreq/2), Q=Q)
-    
+
     def pack_coeffs(b, a):
         """Pack filter coefficients as [b0,b1,b2,a1,a2] (normalized)."""
         b = b / a[0]
         a = a / a[0]
-        return torch.tensor([b[0], b[1], b[2], a[1], a[2]], 
+        return torch.tensor([b[0], b[1], b[2], a[1], a[2]],
                           dtype=torch.float32, device=device)
-    
+
     bp1 = pack_coeffs(b1, a1)
     bp2 = pack_coeffs(b2, a2)
     nt = pack_coeffs(b_nt, a_nt)
-    
+
     return bp1, bp2, nt
 
 
@@ -270,16 +270,16 @@ def fallback_bandpass_notch_car(
         from scipy.signal import sosfilt, butter, iirnotch
     except ImportError:
         raise ImportError("scipy required for CPU fallback filtering")
-    
+
     # Convert to numpy
     x_np = x.cpu().numpy()
     B, C, T = x_np.shape
-    
+
     # Create filters
-    sos_bp = butter(4, [bp_lo/(sfreq/2), bp_hi/(sfreq/2)], 
+    sos_bp = butter(4, [bp_lo/(sfreq/2), bp_hi/(sfreq/2)],
                     btype="bandpass", output="sos")
     sos_notch = iirnotch(notch/(sfreq/2), Q=Q, output="sos")
-    
+
     # Apply filters
     y_np = np.empty_like(x_np)
     for b in range(B):
@@ -289,9 +289,9 @@ def fallback_bandpass_notch_car(
             # Notch
             filtered = sosfilt(sos_notch, filtered)
             y_np[b, c, :] = filtered
-        
+
         # Apply CAR
         car_mean = np.mean(y_np[b, :, :], axis=0, keepdims=True)
         y_np[b, :, :] -= car_mean
-    
+
     return torch.from_numpy(y_np).to(x.device, dtype=x.dtype)

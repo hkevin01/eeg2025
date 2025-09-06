@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  eeg-demo-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.demo
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/workspace
+      - ./web:/workspace/web:ro
+    environment:
+      - PYTHONPATH=/workspace
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    working_dir: /workspace
+    command: python -m uvicorn backend.demo_server:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - eeg-demo-net
+
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./web:/usr/share/nginx/html/demo:ro
+    depends_on:
+      - eeg-demo-server
+    networks:
+      - eeg-demo-net
+
+networks:
+  eeg-demo-net:
+    driver: bridge

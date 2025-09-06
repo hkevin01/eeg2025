@@ -26,16 +26,16 @@ from .rmsnorm import (
 __all__ = [
     # Utils
     'to_contig_float',
-    'assert_device_cuda', 
+    'assert_device_cuda',
     'launch_pad',
     'validate_eeg_shape',
     'check_triton_availability',
-    
+
     # Filtering
     'fused_bandpass_notch_car',
     'make_biquad_coeffs',
     'fallback_bandpass_notch_car',
-    
+
     # Normalization
     'rmsnorm_time',
     'RMSNormTime',

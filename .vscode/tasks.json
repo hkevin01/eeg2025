@@ -48,6 +48,18 @@
 			"label": "Run Cross-Task Simple Tests",
 			"type": "shell",
 			"command": "cd /home/kevin/Projects/eeg2025 && python test_cross_task_simple.py"
+		},
+		{
+			"label": "organize_project",
+			"type": "shell",
+			"command": "cd /home/kevin/Projects/eeg2025 && python scripts/organize_project.py",
+			"group": "build"
+		},
+		{
+			"label": "make_executable",
+			"type": "shell",
+			"command": "chmod +x /home/kevin/Projects/eeg2025/scripts/demo.sh",
+			"group": "build"
 		}
 	]
 }

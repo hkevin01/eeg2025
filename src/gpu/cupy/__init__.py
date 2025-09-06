@@ -14,7 +14,7 @@ from .perceptual_quant import (
 
 __all__ = [
     'perceptual_quantize',
-    'adaptive_wavelet_compress', 
+    'adaptive_wavelet_compress',
     'predictive_coding_residual',
     'perceptual_quantize_torch',
     'compression_augmentation_suite',

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EEG GPU Demo - Interactive Real-Time Processing</title>
+<style>
+  :root { 
+    --bg:#0f172a; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb; --acc:#22d3ee; 
+    --ok:#34d399; --warn:#f59e0b; --err:#ef4444; --purple:#a855f7; --orange:#f97316; 
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { 
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; 
+    background: var(--bg); color: var(--fg); line-height: 1.5; 
+  }
+  
+  header { 
+    padding: 16px 20px; border-bottom: 1px solid #1f2937; 
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+  header h1 { font-size: 24px; font-weight: 700; }
+  header .chip { 
+    background: #0b2530; color: #7dd3fc; padding: 6px 12px; 
+    border-radius: 999px; font-size: 12px; font-weight: 600; 
+    border: 1px solid #164e63;
+  }
+  header .status { 
+    margin-left: auto; display: flex; gap: 8px; align-items: center; 
+  }
+  
+  main { 
+    display: grid; grid-template-columns: 360px 1fr; gap: 16px; 
+    padding: 16px; min-height: calc(100vh - 80px); 
+  }
+  @media (max-width: 1024px) { 
+    main { grid-template-columns: 1fr; }
+    .controls { order: 2; }
+    .visualization { order: 1; }
+  }
+  
+  .card { 
+    background: var(--card); border: 1px solid #1f2937; 
+    border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+  }
+  .card h2 { 
+    font-size: 16px; margin: 0 0 12px 0; color: var(--muted); 
+    font-weight: 600; display: flex; align-items: center; gap: 8px;
+  }
+  .card h3 { 
+    font-size: 14px; margin: 16px 0 8px 0; color: var(--fg); 
+    font-weight: 600; 
+  }
+  
+  .controls { display: flex; flex-direction: column; gap: 20px; }
+  .visualization { display: flex; flex-direction: column; gap: 16px; }
+  
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  
+  label { 
+    font-size: 13px; color: var(--muted); font-weight: 500; 
+    display: flex; align-items: center; gap: 8px;
+  }
+  label input[type="checkbox"] { 
+    accent-color: var(--acc); transform: scale(1.1); 
+  }
+  
+  input[type="number"], input[type="range"] { 
+    background: #1f2937; border: 1px solid #374151; color: var(--fg); 
+    padding: 8px 12px; border-radius: 6px; font-size: 13px;
+  }
+  input[type="number"]:focus, input[type="range"]:focus { 
+    outline: none; border-color: var(--acc); 
+  }
+  input[type="range"] { 
+    height: 6px; padding: 0; appearance: none; background: #374151; 
+  }
+  input[type="range"]::-webkit-slider-thumb { 
+    appearance: none; width: 20px; height: 20px; background: var(--acc); 
+    border-radius: 50%; cursor: pointer; 
+  }
+  
+  button { 
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); 
+    border: none; color: #fff; padding: 10px 16px; border-radius: 8px; 
+    cursor: pointer; font-weight: 600; font-size: 13px; 
+    transition: all 0.2s ease; border: 1px solid transparent;
+  }
+  button:hover { 
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); 
+    transform: translateY(-1px); 
+  }
+  button.secondary { 
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%); 
+    border: 1px solid #6b7280;
+  }
+  button.secondary:hover { 
+    background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%); 
+  }
+  button:disabled { 
+    opacity: 0.5; cursor: not-allowed; transform: none; 
+  }
+  
+  .preset-grid { 
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
+  }
+  .preset { 
+    background: linear-gradient(135deg, #0b2530 0%, #164e63 100%); 
+    color: #cbd5e1; border: 1px solid #1f2937; padding: 8px 12px; 
+    border-radius: 8px; cursor: pointer; font-size: 12px; 
+    text-align: center; transition: all 0.2s ease; font-weight: 500;
+  }
+  .preset:hover { 
+    background: linear-gradient(135deg, #164e63 0%, #0891b2 100%); 
+    color: #f0f9ff; transform: translateY(-1px); 
+  }
+  
+  .metrics-grid { 
+    display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; 
+    align-items: center; font-size: 13px; 
+  }
+  .metric-label { color: var(--muted); }
+  .metric-value { 
+    font-weight: 600; padding: 4px 8px; background: #1f2937; 
+    border-radius: 4px; text-align: center; min-width: 60px; 
+  }
+  
+  .bar-container { 
+    display: flex; flex-direction: column; gap: 8px; 
+  }
+  .bar-row { 
+    display: grid; grid-template-columns: 100px 1fr 60px; gap: 8px; 
+    align-items: center; font-size: 12px; 
+  }
+  .bar { 
+    height: 8px; background: #1f2937; border-radius: 999px; 
+    position: relative; overflow: hidden; 
+  }
+  .bar > div { 
+    position: absolute; top: 0; left: 0; bottom: 0; 
+    background: linear-gradient(90deg, var(--acc), var(--ok)); 
+    transition: width 0.3s ease; border-radius: 999px;
+  }
+  
+  .output-grid { 
+    display: flex; gap: 8px; flex-wrap: wrap; 
+  }
+  .output-pill { 
+    background: linear-gradient(135deg, #0b2530 0%, #164e63 100%); 
+    border: 1px solid #1f2937; padding: 8px 12px; border-radius: 999px; 
+    font-size: 12px; display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .output-value { 
+    font-weight: 700; color: var(--acc); 
+  }
+  
+  .chart-container { 
+    position: relative; 
+  }
+  .chart-container label { 
+    position: absolute; top: 8px; left: 12px; z-index: 10; 
+    background: rgba(15, 23, 42, 0.8); padding: 4px 8px; 
+    border-radius: 4px; font-size: 11px; font-weight: 600;
+  }
+  canvas { 
+    width: 100%; height: 180px; background: #0b0f1a; 
+    border-radius: 8px; border: 1px solid #1f2937; 
+  }
+  
+  .status-indicator { 
+    width: 8px; height: 8px; border-radius: 50%; 
+    display: inline-block; margin-right: 6px; 
+  }
+  .status-online { background: var(--ok); }
+  .status-offline { background: var(--err); }
+  .status-warning { background: var(--warn); }
+  
+  .feature-badges { 
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; 
+  }
+  .feature-badge { 
+    background: var(--purple); color: white; padding: 2px 6px; 
+    border-radius: 4px; font-size: 10px; font-weight: 600; 
+  }
+  .feature-badge.disabled { 
+    background: #374151; color: var(--muted); 
+  }
+  
+  .loading { 
+    opacity: 0.6; pointer-events: none; 
+  }
+  
+  @keyframes pulse { 
+    0%, 100% { opacity: 1; } 
+    50% { opacity: 0.5; } 
+  }
+  .pulsing { 
+    animation: pulse 1.5s ease-in-out infinite; 
+  }
+  
+  /* Mobile responsiveness */
+  @media (max-width: 640px) { 
+    header { padding: 12px 16px; }
+    header h1 { font-size: 20px; }
+    main { padding: 12px; gap: 12px; }
+    .card { padding: 12px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .preset-grid { grid-template-columns: 1fr; }
+    .output-grid { justify-content: center; }
+    .metrics-grid { grid-template-columns: 1fr auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 EEG GPU Demo</h1>
+  <span class="chip">Real-Time Neural Processing</span>
+  <div class="status">
+    <span id="health-status" class="chip">
+      <span class="status-indicator status-offline"></span>
+      Connecting...
+    </span>
+  </div>
+</header>
+
+<main>
+  <section class="controls">
+    <!-- GPU Features Card -->
+    <div class="card">
+      <h2>⚡ GPU Features</h2>
+      <div class="form-group">
+        <label>
+          <input id="use_fused" type="checkbox" checked />
+          Triton Fused Preprocessing (Bandpass+Notch+CAR)
+        </label>
+        <label>
+          <input id="use_rms" type="checkbox" checked />
+          RMSNorm Temporal Normalization
+        </label>
+        <label>
+          <input id="use_quant" type="checkbox" />
+          CuPy Perceptual Quantization (Compression SSL)
+        </label>
+      </div>
+      
+      <h3>Filter Parameters</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Bandpass Low (Hz)</label>
+          <input id="bp_lo" type="number" value="0.1" step="0.1" min="0.1" max="10" />
+        </div>
+        <div class="form-group">
+          <label>Bandpass High (Hz)</label>
+          <input id="bp_hi" type="number" value="40.0" step="0.5" min="10" max="100" />
+        </div>
+        <div class="form-group">
+          <label>Notch Filter (Hz)</label>
+          <input id="notch" type="number" value="60.0" step="1" min="50" max="70" />
+        </div>
+        <div class="form-group">
+          <label>SNR (dB)</label>
+          <div class="form-row">
+            <input id="snr" type="range" min="20" max="40" step="1" value="30" />
+            <span id="snr_val" class="metric-value">30</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Domain Adaptation Card -->
+    <div class="card">
+      <h2>🔄 Domain Robustness</h2>
+      <div class="form-group">
+        <label>
+          <input id="montage_aug" type="checkbox" />
+          Montage Augmentation (Channel Layout Robustness)
+        </label>
+        <div class="form-group">
+          <label>Channel Dropout Probability</label>
+          <div class="form-row">
+            <input id="drop" type="range" min="0" max="0.3" step="0.01" value="0.0" />
+            <span id="drop_val" class="metric-value">0.00</span>
+          </div>
+        </div>
+      </div>
+      
+      <h3>Test Scenarios</h3>
+      <div class="preset-grid">
+        <button class="preset" data-preset="clean">Clean Signal</button>
+        <button class="preset" data-preset="noisy">Compression Stress</button>
+        <button class="preset" data-preset="drop">Channel Drop 10%</button>
+        <button class="preset" data-preset="robust">Robustness Mix</button>
+      </div>
+    </div>
+
+    <!-- Controls Card -->
+    <div class="card">
+      <h2>🎮 Controls</h2>
+      <div class="form-group">
+        <div class="form-row">
+          <button id="run">🚀 Run Inference</button>
+          <button id="auto" class="secondary">⏯️ Auto Play</button>
+        </div>
+      </div>
+      
+      <div class="feature-badges" id="feature-status">
+        <span class="feature-badge">Triton</span>
+        <span class="feature-badge">CuPy</span>
+        <span class="feature-badge">CUDA</span>
+        <span class="feature-badge">RMSNorm</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="visualization">
+    <!-- Live Charts Card -->
+    <div class="card">
+      <h2>📊 Live EEG Visualization</h2>
+      <div class="form-grid">
+        <div class="chart-container">
+          <label>Time Series (2s window, channel sample)</label>
+          <canvas id="ts"></canvas>
+        </div>
+        <div class="chart-container">
+          <label>Power Spectrum (0-50 Hz)</label>
+          <canvas id="spec"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Metrics Card -->
+    <div class="card">
+      <h2>⚡ Performance Metrics</h2>
+      <div class="bar-container">
+        <div class="bar-row">
+          <span class="metric-label">GPU Preproc</span>
+          <div class="bar"><div id="bar_pre" style="width:0%"></div></div>
+          <span id="preproc_ms" class="metric-value">-</span>
+        </div>
+        <div class="bar-row">
+          <span class="metric-label">Quantization</span>
+          <div class="bar"><div id="bar_quant" style="width:0%"></div></div>
+          <span id="quant_ms" class="metric-value">-</span>
+        </div>
+        <div class="bar-row">
+          <span class="metric-label">Forward Pass</span>
+          <div class="bar"><div id="bar_fwd" style="width:0%"></div></div>
+          <span id="fwd_ms" class="metric-value">-</span>
+        </div>
+        <div class="bar-row">
+          <span class="metric-label"><strong>Total Latency</strong></span>
+          <div class="bar"><div id="bar_total" style="width:0%; background: linear-gradient(90deg, var(--acc), var(--warn));"></div></div>
+          <span id="tot_ms" class="metric-value" style="background: var(--acc); color: white;">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Outputs Card -->
+    <div class="card">
+      <h2>🎯 Model Predictions</h2>
+      <div class="output-grid">
+        <div class="output-pill">
+          <span>Response Time:</span>
+          <span id="rt" class="output-value">-</span>
+          <span>ms</span>
+        </div>
+        <div class="output-pill">
+          <span>Success Rate:</span>
+          <span id="succ" class="output-value">-</span>
+          <span>%</span>
+        </div>
+        <div class="output-pill">
+          <span>p-factor:</span>
+          <span id="pf" class="output-value">-</span>
+        </div>
+        <div class="output-pill">
+          <span>Internalizing:</span>
+          <span id="int" class="output-value">-</span>
+        </div>
+        <div class="output-pill">
+          <span>Externalizing:</span>
+          <span id="ext" class="output-value">-</span>
+        </div>
+        <div class="output-pill">
+          <span>Attention:</span>
+          <span id="att" class="output-value">-</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// API Configuration
+const API_BASE = window.location.protocol === "file:" ? "http://localhost:8000" : "";
+const api = (path) => API_BASE + path;
+
+// DOM Helpers
+const $ = (id) => document.getElementById(id);
+const $$ = (selector) => document.querySelectorAll(selector);
+
+// State Management
+let isPlaying = false;
+let playTimer = null;
+let serverStatus = { online: false, gpu: false };
+
+// Initialize Application
+async function initApp() {
+  await checkHealth();
+  setupEventListeners();
+  initializeCharts();
+  
+  // Initial demo data load
+  await loadDemoData();
+}
+
+// Health Check & Status Updates
+async function checkHealth() {
+  const healthEl = $("health-status");
+  const statusIndicator = healthEl.querySelector(".status-indicator");
+  const featureStatus = $("feature-status");
+  
+  try {
+    const response = await fetch(api("/health"));
+    const health = await response.json();
+    
+    serverStatus.online = health.status === "ok";
+    serverStatus.gpu = health.cuda && health.gpu_components;
+    
+    if (serverStatus.online) {
+      statusIndicator.className = "status-indicator status-online";
+      healthEl.innerHTML = `
+        <span class="status-indicator status-online"></span>
+        ${health.device} | GPU: ${health.cuda ? "✅" : "❌"}
+      `;
+      
+      // Update feature badges
+      updateFeatureBadges(health);
+    } else {
+      throw new Error("Server offline");
+    }
+  } catch (error) {
+    statusIndicator.className = "status-indicator status-offline";
+    healthEl.innerHTML = `
+      <span class="status-indicator status-offline"></span>
+      Backend Offline
+    `;
+    console.error("Health check failed:", error);
+  }
+}
+
+function updateFeatureBadges(health) {
+  const badges = $("feature-status").children;
+  const features = {
+    "Triton": health.gpu_components,
+    "CuPy": health.gpu_components,
+    "CUDA": health.cuda,
+    "RMSNorm": health.gpu_components
+  };
+  
+  Array.from(badges).forEach(badge => {
+    const feature = badge.textContent;
+    badge.className = features[feature] ? "feature-badge" : "feature-badge disabled";
+  });
+}
+
+// Event Listeners Setup
+function setupEventListeners() {
+  // Range inputs with live updates
+  $("snr").addEventListener("input", e => $("snr_val").textContent = e.target.value);
+  $("drop").addEventListener("input", e => $("drop_val").textContent = parseFloat(e.target.value).toFixed(2));
+  
+  // Control buttons
+  $("run").addEventListener("click", runInference);
+  $("auto").addEventListener("click", toggleAutoPlay);
+  
+  // Preset scenarios
+  $$(".preset").forEach(btn => {
+    btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
+  });
+  
+  // Periodic health checks
+  setInterval(checkHealth, 10000); // Every 10 seconds
+}
+
+// Preset Scenarios
+function applyPreset(preset) {
+  const presets = {
+    clean: {
+      use_fused: true, use_rms: true, use_quant: false,
+      snr: 35, montage_aug: false, drop: 0.0
+    },
+    noisy: {
+      use_fused: true, use_rms: true, use_quant: true,
+      snr: 25, montage_aug: false, drop: 0.05
+    },
+    drop: {
+      use_fused: true, use_rms: true, use_quant: false,
+      snr: 30, montage_aug: true, drop: 0.10
+    },
+    robust: {
+      use_fused: true, use_rms: true, use_quant: true,
+      snr: 28, montage_aug: true, drop: 0.08
+    }
+  };
+  
+  const config = presets[preset];
+  if (!config) return;
+  
+  $("use_fused").checked = config.use_fused;
+  $("use_rms").checked = config.use_rms;
+  $("use_quant").checked = config.use_quant;
+  $("snr").value = config.snr;
+  $("snr_val").textContent = config.snr;
+  $("montage_aug").checked = config.montage_aug;
+  $("drop").value = config.drop;
+  $("drop_val").textContent = config.drop.toFixed(2);
+  
+  // Visual feedback
+  $$(".preset").forEach(btn => btn.style.background = "");
+  event.target.style.background = "linear-gradient(135deg, var(--acc), var(--purple))";
+  setTimeout(() => event.target.style.background = "", 1000);
+}
+
+// Canvas Drawing Functions
+function drawTimeSeries(canvas, data) {
+  const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  
+  const W = rect.width, H = rect.height;
+  
+  // Clear canvas
+  ctx.fillStyle = "#0b0f1a";
+  ctx.fillRect(0, 0, W, H);
+  
+  // Draw grid
+  ctx.strokeStyle = "#1f2937";
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 10; i++) {
+    const y = i / 10 * H;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+  
+  // Draw signal
+  if (data && data.length > 0) {
+    ctx.strokeStyle = "#22d3ee";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    const N = data.length;
+    for (let i = 0; i < N; i++) {
+      const x = i / (N - 1) * W;
+      const y = (0.5 - data[i] * 0.4) * H;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawSpectrum(canvas, freqs, power) {
+  const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  
+  const W = rect.width, H = rect.height;
+  
+  // Clear canvas
+  ctx.fillStyle = "#0b0f1a";
+  ctx.fillRect(0, 0, W, H);
+  
+  // Draw bars
+  if (power && power.length > 0) {
+    const N = power.length;
+    const barWidth = W / N;
+    
+    for (let i = 0; i < N; i++) {
+      const x = i * barWidth;
+      const barHeight = power[i] * H * 0.8;
+      
+      // Gradient based on frequency
+      const hue = (i / N) * 240; // Blue to red spectrum
+      ctx.fillStyle = `hsl(${180 + hue/2}, 70%, 60%)`;
+      ctx.fillRect(x, H - barHeight, barWidth - 1, barHeight);
+    }
+  }
+}
+
+function initializeCharts() {
+  // Initialize with placeholder data
+  const placeholderTime = Array.from({length: 512}, (_, i) => 
+    Math.sin(i * 0.05) * 0.5 + Math.sin(i * 0.013) * 0.3 + (Math.random() - 0.5) * 0.1
+  );
+  const placeholderFreq = Array.from({length: 50}, (_, i) => i * 1.0);
+  const placeholderPower = Array.from({length: 50}, (_, i) => 
+    Math.exp(-i * 0.1) * (0.5 + 0.5 * Math.sin(i * 0.3))
+  );
+  
+  drawTimeSeries($("ts"), placeholderTime);
+  drawSpectrum($("spec"), placeholderFreq, placeholderPower);
+}
+
+// Demo Data Loading
+async function loadDemoData() {
+  try {
+    const response = await fetch(api("/demo_data"));
+    const data = await response.json();
+    
+    drawTimeSeries($("ts"), data.time_series);
+    drawSpectrum($("spec"), data.frequencies, data.spectrum);
+  } catch (error) {
+    console.error("Failed to load demo data:", error);
+  }
+}
+
+// Performance Visualization
+function updatePerformanceMetrics(latency) {
+  const maxLatency = Math.max(1, latency.total);
+  
+  // Update values
+  $("preproc_ms").textContent = latency.preproc.toFixed(2);
+  $("quant_ms").textContent = latency.quant.toFixed(2);
+  $("fwd_ms").textContent = latency.forward.toFixed(2);
+  $("tot_ms").textContent = latency.total.toFixed(2);
+  
+  // Update bars with animations
+  requestAnimationFrame(() => {
+    $("bar_pre").style.width = `${(latency.preproc / maxLatency * 100)}%`;
+    $("bar_quant").style.width = `${(latency.quant / maxLatency * 100)}%`;
+    $("bar_fwd").style.width = `${(latency.forward / maxLatency * 100)}%`;
+    $("bar_total").style.width = `${Math.min(100, latency.total / 50 * 100)}%`; // 50ms target
+  });
+  
+  // Color code total latency
+  const totalEl = $("tot_ms");
+  if (latency.total < 2) {
+    totalEl.style.background = "var(--ok)";
+  } else if (latency.total < 10) {
+    totalEl.style.background = "var(--warn)";
+  } else {
+    totalEl.style.background = "var(--err)";
+  }
+}
+
+// Model Output Updates
+function updateModelOutputs(outputs) {
+  $("rt").textContent = Math.round(outputs.response_time_ms);
+  $("succ").textContent = (outputs.success_prob * 100).toFixed(1);
+  $("pf").textContent = outputs.cbcl.p_factor.toFixed(3);
+  $("int").textContent = outputs.cbcl.internalizing.toFixed(3);
+  $("ext").textContent = outputs.cbcl.externalizing.toFixed(3);
+  $("att").textContent = outputs.cbcl.attention.toFixed(3);
+}
+
+// Main Inference Function
+async function runInference() {
+  if (!serverStatus.online) {
+    alert("Backend server is offline. Please start the demo server.");
+    return;
+  }
+  
+  const runButton = $("run");
+  const originalText = runButton.textContent;
+  
+  try {
+    // Update UI state
+    runButton.disabled = true;
+    runButton.textContent = "🔄 Processing...";
+    runButton.classList.add("pulsing");
+    
+    // Build request payload
+    const payload = {
+      channels: 128,
+      sfreq: 500,
+      window_s: 2.0,
+      stride_s: 0.5,
+      use_fused_preproc: $("use_fused").checked,
+      bandpass: [parseFloat($("bp_lo").value), parseFloat($("bp_hi").value)],
+      notch: parseFloat($("notch").value),
+      use_rmsnorm: $("use_rms").checked,
+      use_perceptual_quant: $("use_quant").checked,
+      snr_db: parseFloat($("snr").value),
+      montage_aug: $("montage_aug").checked,
+      channel_drop_prob: parseFloat($("drop").value),
+      simulate: true
+    };
+    
+    // Send request
+    const response = await fetch(api("/infer_once"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    // Update visualizations
+    await loadDemoData(); // Refresh charts
+    updatePerformanceMetrics(result.latency_ms);
+    updateModelOutputs(result.outputs);
+    
+    // Update feature status
+    const features = result.gpu_features;
+    updateFeatureBadges(features);
+    
+  } catch (error) {
+    console.error("Inference failed:", error);
+    alert(`Inference failed: ${error.message}`);
+  } finally {
+    // Restore UI state
+    runButton.disabled = false;
+    runButton.textContent = originalText;
+    runButton.classList.remove("pulsing");
+  }
+}
+
+// Auto-play functionality
+function toggleAutoPlay() {
+  isPlaying = !isPlaying;
+  const autoButton = $("auto");
+  
+  if (isPlaying) {
+    autoButton.textContent = "⏹️ Stop";
+    autoButton.style.background = "linear-gradient(135deg, var(--err), #dc2626)";
+    
+    const runContinuously = async () => {
+      if (!isPlaying) return;
+      
+      await runInference();
+      
+      if (isPlaying) {
+        playTimer = setTimeout(runContinuously, 1000); // Every second
+      }
+    };
+    
+    runContinuously();
+  } else {
+    autoButton.textContent = "⏯️ Auto Play";
+    autoButton.style.background = "";
+    
+    if (playTimer) {
+      clearTimeout(playTimer);
+      playTimer = null;
+    }
+  }
+}
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", initApp);
+
+// Cleanup on page unload
+window.addEventListener("beforeunload", () => {
+  if (playTimer) clearTimeout(playTimer);
+});
+</script>
+
+</body>
+</html>

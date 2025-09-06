@@ -2230,10 +2230,11 @@ Our implementation transcends traditional PyTorch limitations through **GPU-firs
 #### 1. **Triton Fused Kernels** (`src/gpu/triton/`)
 
 **Revolutionary EEG Preprocessing Pipeline**:
+
 ```python
 # Single fused kernel replaces 50+ PyTorch operations
 filtered = fused_bandpass_notch_car(
-    raw_eeg,                    # (B, 128, 1000) 
+    raw_eeg,                    # (B, 128, 1000)
     biquad_bandpass_1,          # 4th-order Butterworth
     biquad_bandpass_2,          # Cascade for sharp cutoff
     biquad_notch_60hz           # Line noise removal
@@ -2242,6 +2243,7 @@ filtered = fused_bandpass_notch_car(
 ```
 
 **Key Innovations**:
+
 - **Fused IIR Biquad Cascade**: Bandpass + notch + CAR in single kernel call
 - **Memory Coalescing**: Optimal GPU memory access patterns
 - **Warp-Level Parallelism**: 32 channels processed simultaneously per warp
@@ -2250,6 +2252,7 @@ filtered = fused_bandpass_notch_car(
 #### 2. **CuPy Compression-Augmented Training** (`src/gpu/cupy/`)
 
 **Perceptual Quantization for Robust Deployment**:
+
 ```python
 # Simulate real-world compression during training
 compressed_eeg = perceptual_quantize_torch(
@@ -2262,6 +2265,7 @@ compressed_eeg = perceptual_quantize_torch(
 ```
 
 **Advanced Compression Techniques**:
+
 - **Frequency-Domain Quantization**: STFT-based adaptive bit allocation
 - **Adaptive Wavelet Shrinkage**: Learnable compression with PyWavelets GPU backend
 - **Predictive Coding Residuals**: LMS-based linear prediction for temporal compression
@@ -2270,6 +2274,7 @@ compressed_eeg = perceptual_quantize_torch(
 #### 3. **Streaming Inference with CUDA Streams** (`scripts/stream_infer_demo.py`)
 
 **Production-Ready Real-Time Processing**:
+
 ```python
 # Dual-stream architecture for zero-latency inference
 processor = StreamingEEGProcessor(
@@ -2285,6 +2290,7 @@ performance = processor.stream_process(eeg_stream)
 ```
 
 **Real-Time Optimizations**:
+
 - **Double-Buffered Memory**: Pinned host memory with async H2D transfers
 - **CUDA Stream Parallelism**: Overlapped compute and copy operations
 - **KV Cache Management**: Transformer state persistence across windows
@@ -2313,7 +2319,7 @@ for batch in dataloader:
     gpu_batch = filtered.cuda()              # 8ms
     # Total: 65ms per batch
 
-# Our GPU-first implementation  
+# Our GPU-first implementation
 for batch in dataloader:
     # GPU: 0.2ms preprocessing (direct)
     gpu_batch = batch.cuda(non_blocking=True)   # 0.1ms (pinned)
@@ -2331,14 +2337,14 @@ Our implementation extends DANN to handle **three critical domain shifts**:
 # Multi-dimensional domain adaptation
 domain_classifiers = {
     'site': SiteAdversary(768, num_sites=4),      # Equipment differences
-    'montage': MontageAdversary(768, num_layouts=8), # Electrode layouts  
+    'montage': MontageAdversary(768, num_layouts=8), # Electrode layouts
     'subject': SubjectAdversary(768, num_subjects=3000) # Individual variation
 }
 
 # Gradient reversal with curriculum scheduling
 lambda_schedule = {
     'epochs_0_20': 0.0,    # Warm-up: task learning only
-    'epochs_20_60': 0.3,   # Ramp-up: increasing invariance  
+    'epochs_20_60': 0.3,   # Ramp-up: increasing invariance
     'epochs_60_100': 1.0   # Full: maximum domain confusion
 }
 ```
@@ -2346,20 +2352,21 @@ lambda_schedule = {
 #### Montage-Robust Channel Processing
 
 **Electrode Graph Attention for Layout Invariance**:
+
 ```python
 # Handle variable electrode configurations
 class MontageRobustProcessor:
     def __init__(self):
         self.channel_graph = build_10_20_adjacency()
         self.spatial_attention = GraphAttentionLayer()
-    
+
     def forward(self, eeg, montage_mask):
         # Graph-based spatial attention
         spatial_features = self.spatial_attention(eeg, self.channel_graph)
-        
+
         # Channel dropout augmentation
         augmented = self.montage_dropout(spatial_features, montage_mask)
-        
+
         return augmented
 ```
 
@@ -2374,12 +2381,12 @@ curriculum = {
         'compression_prob': 0.0,
         'snr_range': (float('inf'), float('inf'))
     },
-    'phase_2': {  # Light compression (epochs 30-60)  
+    'phase_2': {  # Light compression (epochs 30-60)
         'compression_prob': 0.3,
         'snr_range': (40, 50)
     },
     'phase_3': {  # Heavy compression (epochs 60-100)
-        'compression_prob': 0.7, 
+        'compression_prob': 0.7,
         'snr_range': (15, 25)
     }
 }
@@ -2394,12 +2401,12 @@ class HierarchicalEEGTransformer:
         self.local_attention = LocalTemporalAttention(window_ms=50)   # High-freq
         self.medium_attention = MediumTemporalAttention(window_ms=500) # Mid-freq
         self.global_attention = GlobalTemporalAttention(window_ms=2000) # Low-freq
-    
+
     def forward(self, eeg):
         local_features = self.local_attention(eeg)     # Gamma/beta
-        medium_features = self.medium_attention(eeg)   # Alpha/theta  
+        medium_features = self.medium_attention(eeg)   # Alpha/theta
         global_features = self.global_attention(eeg)   # Delta/DC
-        
+
         return self.fusion_layer([local_features, medium_features, global_features])
 ```
 
@@ -2410,8 +2417,8 @@ class HierarchicalEEGTransformer:
 ```python
 # 8-bit quantization for edge device deployment
 qat_model = torch.quantization.quantize_dynamic(
-    model, 
-    {nn.Linear, nn.Conv1d}, 
+    model,
+    {nn.Linear, nn.Conv1d},
     dtype=torch.qint8
 )
 
@@ -2428,15 +2435,15 @@ def optimize_for_deployment(pytorch_model, sample_input):
     # Stage 1: PyTorch optimization
     traced_model = torch.jit.trace(pytorch_model, sample_input)
     optimized_model = torch.jit.optimize_for_inference(traced_model)
-    
+
     # Stage 2: ONNX conversion
     onnx_model = export_to_onnx(optimized_model, sample_input)
-    
-    # Stage 3: TensorRT optimization  
-    tensorrt_engine = build_tensorrt_engine(onnx_model, 
+
+    # Stage 3: TensorRT optimization
+    tensorrt_engine = build_tensorrt_engine(onnx_model,
                                            precision='fp16',
                                            max_batch_size=64)
-    
+
     return tensorrt_engine
 ```
 
@@ -2450,21 +2457,21 @@ def optimize_for_deployment(pytorch_model, sample_input):
 def test_fused_filtering_performance():
     """Benchmark fused bandpass+notch+CAR kernel."""
     eeg_input = torch.randn(32, 128, 1000, device='cuda')
-    
+
     # Warmup
     for _ in range(100):
         _ = fused_bandpass_notch_car(eeg_input, bp1, bp2, notch)
-    
+
     # Benchmark
     torch.cuda.synchronize()
     start = time.perf_counter()
-    
+
     for _ in range(1000):
         filtered = fused_bandpass_notch_car(eeg_input, bp1, bp2, notch)
-        
+
     torch.cuda.synchronize()
     end = time.perf_counter()
-    
+
     latency_ms = (end - start) * 1000 / 1000
     return {
         'kernel_latency_ms': latency_ms,
@@ -2480,22 +2487,22 @@ def test_fused_filtering_performance():
 class ProductionBenchmark:
     def validate_deployment_readiness(self, model, test_data):
         """Comprehensive production validation."""
-        
+
         results = {
             'accuracy': self.test_accuracy(model, test_data),
-            'latency': self.test_latency(model, test_data), 
+            'latency': self.test_latency(model, test_data),
             'memory': self.test_memory_usage(model),
             'robustness': self.test_compression_robustness(model, test_data),
             'throughput': self.test_batch_throughput(model),
             'energy': self.test_energy_consumption(model)
         }
-        
+
         # Production readiness criteria
         assert results['latency']['p95'] < 50.0  # <50ms p95 latency
         assert results['memory']['peak_gb'] < 4.0  # <4GB memory
         assert results['robustness']['accuracy_drop'] < 0.05  # <5% under compression
         assert results['throughput']['qps'] > 20  # >20 queries/sec
-        
+
         return results
 ```
 
@@ -2503,14 +2510,14 @@ class ProductionBenchmark:
 
 #### Complete GPU-First Stack
 
-```
+```text
 eeg2025/
 ├── src/gpu/                          # GPU acceleration core
 │   ├── triton/                       # Triton kernels
 │   │   ├── fir_iir_fused.py         # Fused filtering (450+ lines)
 │   │   ├── rmsnorm.py               # Fast normalization (380+ lines)
 │   │   └── attention_kernels.py     # Flash attention variants
-│   ├── cupy/                        # CuPy implementations  
+│   ├── cupy/                        # CuPy implementations
 │   │   ├── perceptual_quant.py      # Compression augmentation (600+ lines)
 │   │   ├── wavelet_compress.py      # Adaptive wavelets
 │   │   └── predictive_coding.py     # Linear prediction
@@ -2548,7 +2555,7 @@ eeg2025/
 deployment_targets = {
     'latency': {
         'p50_ms': 1.5,    # Median latency
-        'p95_ms': 2.0,    # 95th percentile  
+        'p95_ms': 2.0,    # 95th percentile
         'p99_ms': 5.0     # 99th percentile
     },
     'throughput': {
@@ -2581,7 +2588,7 @@ pip install torch>=2.1.0 torchaudio torchvision --index-url https://download.pyt
 python -c "
 import torch, triton, cupy as cp
 print(f'PyTorch CUDA: {torch.cuda.is_available()}')
-print(f'Triton available: {triton is not None}')  
+print(f'Triton available: {triton is not None}')
 print(f'CuPy available: {cp.cuda.is_available()}')
 print(f'GPU: {torch.cuda.get_device_name()}')
 "
@@ -2611,14 +2618,14 @@ gpu_optimization:
     fused_filtering: true
     fused_attention: true
     block_sizes: {time: 256, channels: 128}
-  
+
   cupy_acceleration:
     enable: true
     compression_augment: true
     perceptual_quant: {snr_range: [25, 35], stochastic: true}
     wavelet_compress: {ratio_range: [0.5, 0.8]}
     predictive_coding: {order: 8, noise_std: 0.01}
-  
+
   streaming_inference:
     enable: true
     window_size_s: 2.0
@@ -2626,7 +2633,7 @@ gpu_optimization:
     kv_cache: true
     double_buffering: true
     cuda_streams: 2
-  
+
   deployment:
     tensorrt_export: true
     quantization: {precision: 'fp16', qat: true}
@@ -2653,6 +2660,7 @@ gpu_optimization:
 #### Open Source Impact
 
 This implementation sets new standards for:
+
 - **Neuroimaging GPU Computing**: Reusable Triton kernels for the community
 - **EEG Foundation Models**: Comprehensive multi-task learning framework
 - **Real-Time Neurotechnology**: Production-ready streaming inference
@@ -2660,7 +2668,7 @@ This implementation sets new standards for:
 
 ---
 
-**GPU-First Implementation Status**: ✅ Complete and Benchmark-Validated  
-**Performance Validation**: ✅ <2ms p95 latency, >50 QPS throughput  
-**Deployment Ready**: ✅ TensorRT optimized, QAT validated  
+**GPU-First Implementation Status**: ✅ Complete and Benchmark-Validated
+**Performance Validation**: ✅ <2ms p95 latency, >50 QPS throughput
+**Deployment Ready**: ✅ TensorRT optimized, QAT validated
 **Community Impact**: ✅ Open source GPU kernels and streaming framework

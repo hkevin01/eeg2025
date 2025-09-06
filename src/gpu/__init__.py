@@ -49,5 +49,5 @@ if TRITON_AVAILABLE:
     __all__.extend(triton_exports)
 
 if CUPY_AVAILABLE:
-    from .cupy import __all__ as cupy_exports  
+    from .cupy import __all__ as cupy_exports
     __all__.extend(cupy_exports)
