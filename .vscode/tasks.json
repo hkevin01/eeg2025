@@ -72,6 +72,30 @@
 			"type": "shell",
 			"command": "chmod +x /home/kevin/Projects/eeg2025/scripts/setup_demo.sh",
 			"group": "build"
+		},
+		{
+			"label": "Make Scripts Executable",
+			"type": "shell",
+			"command": "chmod +x scripts/*.sh tests/*.py",
+			"group": "build"
+		},
+		{
+			"label": "Run Improved Demo Test",
+			"type": "shell",
+			"command": "python3 tests/test_demo_integration_improved.py",
+			"group": "test"
+		},
+		{
+			"label": "Run Updated Demo Test",
+			"type": "shell",
+			"command": "python3 tests/test_demo_integration_improved.py",
+			"group": "test"
+		},
+		{
+			"label": "Final Demo Test",
+			"type": "shell",
+			"command": "./scripts/test_demo.sh",
+			"group": "test"
 		}
 	]
 }

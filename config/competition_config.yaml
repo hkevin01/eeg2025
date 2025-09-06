@@ -1,0 +1,167 @@
+# Competition Configuration Templates
+# =======================================
+
+# Challenge 1: Cross-Task Transfer Learning Configuration
+challenge1:
+  # Model Architecture
+  backbone_type: "transformer"  # Options: transformer, cnn, hybrid
+  hidden_dim: 768
+  num_layers: 12
+  num_heads: 12
+  dropout_rate: 0.1
+
+  # Transfer Learning
+  source_task: "SuS"  # Sustained Attention to Response Task
+  target_task: "CCD"  # Cognitive Control Domain
+  use_progressive_unfreezing: true
+  unfreezing_schedule: [10, 20, 30]  # Epochs for unfreezing layers
+
+  # Domain Adaptation
+  use_domain_adaptation: true
+  domain_loss_weight: 0.1
+  domain_classifier_layers: [256, 128]
+  gradient_reversal_lambda: 1.0
+
+  # Multi-task Learning
+  rt_loss_weight: 1.0
+  success_loss_weight: 1.0
+  use_uncertainty_weighting: true
+
+  # Temperature Scaling
+  use_temperature_scaling: true
+  calibration_split: 0.1
+
+  # Training Configuration
+  batch_size: 32
+  max_epochs: 100
+  learning_rate: 5e-5
+  weight_decay: 0.01
+  warmup_epochs: 5
+
+  # Data Configuration
+  window_length: 2.0  # seconds
+  overlap: 0.5
+  use_data_augmentation: true
+  augmentation_params:
+    noise_std: 0.01
+    time_shift_max: 0.1
+    channel_dropout: 0.05
+
+  # Evaluation
+  use_official_splits: true
+  validation_split: 0.15
+  early_stopping_patience: 10
+  metric_for_best_model: "combined_score"
+
+# Challenge 2: Psychopathology Prediction Configuration
+challenge2:
+  # Model Architecture
+  backbone_type: "transformer"
+  hidden_dim: 768
+  num_layers: 12
+  num_heads: 12
+  dropout_rate: 0.1
+
+  # Target Factors
+  target_factors:
+    - "p_factor"
+    - "internalizing"
+    - "externalizing"
+    - "attention"
+  use_age_normalization: true
+  use_demographic_features: true
+
+  # Multi-task Learning
+  tasks: ["RS", "SuS", "MW", "CCD", "SL", "SyS"]
+  task_weights: null  # Equal weighting, or specify dict
+
+  # Subject Invariance
+  use_subject_invariance: true
+  use_irm_penalty: true
+  irm_weight: 0.1
+  irm_anneal_iters: 500
+
+  # Clinical Data Processing
+  score_normalization: "robust"  # Options: standard, robust, quantile
+  missing_data_strategy: "median"  # Options: mean, median, zero
+  outlier_threshold: 3.0
+
+  # Loss Configuration
+  correlation_loss_weight: 1.0
+  mse_loss_weight: 0.5
+  invariance_loss_weight: 0.1
+  factor_correlation_weight: 0.2
+
+  # Training Configuration
+  batch_size: 64
+  max_epochs: 100
+  learning_rate: 5e-5
+  weight_decay: 0.01
+  warmup_epochs: 5
+
+  # Cross-Validation
+  use_cross_validation: true
+  cv_folds: 5
+  stratify_by_age: true
+  random_seed: 42
+
+  # Data Configuration
+  window_length: 2.0
+  overlap: 0.5
+  use_data_augmentation: false  # More conservative for clinical data
+
+  # Evaluation
+  use_official_splits: true
+  validation_split: 0.15
+  early_stopping_patience: 15
+  metric_for_best_model: "avg_correlation"
+
+# Shared Hardware Configuration
+hardware:
+  device: "auto"  # auto, cuda, cpu
+  num_workers: 4
+  pin_memory: true
+  mixed_precision: true
+  gradient_checkpointing: false
+  max_grad_norm: 1.0
+
+# Logging Configuration
+logging:
+  log_level: "INFO"
+  log_to_file: true
+  log_to_wandb: false
+  wandb_project: "hbn_eeg_competition"
+  log_frequency: 10  # steps
+  save_frequency: 1000  # steps
+
+# Data Paths (update these for your system)
+data:
+  hbn_root: "data/hbn"
+  output_root: "runs"
+  submissions_root: "submissions"
+  cache_dir: "cache"
+
+# Competition Specific Settings
+competition:
+  # Official metric computation
+  use_official_metrics: true
+
+  # Submission format
+  submission_format: "csv"
+  include_confidence: true
+  include_uncertainty: true
+
+  # Evaluation splits
+  train_subjects: null  # Use official splits
+  val_subjects: null
+  test_subjects: null
+
+  # Challenge 1 specific
+  challenge1:
+    rt_clip_range: [0.1, 5.0]  # seconds
+    success_threshold: 0.5
+
+  # Challenge 2 specific
+  challenge2:
+    factor_clip_range: [-3.0, 3.0]  # z-scores
+    age_range: [5, 21]  # years

@@ -48,6 +48,92 @@ The [EEG Foundation Challenge 2025](https://eeg2025.github.io/) addresses critic
 - **Multi-task learning**: Simultaneous prediction across multiple cognitive and clinical domains
 - **Production constraints**: Real-time inference requirements (<50ms latency)
 
+## 🏆 Competition Implementation
+
+This repository includes a complete implementation for the HBN-EEG competition featuring enhanced trainers, specialized prediction heads, and competition-compliant evaluation metrics.
+
+### Competition Challenges
+
+#### Challenge 1: Cross-Task Transfer Learning (SuS → CCD)
+
+- **Source Task**: Sustained Attention to Response Task (SuS)
+- **Target Task**: Cognitive Control Domain (CCD)
+- **Objectives**: Response time prediction + success classification
+- **Official Metrics**: Pearson correlation (RT) + Balanced accuracy (success)
+- **Innovation**: Progressive unfreezing with domain adaptation
+
+#### Challenge 2: Psychopathology Factor Prediction
+
+- **Input**: Multi-task EEG data (RS, SuS, MW, CCD, SL, SyS)
+- **Targets**: CBCL P-factor, internalizing, externalizing, attention
+- **Official Metrics**: Pearson correlation between predicted and actual factors
+- **Innovation**: Subject invariance with clinical normalization
+
+### Quick Start for Competition
+
+#### Challenge 1 Training
+
+```bash
+# Train cross-task transfer model
+python scripts/train_challenge1.py \
+    --data_root data/hbn \
+    --source_task SuS \
+    --target_task CCD \
+    --use_progressive_unfreezing \
+    --use_domain_adaptation \
+    --batch_size 32 \
+    --max_epochs 100 \
+    --output_dir runs/challenge1
+
+# Generate competition predictions
+python scripts/evaluate_competition.py \
+    --challenge challenge1 \
+    --challenge1_model runs/challenge1/best_model.ckpt \
+    --data_root data/hbn \
+    --output_dir submissions
+```
+
+#### Challenge 2 Training
+
+```bash
+# Train psychopathology prediction model
+python scripts/train_challenge2.py \
+    --data_root data/hbn \
+    --target_factors p_factor,internalizing,externalizing,attention \
+    --use_subject_invariance \
+    --use_cross_validation \
+    --cv_folds 5 \
+    --output_dir runs/challenge2
+
+# Generate competition predictions
+python scripts/evaluate_competition.py \
+    --challenge challenge2 \
+    --challenge2_model runs/challenge2/best_model.ckpt \
+    --data_root data/hbn \
+    --output_dir submissions
+```
+
+### Competition-Specific Components
+
+#### Enhanced Trainers
+
+- **Challenge1Trainer**: Progressive unfreezing with domain adaptation
+- **Challenge2Trainer**: Subject invariance with clinical normalization
+- **Official Metrics**: Competition-compliant evaluation functions
+
+#### Specialized Prediction Heads
+
+- **TemporalRegressionHead**: RT prediction with uncertainty estimation
+- **CalibratedClassificationHead**: Success prediction with temperature scaling
+- **PsychopathologyHead**: Clinical factor prediction with normalization
+
+#### Training Infrastructure
+
+- **Configuration Management**: Comprehensive config classes for both challenges
+- **Data Loading**: HBN dataset with official competition splits
+- **Cross-Validation**: Stratified CV with clinical considerations
+- **Logging & Checkpointing**: Complete experiment tracking
+
 ## 📊 HBN-EEG Dataset Overview
 
 The competition utilizes the **Healthy Brain Network EEG (HBN-EEG) dataset** ([paper](https://doi.org/10.1038/s41597-022-01648-8), [blog post](https://childmind.org/science/using-ai-to-understand-the-developing-brain/)), a large-scale multimodal neuroimaging dataset containing EEG recordings from **over 3,000 participants** aged 5-21 years. This dataset represents one of the largest open-access pediatric EEG datasets, specifically designed to advance computational psychiatry and neurodevelopmental research.
