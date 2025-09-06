@@ -511,11 +511,11 @@ graph LR
 
     I --> J[Multi-Task Prediction]
 
-    style C fill:#e1f5fe
-    style D fill:#f3e5f5
-    style E fill:#e8f5e8
-    style F fill:#fff3e0
-    style G fill:#fce4ec
+    style C fill:#525252
+    style D fill:#525252
+    style E fill:#525252
+    style F fill:#525252
+    style G fill:#525252
 ```
 
 ### 🎯 Challenge-Specific Task Mapping
@@ -1492,9 +1492,9 @@ graph TB
         M --> N[Production API<br/>REST + gRPC]
     end
 
-    style G fill:#e1f5fe
-    style H fill:#f3e5f5
-    style I fill:#e8f5e8
+    style G fill:#525252
+    style H fill:#525252
+    style I fill:#525252
 ```
 
 ### 🔧 Advanced Model Architecture
