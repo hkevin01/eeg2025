@@ -16,38 +16,41 @@ Key Features:
 - Multi-GPU support with DDP and FSDP
 """
 
-from typing import Dict, List, Optional, Tuple, Union, Any, Callable
+import functools
+import gc
+import math
+import time
+import warnings
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.cuda.amp import GradScaler, autocast
 from torch.distributed import init_process_group
-from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-import time
-import functools
-import warnings
-from dataclasses import dataclass
-from enum import Enum
-import math
-import gc
-import numpy as np
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 
 class OptimizationLevel(Enum):
     """GPU optimization levels."""
-    BASIC = "basic"           # Basic optimizations
-    AGGRESSIVE = "aggressive" # All optimizations enabled
-    CUSTOM = "custom"         # Custom configuration
+
+    BASIC = "basic"  # Basic optimizations
+    AGGRESSIVE = "aggressive"  # All optimizations enabled
+    CUSTOM = "custom"  # Custom configuration
 
 
 @dataclass
 class GPUOptimConfig:
     """Configuration for GPU optimizations."""
+
     # Mixed precision
     use_mixed_precision: bool = True
     autocast_dtype: torch.dtype = torch.float16
-    grad_scaler_init_scale: float = 2.**16
+    grad_scaler_init_scale: float = 2.0**16
     grad_scaler_growth_factor: float = 2.0
     grad_scaler_backoff_factor: float = 0.5
     grad_scaler_growth_interval: int = 2000
@@ -91,7 +94,9 @@ class FusedOperations:
 
     @staticmethod
     @torch.jit.script
-    def fused_gelu_dropout(x: torch.Tensor, dropout_p: float, training: bool) -> torch.Tensor:
+    def fused_gelu_dropout(
+        x: torch.Tensor, dropout_p: float, training: bool
+    ) -> torch.Tensor:
         """Fused GELU activation with dropout."""
         x = F.gelu(x)
         if training and dropout_p > 0:
@@ -106,7 +111,7 @@ class FusedOperations:
         bias: torch.Tensor,
         eps: float,
         dropout_p: float,
-        training: bool
+        training: bool,
     ) -> torch.Tensor:
         """Fused layer normalization with dropout."""
         x = F.layer_norm(x, x.shape[-1:], weight, bias, eps)
@@ -117,9 +122,7 @@ class FusedOperations:
     @staticmethod
     @torch.jit.script
     def fused_linear_gelu(
-        x: torch.Tensor,
-        weight: torch.Tensor,
-        bias: Optional[torch.Tensor] = None
+        x: torch.Tensor, weight: torch.Tensor, bias: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """Fused linear transformation with GELU."""
         x = F.linear(x, weight, bias)
@@ -128,9 +131,7 @@ class FusedOperations:
     @staticmethod
     @torch.jit.script
     def fused_attention_dropout(
-        attn_weights: torch.Tensor,
-        dropout_p: float,
-        training: bool
+        attn_weights: torch.Tensor, dropout_p: float, training: bool
     ) -> torch.Tensor:
         """Fused attention softmax with dropout."""
         attn_weights = F.softmax(attn_weights, dim=-1)
@@ -149,7 +150,7 @@ class MemoryEfficientAttention(nn.Module):
         hidden_dim: int,
         num_heads: int,
         dropout: float = 0.1,
-        block_size: int = 512
+        block_size: int = 512,
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
@@ -157,7 +158,7 @@ class MemoryEfficientAttention(nn.Module):
         self.head_dim = hidden_dim // num_heads
         self.dropout = dropout
         self.block_size = block_size
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
 
         assert hidden_dim % num_heads == 0
 
@@ -169,7 +170,7 @@ class MemoryEfficientAttention(nn.Module):
         self,
         x: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
-        use_flash: bool = True
+        use_flash: bool = True,
     ) -> torch.Tensor:
         """
         Memory-efficient attention forward pass.
@@ -193,13 +194,15 @@ class MemoryEfficientAttention(nn.Module):
         k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
         v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
 
-        if use_flash and hasattr(F, 'scaled_dot_product_attention'):
+        if use_flash and hasattr(F, "scaled_dot_product_attention"):
             # Use PyTorch's native Flash Attention if available
             attn_output = F.scaled_dot_product_attention(
-                q, k, v,
+                q,
+                k,
+                v,
                 attn_mask=mask,
                 dropout_p=self.dropout if self.training else 0.0,
-                is_causal=False
+                is_causal=False,
             )
         else:
             # Fallback to standard attention with memory optimization
@@ -216,7 +219,7 @@ class MemoryEfficientAttention(nn.Module):
         q: torch.Tensor,
         k: torch.Tensor,
         v: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Memory-efficient attention using block-wise computation.
@@ -227,9 +230,11 @@ class MemoryEfficientAttention(nn.Module):
             # Standard attention for small sequences
             attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale
             if mask is not None:
-                attn_scores.masked_fill_(mask == 0, float('-inf'))
+                attn_scores.masked_fill_(mask == 0, float("-inf"))
             attn_weights = F.softmax(attn_scores, dim=-1)
-            attn_weights = F.dropout(attn_weights, p=self.dropout, training=self.training)
+            attn_weights = F.dropout(
+                attn_weights, p=self.dropout, training=self.training
+            )
             return torch.matmul(attn_weights, v)
 
         # Block-wise attention for large sequences
@@ -244,10 +249,12 @@ class MemoryEfficientAttention(nn.Module):
 
             if mask is not None:
                 block_mask = mask[:, :, i:i_end, :]
-                attn_scores.masked_fill_(block_mask == 0, float('-inf'))
+                attn_scores.masked_fill_(block_mask == 0, float("-inf"))
 
             attn_weights = F.softmax(attn_scores, dim=-1)
-            attn_weights = F.dropout(attn_weights, p=self.dropout, training=self.training)
+            attn_weights = F.dropout(
+                attn_weights, p=self.dropout, training=self.training
+            )
 
             output[:, :, i:i_end] = torch.matmul(attn_weights, v)
 
@@ -265,7 +272,7 @@ class OptimizedLinear(nn.Module):
         out_features: int,
         bias: bool = True,
         activation: Optional[str] = None,
-        dropout: float = 0.0
+        dropout: float = 0.0,
     ):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features, bias)
@@ -280,7 +287,9 @@ class OptimizedLinear(nn.Module):
             return FusedOperations.fused_gelu_dropout(x, self.dropout, self.training)
         elif self.activation == "gelu":
             # Use fused linear + GELU
-            return FusedOperations.fused_linear_gelu(x, self.linear.weight, self.linear.bias)
+            return FusedOperations.fused_linear_gelu(
+                x, self.linear.weight, self.linear.bias
+            )
         else:
             x = self.linear(x)
             if self.activation == "relu":
@@ -305,7 +314,7 @@ class SequencePacker:
     def pack_sequences(
         self,
         sequences: List[torch.Tensor],
-        attention_masks: Optional[List[torch.Tensor]] = None
+        attention_masks: Optional[List[torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, List[int]]:
         """
         Pack multiple sequences into batches for efficient processing.
@@ -345,7 +354,9 @@ class SequencePacker:
             else:
                 # Start new batch
                 if current_batch:
-                    packed_seq, packed_mask, boundary = self._pack_batch(current_batch, current_masks)
+                    packed_seq, packed_mask, boundary = self._pack_batch(
+                        current_batch, current_masks
+                    )
                     packed_sequences.append(packed_seq)
                     packed_masks.append(packed_mask)
                     boundaries.append(boundary)
@@ -356,7 +367,9 @@ class SequencePacker:
 
         # Pack remaining batch
         if current_batch:
-            packed_seq, packed_mask, boundary = self._pack_batch(current_batch, current_masks)
+            packed_seq, packed_mask, boundary = self._pack_batch(
+                current_batch, current_masks
+            )
             packed_sequences.append(packed_seq)
             packed_masks.append(packed_mask)
             boundaries.append(boundary)
@@ -364,9 +377,7 @@ class SequencePacker:
         return torch.stack(packed_sequences), torch.stack(packed_masks), boundaries
 
     def _pack_batch(
-        self,
-        sequences: List[torch.Tensor],
-        masks: List[torch.Tensor]
+        self, sequences: List[torch.Tensor], masks: List[torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor, List[int]]:
         """Pack a batch of sequences."""
         total_length = sum(seq.shape[0] for seq in sequences)
@@ -409,7 +420,7 @@ class GPUOptimizer:
                 init_scale=config.grad_scaler_init_scale,
                 growth_factor=config.grad_scaler_growth_factor,
                 backoff_factor=config.grad_scaler_backoff_factor,
-                growth_interval=config.grad_scaler_growth_interval
+                growth_interval=config.grad_scaler_growth_interval,
             )
 
         # Set memory fraction
@@ -446,24 +457,21 @@ class GPUOptimizer:
         # Wrap with DDP/FSDP if configured
         if self.config.use_ddp:
             model = DDP(
-                model,
-                find_unused_parameters=self.config.ddp_find_unused_parameters
+                model, find_unused_parameters=self.config.ddp_find_unused_parameters
             )
         elif self.config.use_fsdp:
             model = FSDP(model)
 
         return model
 
-    def create_optimizer(self, model: nn.Module, lr: float = 1e-4) -> torch.optim.Optimizer:
+    def create_optimizer(
+        self, model: nn.Module, lr: float = 1e-4
+    ) -> torch.optim.Optimizer:
         """Create optimized optimizer."""
         if self.config.use_fused_adamw and torch.cuda.is_available():
             try:
                 # Try to use fused AdamW
-                optimizer = torch.optim.AdamW(
-                    model.parameters(),
-                    lr=lr,
-                    fused=True
-                )
+                optimizer = torch.optim.AdamW(model.parameters(), lr=lr, fused=True)
             except:
                 # Fallback to regular AdamW
                 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
@@ -478,7 +486,7 @@ class GPUOptimizer:
         loss_fn: Callable,
         optimizer: torch.optim.Optimizer,
         inputs: Dict[str, torch.Tensor],
-        step: int
+        step: int,
     ) -> Dict[str, float]:
         """
         Optimized training step with mixed precision.
@@ -497,8 +505,10 @@ class GPUOptimizer:
 
         # Move inputs to device and convert to appropriate dtype
         if torch.cuda.is_available():
-            inputs = {k: v.cuda() if isinstance(v, torch.Tensor) else v
-                     for k, v in inputs.items()}
+            inputs = {
+                k: v.cuda() if isinstance(v, torch.Tensor) else v
+                for k, v in inputs.items()
+            }
 
         # Mixed precision forward pass
         if self.config.use_mixed_precision:
@@ -524,14 +534,14 @@ class GPUOptimizer:
         if step % self.config.empty_cache_frequency == 0:
             torch.cuda.empty_cache()
 
-        results['loss'] = loss.item()
+        results["loss"] = loss.item()
 
         return results
 
     def _apply_gradient_checkpointing(self, model: nn.Module):
         """Apply gradient checkpointing to model."""
         for module in model.modules():
-            if hasattr(module, 'gradient_checkpointing_enable'):
+            if hasattr(module, "gradient_checkpointing_enable"):
                 module.gradient_checkpointing_enable()
 
     def _replace_attention_layers(self, model: nn.Module):
@@ -546,7 +556,7 @@ class GPUOptimizer:
                 model,
                 mode=self.config.compile_mode,
                 backend=self.config.compile_backend,
-                dynamic=self.config.compile_dynamic
+                dynamic=self.config.compile_dynamic,
             )
             print(f"Model compiled with {self.config.compile_backend} backend")
             return compiled_model
@@ -569,9 +579,9 @@ class GPUOptimizer:
                     wait=self.config.benchmark_warmup_steps,
                     warmup=self.config.benchmark_warmup_steps,
                     active=self.config.benchmark_measure_steps,
-                    repeat=1
+                    repeat=1,
                 ),
-                on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir)
+                on_trace_ready=torch.profiler.tensorboard_trace_handler(profile_dir),
             )
             self.profiler.start()
 
@@ -596,7 +606,7 @@ class PerformanceBenchmark:
         self,
         model: nn.Module,
         sample_input: torch.Tensor,
-        batch_sizes: List[int] = [1, 4, 8, 16, 32]
+        batch_sizes: List[int] = [1, 4, 8, 16, 32],
     ) -> Dict[str, Dict[str, float]]:
         """
         Benchmark model performance across different batch sizes.
@@ -667,7 +677,7 @@ class PerformanceBenchmark:
                 "std_time": std_time,
                 "throughput": throughput,
                 "mean_memory_mb": mean_memory / 1024 / 1024,
-                "samples_per_second": throughput
+                "samples_per_second": throughput,
             }
 
         return results
@@ -676,7 +686,7 @@ class PerformanceBenchmark:
         self,
         model_fn: Callable[[], nn.Module],
         sample_input: torch.Tensor,
-        optimizations: List[str] = ["baseline", "mixed_precision", "compile", "full"]
+        optimizations: List[str] = ["baseline", "mixed_precision", "compile", "full"],
     ) -> Dict[str, Dict[str, float]]:
         """
         Compare different optimization strategies.
@@ -702,19 +712,19 @@ class PerformanceBenchmark:
                 config = GPUOptimConfig(
                     use_mixed_precision=False,
                     use_torch_compile=False,
-                    use_gradient_checkpointing=False
+                    use_gradient_checkpointing=False,
                 )
             elif opt_name == "mixed_precision":
                 config = GPUOptimConfig(
                     use_mixed_precision=True,
                     use_torch_compile=False,
-                    use_gradient_checkpointing=False
+                    use_gradient_checkpointing=False,
                 )
             elif opt_name == "compile":
                 config = GPUOptimConfig(
                     use_mixed_precision=False,
                     use_torch_compile=True,
-                    use_gradient_checkpointing=False
+                    use_gradient_checkpointing=False,
                 )
             elif opt_name == "full":
                 config = GPUOptimConfig()  # All optimizations enabled
@@ -737,7 +747,7 @@ class PerformanceBenchmark:
 if __name__ == "__main__":
     # Test fused operations
     print("Testing fused operations...")
-    x = torch.randn(32, 768, device='cuda' if torch.cuda.is_available() else 'cpu')
+    x = torch.randn(32, 768, device="cuda" if torch.cuda.is_available() else "cpu")
 
     # Test fused GELU + dropout
     fused_output = FusedOperations.fused_gelu_dropout(x, 0.1, True)
@@ -782,7 +792,9 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         sample_input = sample_input.cuda()
 
-    results = benchmark.benchmark_model(optimized_model, sample_input, batch_sizes=[1, 4])
+    results = benchmark.benchmark_model(
+        optimized_model, sample_input, batch_sizes=[1, 4]
+    )
     print(f"Benchmark results: {results}")
 
     print("\nAll tests passed!")

@@ -5,11 +5,15 @@ Fused bandpass + notch + CAR filtering using Triton kernels.
 Implements efficient IIR biquad cascades with common average reference.
 """
 from __future__ import annotations
+
+from typing import Optional, Tuple
+
+import torch
 import triton
 import triton.language as tl
-import torch
-from typing import Optional, Tuple
-from .utils import to_contig_float, assert_device_cuda, validate_eeg_shape
+
+from .utils import assert_device_cuda, to_contig_float, validate_eeg_shape
+
 
 @triton.jit
 def biquad_step(xn, x1, x2, y1, y2, b0, b1, b2, a1, a2):
@@ -17,10 +21,11 @@ def biquad_step(xn, x1, x2, y1, y2, b0, b1, b2, a1, a2):
     y = b0 * xn + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
     return y
 
+
 @triton.jit
 def fused_filter_kernel(
-    x_ptr,        # *f32, input B*C*T
-    y_ptr,        # *f32, output B*C*T
+    x_ptr,  # *f32, input B*C*T
+    y_ptr,  # *f32, output B*C*T
     car_tmp_ptr,  # *f32, workspace for CAR mean per (B, t_block)
     B: tl.constexpr,
     C: tl.constexpr,
@@ -29,11 +34,23 @@ def fused_filter_kernel(
     stride_c: tl.constexpr,
     stride_t: tl.constexpr,
     # Bandpass biquad 1
-    bp1_b0, bp1_b1, bp1_b2, bp1_a1, bp1_a2,
+    bp1_b0,
+    bp1_b1,
+    bp1_b2,
+    bp1_a1,
+    bp1_a2,
     # Bandpass biquad 2
-    bp2_b0, bp2_b1, bp2_b2, bp2_a1, bp2_a2,
+    bp2_b0,
+    bp2_b1,
+    bp2_b2,
+    bp2_a1,
+    bp2_a2,
     # Notch biquad
-    nt_b0, nt_b1, nt_b2, nt_a1, nt_a2,
+    nt_b0,
+    nt_b1,
+    nt_b2,
+    nt_a1,
+    nt_a2,
     # block sizes
     BLOCK_T: tl.constexpr,
     BLOCK_C: tl.constexpr,
@@ -85,8 +102,9 @@ def fused_filter_kernel(
         xn = tl.load(x_ptr_t, mask=c_mask, other=0.0)
 
         # Bandpass biquad 1
-        y_bp1 = biquad_step(xn, x1_bp1, x2_bp1, y1_bp1, y2_bp1,
-                           bp1_b0, bp1_b1, bp1_b2, bp1_a1, bp1_a2)
+        y_bp1 = biquad_step(
+            xn, x1_bp1, x2_bp1, y1_bp1, y2_bp1, bp1_b0, bp1_b1, bp1_b2, bp1_a1, bp1_a2
+        )
         # Update states for bp1
         x2_bp1 = x1_bp1
         x1_bp1 = xn
@@ -94,8 +112,18 @@ def fused_filter_kernel(
         y1_bp1 = y_bp1
 
         # Bandpass biquad 2 (use bp1 output as input)
-        y_bp2 = biquad_step(y_bp1, x1_bp2, x2_bp2, y1_bp2, y2_bp2,
-                           bp2_b0, bp2_b1, bp2_b2, bp2_a1, bp2_a2)
+        y_bp2 = biquad_step(
+            y_bp1,
+            x1_bp2,
+            x2_bp2,
+            y1_bp2,
+            y2_bp2,
+            bp2_b0,
+            bp2_b1,
+            bp2_b2,
+            bp2_a1,
+            bp2_a2,
+        )
         # Update states for bp2
         x2_bp2 = x1_bp2
         x1_bp2 = y_bp1
@@ -103,8 +131,9 @@ def fused_filter_kernel(
         y1_bp2 = y_bp2
 
         # Notch filter (use bp2 output as input)
-        y_nt = biquad_step(y_bp2, x1_nt, x2_nt, y1_nt, y2_nt,
-                          nt_b0, nt_b1, nt_b2, nt_a1, nt_a2)
+        y_nt = biquad_step(
+            y_bp2, x1_nt, x2_nt, y1_nt, y2_nt, nt_b0, nt_b1, nt_b2, nt_a1, nt_a2
+        )
         # Update states for notch
         x2_nt = x1_nt
         x1_nt = y_bp2
@@ -187,12 +216,30 @@ def fused_bandpass_notch_car(
     # Launch kernel
     grid = (B, triton.cdiv(T, block_t))
     fused_filter_kernel[grid](
-        x, y, car_tmp,
-        B, C, T,
-        x.stride(0), x.stride(1), x.stride(2),
-        biquad_bp1[0], biquad_bp1[1], biquad_bp1[2], biquad_bp1[3], biquad_bp1[4],
-        biquad_bp2[0], biquad_bp2[1], biquad_bp2[2], biquad_bp2[3], biquad_bp2[4],
-        biquad_notch[0], biquad_notch[1], biquad_notch[2], biquad_notch[3], biquad_notch[4],
+        x,
+        y,
+        car_tmp,
+        B,
+        C,
+        T,
+        x.stride(0),
+        x.stride(1),
+        x.stride(2),
+        biquad_bp1[0],
+        biquad_bp1[1],
+        biquad_bp1[2],
+        biquad_bp1[3],
+        biquad_bp1[4],
+        biquad_bp2[0],
+        biquad_bp2[1],
+        biquad_bp2[2],
+        biquad_bp2[3],
+        biquad_bp2[4],
+        biquad_notch[0],
+        biquad_notch[1],
+        biquad_notch[2],
+        biquad_notch[3],
+        biquad_notch[4],
         BLOCK_T=block_t,
         BLOCK_C=min(block_c, C),
         num_warps=4,
@@ -207,7 +254,7 @@ def make_biquad_coeffs(
     bp_hi: float = 40.0,
     notch: float = 60.0,
     Q: float = 30.0,
-    device: str = "cuda"
+    device: str = "cuda",
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Generate biquad coefficients for bandpass and notch filters.
@@ -230,20 +277,22 @@ def make_biquad_coeffs(
         raise ImportError("scipy required for filter coefficient generation")
 
     # Bandpass filter (4th order = 2 biquads)
-    sos_bp = butter(4, [bp_lo/(sfreq/2), bp_hi/(sfreq/2)],
-                    btype="bandpass", output="sos")
+    sos_bp = butter(
+        4, [bp_lo / (sfreq / 2), bp_hi / (sfreq / 2)], btype="bandpass", output="sos"
+    )
     b1, a1 = sos2tf(sos_bp[0:1, :])
     b2, a2 = sos2tf(sos_bp[1:2, :])
 
     # Notch filter
-    b_nt, a_nt = iirnotch(notch/(sfreq/2), Q=Q)
+    b_nt, a_nt = iirnotch(notch / (sfreq / 2), Q=Q)
 
     def pack_coeffs(b, a):
         """Pack filter coefficients as [b0,b1,b2,a1,a2] (normalized)."""
         b = b / a[0]
         a = a / a[0]
-        return torch.tensor([b[0], b[1], b[2], a[1], a[2]],
-                          dtype=torch.float32, device=device)
+        return torch.tensor(
+            [b[0], b[1], b[2], a[1], a[2]], dtype=torch.float32, device=device
+        )
 
     bp1 = pack_coeffs(b1, a1)
     bp2 = pack_coeffs(b2, a2)
@@ -259,7 +308,7 @@ def fallback_bandpass_notch_car(
     bp_lo: float = 0.1,
     bp_hi: float = 40.0,
     notch: float = 60.0,
-    Q: float = 30.0
+    Q: float = 30.0,
 ) -> torch.Tensor:
     """
     CPU fallback for filtering when GPU kernels unavailable.
@@ -267,7 +316,7 @@ def fallback_bandpass_notch_car(
     """
     try:
         import numpy as np
-        from scipy.signal import sosfilt, butter, iirnotch
+        from scipy.signal import butter, iirnotch, sosfilt
     except ImportError:
         raise ImportError("scipy required for CPU fallback filtering")
 
@@ -276,9 +325,10 @@ def fallback_bandpass_notch_car(
     B, C, T = x_np.shape
 
     # Create filters
-    sos_bp = butter(4, [bp_lo/(sfreq/2), bp_hi/(sfreq/2)],
-                    btype="bandpass", output="sos")
-    sos_notch = iirnotch(notch/(sfreq/2), Q=Q, output="sos")
+    sos_bp = butter(
+        4, [bp_lo / (sfreq / 2), bp_hi / (sfreq / 2)], btype="bandpass", output="sos"
+    )
+    sos_notch = iirnotch(notch / (sfreq / 2), Q=Q, output="sos")
 
     # Apply filters
     y_np = np.empty_like(x_np)

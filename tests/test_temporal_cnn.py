@@ -2,6 +2,7 @@
 
 import pytest
 import torch
+
 from src.models.backbones.temporal_cnn import TemporalCNN, create_temporal_cnn
 
 

@@ -13,43 +13,41 @@ This module provides a unified interface for training and deploying
 state-of-the-art EEG foundation models with competitive performance.
 """
 
-from typing import Dict, List, Optional, Tuple, Union, Any
+import json
+import time
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pathlib import Path
-import json
-import time
-from dataclasses import dataclass, asdict
 
-# Import our advanced components
-from .invariance.dann_multi import (
-    MultiAdversaryDANN,
-    DANNMultiConfig,
-    GradientReversalLayer
-)
 from .adapters import (
+    TASK_NAMES,
+    TaskAdapterConfig,
     TaskAwareBackbone,
     TaskSpecificHead,
-    TaskAdapterConfig,
     TaskTokenEmbedding,
     create_task_aware_model,
-    TASK_NAMES
 )
 from .compression_ssl import (
-    CompressionSSLFramework,
     CompressionSSLConfig,
-    ParameterScheduler
+    CompressionSSLFramework,
+    ParameterScheduler,
 )
-from .gpu_optimization import (
-    GPUOptimizer,
-    GPUOptimConfig,
-    PerformanceBenchmark
-)
+from .gpu_optimization import GPUOptimConfig, GPUOptimizer, PerformanceBenchmark
 from .inference_benchmark import (
     InferenceBenchmark,
     InferenceBenchmarkConfig,
-    PerformanceTarget
+    PerformanceTarget,
+)
+
+# Import our advanced components
+from .invariance.dann_multi import (
+    DANNMultiConfig,
+    GradientReversalLayer,
+    MultiAdversaryDANN,
 )
 
 
@@ -89,37 +87,35 @@ class FoundationModelConfig:
                 adapter_type="both",
                 task_emb_dim=64,
                 hidden_dim=self.hidden_dim // 4,
-                use_task_attention=True
+                use_task_attention=True,
             )
 
         if self.dann_config is None:
             self.dann_config = DANNMultiConfig(
-                domains=['subject', 'site'],
+                domains=["subject", "site"],
                 feature_dim=self.hidden_dim,
                 hidden_dims=[512, 256],
-                use_lambda_schedule=True
+                use_lambda_schedule=True,
             )
 
         if self.ssl_config is None:
             self.ssl_config = CompressionSSLConfig(
                 reconstruction_weight=1.0,
                 compression_consistency_weight=0.5,
-                contrastive_weight=0.3
+                contrastive_weight=0.3,
             )
 
         if self.gpu_config is None:
             self.gpu_config = GPUOptimConfig(
                 use_mixed_precision=True,
                 use_torch_compile=True,
-                use_gradient_checkpointing=True
+                use_gradient_checkpointing=True,
             )
 
         if self.benchmark_config is None:
             self.benchmark_config = InferenceBenchmarkConfig(
                 performance_targets=PerformanceTarget(
-                    max_latency_ms=50.0,
-                    p95_latency_ms=30.0,
-                    min_throughput_qps=20.0
+                    max_latency_ms=50.0, p95_latency_ms=30.0, min_throughput_qps=20.0
                 )
             )
 
@@ -144,9 +140,11 @@ class SimpleTransformerBackbone(nn.Module):
             nhead=config.num_heads,
             dim_feedforward=config.hidden_dim * 4,
             dropout=config.dropout,
-            batch_first=True
+            batch_first=True,
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=config.num_layers)
+        self.transformer = nn.TransformerEncoder(
+            encoder_layer, num_layers=config.num_layers
+        )
 
         # Global pooling
         self.pool = nn.AdaptiveAvgPool1d(1)
@@ -195,7 +193,7 @@ class SimpleDecoder(nn.Module):
             nn.Linear(config.hidden_dim, config.hidden_dim * 2),
             nn.ReLU(),
             nn.Linear(config.hidden_dim * 2, 19 * 512),  # Reconstruct to 512 timepoints
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -241,10 +239,10 @@ class AdvancedEEGFoundationModel(nn.Module):
             config=config.task_adapter_config,
             num_tasks=config.num_tasks,
             output_dims={
-                "regression": 1,      # RT prediction
+                "regression": 1,  # RT prediction
                 "classification": 1,  # Success prediction
-                "psychopathology": 4  # CBCL factors
-            }
+                "psychopathology": 4,  # CBCL factors
+            },
         )
 
         # Domain adaptation
@@ -259,7 +257,7 @@ class AdvancedEEGFoundationModel(nn.Module):
             self.ssl_framework = CompressionSSLFramework(
                 encoder=self.task_backbone.backbone,
                 decoder=decoder,
-                config=config.ssl_config
+                config=config.ssl_config,
             )
         else:
             self.ssl_framework = None
@@ -285,7 +283,7 @@ class AdvancedEEGFoundationModel(nn.Module):
         x: torch.Tensor,
         task_ids: torch.Tensor,
         domain_ids: Optional[Dict[str, torch.Tensor]] = None,
-        mode: str = "inference"
+        mode: str = "inference",
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass with multiple modes.
@@ -306,7 +304,11 @@ class AdvancedEEGFoundationModel(nn.Module):
         features, task_emb = self.task_backbone(x, task_ids, return_features=True)
 
         # Apply domain adaptation if training
-        if mode == "training" and self.domain_adapter is not None and domain_ids is not None:
+        if (
+            mode == "training"
+            and self.domain_adapter is not None
+            and domain_ids is not None
+        ):
             adapted_features, domain_losses = self.domain_adapter(features, domain_ids)
             features = adapted_features
         else:
@@ -318,8 +320,8 @@ class AdvancedEEGFoundationModel(nn.Module):
             outputs[head_name] = head(features, task_emb)
 
         # Add features and domain losses
-        outputs['features'] = features
-        outputs['task_embeddings'] = task_emb
+        outputs["features"] = features
+        outputs["task_embeddings"] = task_emb
         outputs.update(domain_losses)
 
         return outputs
@@ -328,7 +330,7 @@ class AdvancedEEGFoundationModel(nn.Module):
         self,
         dataloader: torch.utils.data.DataLoader,
         num_epochs: int = 10,
-        device: str = "cuda"
+        device: str = "cuda",
     ) -> Dict[str, List[float]]:
         """
         Self-supervised pretraining with compression augmentation.
@@ -354,17 +356,21 @@ class AdvancedEEGFoundationModel(nn.Module):
             optimizer = torch.optim.AdamW(self.ssl_framework.parameters(), lr=1e-4)
 
         history = {
-            'total_loss': [],
-            'reconstruction_loss': [],
-            'consistency_loss': [],
-            'contrastive_loss': []
+            "total_loss": [],
+            "reconstruction_loss": [],
+            "consistency_loss": [],
+            "contrastive_loss": [],
         }
 
         print(f"Starting SSL pretraining for {num_epochs} epochs...")
 
         for epoch in range(num_epochs):
-            epoch_losses = {'total_loss': [], 'reconstruction_loss': [],
-                          'consistency_loss': [], 'contrastive_loss': []}
+            epoch_losses = {
+                "total_loss": [],
+                "reconstruction_loss": [],
+                "consistency_loss": [],
+                "contrastive_loss": [],
+            }
 
             for batch_idx, batch in enumerate(dataloader):
                 if isinstance(batch, (list, tuple)):
@@ -376,10 +382,10 @@ class AdvancedEEGFoundationModel(nn.Module):
                 if self.gpu_optimizer:
                     step_results = self.gpu_optimizer.training_step(
                         self.ssl_framework,
-                        lambda outputs, inputs: outputs['total_loss'],
+                        lambda outputs, inputs: outputs["total_loss"],
                         optimizer,
-                        {'x': x},
-                        batch_idx
+                        {"x": x},
+                        batch_idx,
                     )
 
                     # Get detailed losses
@@ -392,7 +398,7 @@ class AdvancedEEGFoundationModel(nn.Module):
                     # Standard training step
                     optimizer.zero_grad()
                     ssl_outputs = self.ssl_framework(x)
-                    loss = ssl_outputs['total_loss']
+                    loss = ssl_outputs["total_loss"]
                     loss.backward()
                     optimizer.step()
 
@@ -401,8 +407,10 @@ class AdvancedEEGFoundationModel(nn.Module):
                             epoch_losses[key].append(ssl_outputs[key].item())
 
                 if batch_idx % 100 == 0:
-                    print(f"Epoch {epoch}, Batch {batch_idx}, "
-                          f"Loss: {epoch_losses['total_loss'][-1]:.4f}")
+                    print(
+                        f"Epoch {epoch}, Batch {batch_idx}, "
+                        f"Loss: {epoch_losses['total_loss'][-1]:.4f}"
+                    )
 
             # Record epoch averages
             for key in history:
@@ -415,9 +423,7 @@ class AdvancedEEGFoundationModel(nn.Module):
         return history
 
     def benchmark_performance(
-        self,
-        input_generator: callable,
-        model_name: str = "advanced_eeg_model"
+        self, input_generator: callable, model_name: str = "advanced_eeg_model"
     ) -> Dict[str, Any]:
         """
         Comprehensive performance benchmarking.
@@ -434,16 +440,18 @@ class AdvancedEEGFoundationModel(nn.Module):
 
         benchmark = InferenceBenchmark(self.config.benchmark_config)
 
-        def wrapped_input_generator(batch_size: int, seq_len: int) -> Dict[str, torch.Tensor]:
+        def wrapped_input_generator(
+            batch_size: int, seq_len: int
+        ) -> Dict[str, torch.Tensor]:
             """Wrapper to provide task IDs."""
             x = input_generator(batch_size, seq_len)
             task_ids = torch.zeros(batch_size, dtype=torch.long)  # Default to task 0
-            return {'x': x, 'task_ids': task_ids}
+            return {"x": x, "task_ids": task_ids}
 
         def forward_wrapper(inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
             """Wrapper for benchmark compatibility."""
-            outputs = self.forward(inputs['x'], inputs['task_ids'], mode="inference")
-            return outputs['regression']  # Return one head output
+            outputs = self.forward(inputs["x"], inputs["task_ids"], mode="inference")
+            return outputs["regression"]  # Return one head output
 
         # Temporarily replace forward method for benchmarking
         original_forward = self.forward
@@ -451,9 +459,7 @@ class AdvancedEEGFoundationModel(nn.Module):
 
         try:
             results = benchmark.benchmark_model(
-                self,
-                wrapped_input_generator,
-                model_name=model_name
+                self, wrapped_input_generator, model_name=model_name
             )
         finally:
             # Restore original forward method
@@ -470,7 +476,7 @@ class AdvancedEEGFoundationModel(nn.Module):
         torch.save(self.state_dict(), save_path / "model.pt")
 
         # Save configuration
-        with open(save_path / "config.json", 'w') as f:
+        with open(save_path / "config.json", "w") as f:
             # Convert config to dict for serialization
             config_dict = asdict(self.config)
             json.dump(config_dict, f, indent=2)
@@ -478,12 +484,12 @@ class AdvancedEEGFoundationModel(nn.Module):
         print(f"Model saved to {save_path}")
 
     @classmethod
-    def load_model(cls, save_dir: str) -> 'AdvancedEEGFoundationModel':
+    def load_model(cls, save_dir: str) -> "AdvancedEEGFoundationModel":
         """Load model from saved directory."""
         save_path = Path(save_dir)
 
         # Load configuration
-        with open(save_path / "config.json", 'r') as f:
+        with open(save_path / "config.json", "r") as f:
             config_dict = json.load(f)
 
         # Reconstruct config object (simplified)
@@ -501,6 +507,7 @@ class AdvancedEEGFoundationModel(nn.Module):
 
 def create_sample_data_generator():
     """Create sample data generator for testing."""
+
     def generate_batch(batch_size: int, seq_len: int) -> torch.Tensor:
         # Generate realistic EEG-like signals
         t = torch.linspace(0, 10, seq_len)
@@ -531,9 +538,7 @@ if __name__ == "__main__":
 
     # Create configuration
     config = FoundationModelConfig(
-        hidden_dim=256,  # Smaller for testing
-        num_layers=4,
-        num_heads=8
+        hidden_dim=256, num_layers=4, num_heads=8  # Smaller for testing
     )
 
     # Create model
@@ -576,12 +581,14 @@ if __name__ == "__main__":
         batch_sizes=[1, 4],
         sequence_lengths=[512],
         save_results=False,
-        generate_plots=False
+        generate_plots=False,
     )
     model.config.benchmark_config = quick_config
 
     benchmark_results = model.benchmark_performance(data_generator, "test_model")
-    print(f"Benchmark completed. Performance grade: {benchmark_results['summary']['performance_grade']:.2%}")
+    print(
+        f"Benchmark completed. Performance grade: {benchmark_results['summary']['performance_grade']:.2%}"
+    )
 
     # Test save/load
     print("\nTesting save/load...")

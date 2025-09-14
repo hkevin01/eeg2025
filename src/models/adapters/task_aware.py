@@ -6,10 +6,11 @@ Implements FiLM and LoRA adapters for task-specific conditioning.
 """
 
 import math
+from typing import Any, Dict, Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Dict, Any
 
 
 class TaskTokenEmbedding(nn.Module):
@@ -54,13 +55,11 @@ class FiLMLayer(nn.Module):
             nn.Linear(d_model, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, d_model),
-            nn.Sigmoid()  # Ensure positive scaling
+            nn.Sigmoid(),  # Ensure positive scaling
         )
 
         self.shift_net = nn.Sequential(
-            nn.Linear(d_model, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, d_model)
+            nn.Linear(d_model, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, d_model)
         )
 
     def forward(self, x: torch.Tensor, task_embedding: torch.Tensor) -> torch.Tensor:
@@ -93,11 +92,7 @@ class LoRAAdapter(nn.Module):
     """
 
     def __init__(
-        self,
-        d_model: int,
-        rank: int = 16,
-        alpha: float = 32,
-        dropout: float = 0.1
+        self, d_model: int, rank: int = 16, alpha: float = 32, dropout: float = 0.1
     ):
         super().__init__()
 
@@ -147,7 +142,7 @@ class TaskAwareAdapter(nn.Module):
         film_hidden_dim: int = 256,
         lora_rank: int = 16,
         lora_alpha: float = 32,
-        dropout: float = 0.1
+        dropout: float = 0.1,
     ):
         super().__init__()
 
@@ -167,11 +162,7 @@ class TaskAwareAdapter(nn.Module):
         # Layer norm for stability
         self.norm = nn.LayerNorm(d_model)
 
-    def forward(
-        self,
-        x: torch.Tensor,
-        task_ids: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, task_ids: torch.Tensor) -> torch.Tensor:
         """
         Apply task-aware adaptation.
 
@@ -206,27 +197,21 @@ class AdapterStack(nn.Module):
     """
 
     def __init__(
-        self,
-        d_model: int,
-        num_tasks: int,
-        num_layers: int = 3,
-        **adapter_kwargs
+        self, d_model: int, num_tasks: int, num_layers: int = 3, **adapter_kwargs
     ):
         super().__init__()
 
-        self.adapters = nn.ModuleList([
-            TaskAwareAdapter(d_model, num_tasks, **adapter_kwargs)
-            for _ in range(num_layers)
-        ])
+        self.adapters = nn.ModuleList(
+            [
+                TaskAwareAdapter(d_model, num_tasks, **adapter_kwargs)
+                for _ in range(num_layers)
+            ]
+        )
 
         # Residual connections
         self.use_residual = True
 
-    def forward(
-        self,
-        x: torch.Tensor,
-        task_ids: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, task_ids: torch.Tensor) -> torch.Tensor:
         """
         Apply stack of adapters.
 
@@ -253,35 +238,29 @@ class HBNTaskAdapter(nn.Module):
     """
 
     HBN_TASKS = {
-        'RS': 0,    # Resting State
-        'SuS': 1,   # Sustained Attention
-        'MW': 2,    # Mind Wandering
-        'CCD': 3,   # Continuous Performance
-        'SL': 4,    # Statistical Learning
-        'SyS': 5    # Syllable Processing
+        "RS": 0,  # Resting State
+        "SuS": 1,  # Sustained Attention
+        "MW": 2,  # Mind Wandering
+        "CCD": 3,  # Continuous Performance
+        "SL": 4,  # Statistical Learning
+        "SyS": 5,  # Syllable Processing
     }
 
-    def __init__(
-        self,
-        d_model: int,
-        **adapter_kwargs
-    ):
+    def __init__(self, d_model: int, **adapter_kwargs):
         super().__init__()
 
         self.task_to_id = self.HBN_TASKS
         self.num_tasks = len(self.HBN_TASKS)
 
         self.adapter = TaskAwareAdapter(
-            d_model=d_model,
-            num_tasks=self.num_tasks,
-            **adapter_kwargs
+            d_model=d_model, num_tasks=self.num_tasks, **adapter_kwargs
         )
 
     def forward(
         self,
         x: torch.Tensor,
         task_names: Optional[list] = None,
-        task_ids: Optional[torch.Tensor] = None
+        task_ids: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Apply HBN-specific task adaptation.
@@ -299,9 +278,9 @@ class HBNTaskAdapter(nn.Module):
                 raise ValueError("Either task_names or task_ids must be provided")
 
             # Convert task names to IDs
-            task_ids = torch.tensor([
-                self.task_to_id.get(name, 0) for name in task_names
-            ], device=x.device)
+            task_ids = torch.tensor(
+                [self.task_to_id.get(name, 0) for name in task_names], device=x.device
+            )
 
         return self.adapter(x, task_ids)
 
@@ -316,14 +295,14 @@ def create_task_adapter(config: Dict[str, Any]) -> TaskAwareAdapter:
     Returns:
         Task adapter instance
     """
-    adapter_config = config.get('adapter_configs', {})
+    adapter_config = config.get("adapter_configs", {})
 
     return TaskAwareAdapter(
-        d_model=config['d_model'],
-        num_tasks=config.get('num_tasks', 6),
-        adapter_type=adapter_config.get('type', 'both'),
-        film_hidden_dim=adapter_config.get('film_hidden_dim', 256),
-        lora_rank=adapter_config.get('lora_rank', 16),
-        lora_alpha=adapter_config.get('lora_alpha', 32),
-        dropout=adapter_config.get('dropout', 0.1)
+        d_model=config["d_model"],
+        num_tasks=config.get("num_tasks", 6),
+        adapter_type=adapter_config.get("type", "both"),
+        film_hidden_dim=adapter_config.get("film_hidden_dim", 256),
+        lora_rank=adapter_config.get("lora_rank", 16),
+        lora_alpha=adapter_config.get("lora_alpha", 32),
+        dropout=adapter_config.get("dropout", 0.1),
     )

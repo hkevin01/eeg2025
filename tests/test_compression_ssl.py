@@ -2,20 +2,22 @@
 Unit tests for Compression-Augmented SSL implementation.
 """
 
+import numpy as np
 import pytest
 import torch
 import torch.nn as nn
-import numpy as np
+
 try:
     import pywt
+
     HAS_PYWT = True
 except ImportError:
     HAS_PYWT = False
 
 from src.models.compression_ssl import (
     CompressionAugmentation,
+    CompressionAugmentedTrainer,
     CompressionSSLLoss,
-    CompressionAugmentedTrainer
 )
 
 
@@ -25,12 +27,10 @@ class TestCompressionAugmentation:
     def test_initialization(self):
         """Test proper initialization."""
         augmenter = CompressionAugmentation(
-            wavelet='db4',
-            compression_levels=[0.1, 0.3, 0.5],
-            noise_std=0.01
+            wavelet="db4", compression_levels=[0.1, 0.3, 0.5], noise_std=0.01
         )
 
-        assert augmenter.wavelet == 'db4'
+        assert augmenter.wavelet == "db4"
         assert len(augmenter.compression_levels) == 3
         assert augmenter.noise_std == 0.01
 
@@ -42,7 +42,7 @@ class TestCompressionAugmentation:
         shapes = [
             (16, 128, 1000),  # (batch, channels, time)
             (8, 64, 500),
-            (32, 256, 2000)
+            (32, 256, 2000),
         ]
 
         for shape in shapes:
@@ -55,10 +55,7 @@ class TestCompressionAugmentation:
     @pytest.mark.skipif(not HAS_PYWT, reason="PyWavelets not available")
     def test_wavelet_compression(self):
         """Test wavelet compression implementation."""
-        augmenter = CompressionAugmentation(
-            wavelet='db4',
-            compression_levels=[0.5]
-        )
+        augmenter = CompressionAugmentation(wavelet="db4", compression_levels=[0.5])
 
         # Create a signal with clear frequency content
         t = torch.linspace(0, 1, 1000)
@@ -70,7 +67,9 @@ class TestCompressionAugmentation:
         assert compressed.shape == signal.shape
         # Compressed signal should be different but similar
         assert not torch.allclose(signal, compressed, atol=1e-6)
-        correlation = torch.corrcoef(torch.stack([signal.flatten(), compressed.flatten()]))[0, 1]
+        correlation = torch.corrcoef(
+            torch.stack([signal.flatten(), compressed.flatten()])
+        )[0, 1]
         assert correlation > 0.5  # Should maintain some correlation
 
     def test_spectral_distortion(self):
@@ -130,9 +129,7 @@ class TestCompressionSSLLoss:
     def test_initialization(self):
         """Test loss function initialization."""
         loss_fn = CompressionSSLLoss(
-            consistency_weight=1.0,
-            contrastive_weight=0.5,
-            temperature=0.1
+            consistency_weight=1.0, contrastive_weight=0.5, temperature=0.1
         )
 
         assert loss_fn.consistency_weight == 1.0
@@ -164,10 +161,7 @@ class TestCompressionSSLLoss:
 
     def test_forward_computes_total_loss(self):
         """Test forward pass computes total weighted loss."""
-        loss_fn = CompressionSSLLoss(
-            consistency_weight=1.0,
-            contrastive_weight=0.5
-        )
+        loss_fn = CompressionSSLLoss(consistency_weight=1.0, contrastive_weight=0.5)
 
         features_clean = torch.randn(16, 256)
         features_compressed = torch.randn(16, 256)
@@ -188,7 +182,7 @@ class TestCompressionSSLLoss:
         test_cases = [
             torch.randn(16, 256),  # Normal case
             torch.zeros(16, 256),  # All zeros
-            torch.ones(16, 256),   # All ones
+            torch.ones(16, 256),  # All ones
             torch.randn(16, 256) * 1000,  # Large values
         ]
 
@@ -207,18 +201,14 @@ class TestCompressionAugmentedTrainer:
     def test_initialization(self):
         """Test trainer initialization."""
         # Simple encoder for testing
-        encoder = nn.Sequential(
-            nn.Linear(1000, 512),
-            nn.ReLU(),
-            nn.Linear(512, 256)
-        )
+        encoder = nn.Sequential(nn.Linear(1000, 512), nn.ReLU(), nn.Linear(512, 256))
 
         trainer = CompressionAugmentedTrainer(
             encoder=encoder,
             augmentation_config={
-                'compression_levels': [0.1, 0.3, 0.5],
-                'noise_std': 0.01
-            }
+                "compression_levels": [0.1, 0.3, 0.5],
+                "noise_std": 0.01,
+            },
         )
 
         assert trainer.encoder is encoder
@@ -232,7 +222,7 @@ class TestCompressionAugmentedTrainer:
             nn.ReLU(),
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
-            nn.Linear(256, 128)
+            nn.Linear(256, 128),
         )
 
         trainer = CompressionAugmentedTrainer(encoder)
@@ -257,22 +247,15 @@ class TestCompressionAugmentedTrainer:
         # Test different encoder types
         encoders = [
             # Simple MLP
-            nn.Sequential(
-                nn.Flatten(),
-                nn.Linear(128 * 1000, 256)
-            ),
+            nn.Sequential(nn.Flatten(), nn.Linear(128 * 1000, 256)),
             # CNN-based
-            nn.Sequential(
-                nn.Conv1d(128, 64, 3),
-                nn.ReLU(),
-                nn.AdaptiveAvgPool1d(256)
-            ),
+            nn.Sequential(nn.Conv1d(128, 64, 3), nn.ReLU(), nn.AdaptiveAvgPool1d(256)),
             # Transformer-like (simplified)
             nn.Sequential(
                 nn.Linear(1000, 256),
                 nn.TransformerEncoderLayer(d_model=256, nhead=8, batch_first=True),
-                nn.AdaptiveAvgPool1d(256)
-            )
+                nn.AdaptiveAvgPool1d(256),
+            ),
         ]
 
         for encoder in encoders:
@@ -294,10 +277,7 @@ class TestCompressionRobustness:
 
     def test_compression_changes_signal(self):
         """Test that compression actually changes the signal."""
-        augmenter = CompressionAugmentation(
-            compression_levels=[0.5],
-            noise_std=0.05
-        )
+        augmenter = CompressionAugmentation(compression_levels=[0.5], noise_std=0.05)
 
         x = torch.randn(16, 128, 1000)
         x_compressed = augmenter(x)
@@ -306,7 +286,9 @@ class TestCompressionRobustness:
         assert not torch.allclose(x, x_compressed, atol=1e-6)
 
         # But not completely uncorrelated
-        correlation = torch.corrcoef(torch.stack([x.flatten(), x_compressed.flatten()]))[0, 1]
+        correlation = torch.corrcoef(
+            torch.stack([x.flatten(), x_compressed.flatten()])
+        )[0, 1]
         assert correlation > 0.1  # Should maintain some structure
 
     def test_robustness_curriculum(self):
@@ -328,9 +310,7 @@ class TestCompressionRobustness:
     def test_multiple_augmentation_types(self):
         """Test that multiple augmentation types can be combined."""
         augmenter = CompressionAugmentation(
-            use_wavelet=True,
-            use_spectral=True,
-            use_temporal=True
+            use_wavelet=True, use_spectral=True, use_temporal=True
         )
 
         x = torch.randn(8, 64, 500)

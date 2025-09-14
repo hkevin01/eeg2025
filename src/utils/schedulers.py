@@ -6,7 +6,7 @@ like temperature, mask ratio, and distortion percentages.
 """
 
 import math
-from typing import Union, Callable
+from typing import Callable, Union
 
 
 class ParameterScheduler:
@@ -24,7 +24,7 @@ class ParameterScheduler:
         end_value: float = 1.0,
         total_epochs: int = 100,
         warmup_epochs: int = 0,
-        schedule_fn: Union[Callable, None] = None
+        schedule_fn: Union[Callable, None] = None,
     ):
         self.param_name = param_name
         self.schedule_type = schedule_type
@@ -71,12 +71,16 @@ class ParameterScheduler:
         elif self.schedule_type == "cosine":
             # Cosine annealing
             cosine_progress = 0.5 * (1 + math.cos(math.pi * progress))
-            return self.end_value + (self.start_value - self.end_value) * cosine_progress
+            return (
+                self.end_value + (self.start_value - self.end_value) * cosine_progress
+            )
 
         elif self.schedule_type == "cosine_warmup":
             # Cosine annealing after warmup
             cosine_progress = 0.5 * (1 + math.cos(math.pi * progress))
-            return self.end_value + (self.start_value - self.end_value) * cosine_progress
+            return (
+                self.end_value + (self.start_value - self.end_value) * cosine_progress
+            )
 
         elif self.schedule_type == "exponential":
             # Exponential decay/growth
@@ -100,7 +104,9 @@ class ParameterScheduler:
 
         elif self.schedule_type == "polynomial":
             # Polynomial decay (power=2)
-            return self.start_value + (self.end_value - self.start_value) * (progress ** 2)
+            return self.start_value + (self.end_value - self.start_value) * (
+                progress**2
+            )
 
         else:
             raise ValueError(f"Unknown schedule type: {self.schedule_type}")
@@ -114,7 +120,7 @@ class TemperatureScheduler(ParameterScheduler):
         start_temp: float = 0.05,
         end_temp: float = 0.1,
         total_epochs: int = 100,
-        warmup_epochs: int = 5
+        warmup_epochs: int = 5,
     ):
         super().__init__(
             param_name="temperature",
@@ -122,7 +128,7 @@ class TemperatureScheduler(ParameterScheduler):
             start_value=start_temp,
             end_value=end_temp,
             total_epochs=total_epochs,
-            warmup_epochs=warmup_epochs
+            warmup_epochs=warmup_epochs,
         )
 
 
@@ -134,14 +140,14 @@ class MaskRatioScheduler(ParameterScheduler):
         start_ratio: float = 0.1,
         end_ratio: float = 0.3,
         total_epochs: int = 100,
-        schedule_type: str = "linear"
+        schedule_type: str = "linear",
     ):
         super().__init__(
             param_name="mask_ratio",
             schedule_type=schedule_type,
             start_value=start_ratio,
             end_value=end_ratio,
-            total_epochs=total_epochs
+            total_epochs=total_epochs,
         )
 
 
@@ -153,14 +159,14 @@ class DistortionScheduler(ParameterScheduler):
         start_distortion: float = 0.5,
         end_distortion: float = 1.0,
         total_epochs: int = 100,
-        schedule_type: str = "cosine"
+        schedule_type: str = "cosine",
     ):
         super().__init__(
             param_name="distortion_pct",
             schedule_type=schedule_type,
             start_value=start_distortion,
             end_value=end_distortion,
-            total_epochs=total_epochs
+            total_epochs=total_epochs,
         )
 
 
@@ -178,7 +184,7 @@ class LearningRateScheduler:
         total_epochs: int = 100,
         warmup_epochs: int = 0,
         min_lr: float = 1e-6,
-        max_lr: float = 1e-3
+        max_lr: float = 1e-3,
     ):
         self.optimizer = optimizer
         self.schedule_type = schedule_type
@@ -188,14 +194,14 @@ class LearningRateScheduler:
         self.max_lr = max_lr
 
         self.current_epoch = 0
-        self.base_lrs = [group['lr'] for group in optimizer.param_groups]
+        self.base_lrs = [group["lr"] for group in optimizer.param_groups]
 
     def step(self, epoch: int):
         """Update learning rate for given epoch."""
         self.current_epoch = epoch
 
         for param_group, base_lr in zip(self.optimizer.param_groups, self.base_lrs):
-            param_group['lr'] = self.get_lr(epoch, base_lr)
+            param_group["lr"] = self.get_lr(epoch, base_lr)
 
     def get_lr(self, epoch: int, base_lr: float) -> float:
         """Get learning rate for given epoch."""
@@ -220,7 +226,7 @@ class LearningRateScheduler:
             return base_lr * (1 - progress) + self.min_lr * progress
 
         elif self.schedule_type == "exponential":
-            return base_lr * (0.1 ** progress)
+            return base_lr * (0.1**progress)
 
         else:
             return base_lr
@@ -242,5 +248,5 @@ def create_scheduler_from_config(config: dict) -> ParameterScheduler:
         start_value=config.get("start_value", 0.0),
         end_value=config.get("end_value", 1.0),
         total_epochs=config.get("total_epochs", 100),
-        warmup_epochs=config.get("warmup_epochs", 0)
+        warmup_epochs=config.get("warmup_epochs", 0),
     )

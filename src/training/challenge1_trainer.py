@@ -11,23 +11,28 @@ Implements advanced transfer learning from SuS to CCD tasks with:
 
 import logging
 import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
 import wandb
-from torch.utils.tensorboard import SummaryWriter
-from sklearn.metrics import roc_auc_score, average_precision_score, balanced_accuracy_score
 from scipy.stats import pearsonr, spearmanr
+from sklearn.metrics import (
+    average_precision_score,
+    balanced_accuracy_score,
+    roc_auc_score,
+)
+from torch.utils.tensorboard import SummaryWriter
 
-from ..models.advanced_foundation_model import AdvancedEEGFoundationModel
 from ..dataio.hbn_dataset import HBNDataset, create_hbn_datasets
-from ..utils.domain_adaptation import DomainAdapter
-from ..models.heads.regression import TemporalRegressionHead
+from ..models.advanced_foundation_model import AdvancedEEGFoundationModel
 from ..models.heads.classification import CalibratedClassificationHead
+from ..models.heads.regression import TemporalRegressionHead
+from ..utils.domain_adaptation import DomainAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +91,7 @@ class Challenge1Config:
                 "hidden_dims": [512, 256, 128],
                 "dropout": 0.3,
                 "use_temporal_attention": True,
-                "temporal_window": 5
+                "temporal_window": 5,
             }
 
         if self.success_head_config is None:
@@ -94,7 +99,7 @@ class Challenge1Config:
                 "hidden_dims": [512, 256],
                 "dropout": 0.3,
                 "use_calibration": True,
-                "calibration_bins": 15
+                "calibration_bins": 15,
             }
 
 
@@ -108,35 +113,31 @@ class Challenge1Model(nn.Module):
 
         # Create foundation model backbone
         from ..models.advanced_foundation_model import FoundationModelConfig
+
         foundation_config = FoundationModelConfig(
             backbone_type=config.backbone_type,
             hidden_dim=config.hidden_dim,
             num_layers=config.num_layers,
             use_domain_adaptation=True,
             use_compression_ssl=False,
-            use_gpu_optimization=True
+            use_gpu_optimization=True,
         )
 
         self.foundation_model = AdvancedEEGFoundationModel(foundation_config)
 
         # Specialized task heads
         self.rt_head = TemporalRegressionHead(
-            input_dim=config.hidden_dim,
-            **config.rt_head_config
+            input_dim=config.hidden_dim, **config.rt_head_config
         )
 
         self.success_head = CalibratedClassificationHead(
-            input_dim=config.hidden_dim,
-            num_classes=2,
-            **config.success_head_config
+            input_dim=config.hidden_dim, num_classes=2, **config.success_head_config
         )
 
         # Domain adapters
         if config.use_subject_adaptation:
             self.subject_adapter = DomainAdapter(
-                feature_dim=config.hidden_dim,
-                num_tasks=2,  # SuS, CCD
-                adapter_dim=128
+                feature_dim=config.hidden_dim, num_tasks=2, adapter_dim=128  # SuS, CCD
             )
 
         # Track unfreezing progress
@@ -171,14 +172,16 @@ class Challenge1Model(nn.Module):
         for param in all_params[-n_params_to_unfreeze:]:
             param.requires_grad = True
 
-        logger.info(f"Unfroze {n_params_to_unfreeze}/{len(all_params)} backbone parameters")
+        logger.info(
+            f"Unfroze {n_params_to_unfreeze}/{len(all_params)} backbone parameters"
+        )
 
     def forward(
         self,
         x: torch.Tensor,
         task_ids: torch.Tensor,
         subject_ids: Optional[torch.Tensor] = None,
-        return_features: bool = False
+        return_features: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Forward pass with task-specific processing."""
 
@@ -187,13 +190,13 @@ class Challenge1Model(nn.Module):
             x=x,
             task_ids=task_ids,
             domain_ids={"subject": subject_ids} if subject_ids is not None else None,
-            mode="training"
+            mode="training",
         )
 
         features = foundation_outputs["features"]
 
         # Apply subject adaptation if enabled
-        if hasattr(self, 'subject_adapter') and subject_ids is not None:
+        if hasattr(self, "subject_adapter") and subject_ids is not None:
             adapted_features = self.subject_adapter(features, task_ids)
         else:
             adapted_features = features
@@ -205,7 +208,7 @@ class Challenge1Model(nn.Module):
         outputs = {
             "rt_prediction": rt_prediction,
             "success_prediction": success_prediction,
-            "task_embeddings": foundation_outputs.get("task_embeddings", None)
+            "task_embeddings": foundation_outputs.get("task_embeddings", None),
         }
 
         # Add domain losses if available
@@ -227,7 +230,7 @@ class Challenge1Trainer:
         config: Challenge1Config,
         model: Challenge1Model,
         device: torch.device,
-        log_dir: Optional[str] = None
+        log_dir: Optional[str] = None,
     ):
         self.config = config
         self.model = model.to(device)
@@ -237,7 +240,7 @@ class Challenge1Trainer:
         self.optimizer = torch.optim.AdamW(
             model.parameters(),
             lr=config.learning_rate,
-            weight_decay=config.weight_decay
+            weight_decay=config.weight_decay,
         )
 
         # Learning rate scheduler
@@ -245,7 +248,7 @@ class Challenge1Trainer:
             self.optimizer,
             T_0=config.max_epochs // 4,
             T_mult=2,
-            eta_min=config.learning_rate * 0.01
+            eta_min=config.learning_rate * 0.01,
         )
 
         # Loss functions
@@ -253,7 +256,7 @@ class Challenge1Trainer:
         self.success_loss_fn = nn.CrossEntropyLoss(weight=self._compute_class_weights())
 
         # Metrics tracking
-        self.best_metric = float('-inf')
+        self.best_metric = float("-inf")
         self.patience_counter = 0
 
         # Logging
@@ -276,12 +279,12 @@ class Challenge1Trainer:
             checkpoint = torch.load(checkpoint_path, map_location=self.device)
 
             # Extract SSL weights and load into foundation model
-            ssl_state_dict = checkpoint.get('model_state_dict', checkpoint)
+            ssl_state_dict = checkpoint.get("model_state_dict", checkpoint)
 
             # Filter weights for foundation model
             foundation_dict = {}
             for key, value in ssl_state_dict.items():
-                if key.startswith('backbone.') or key.startswith('task_backbone.'):
+                if key.startswith("backbone.") or key.startswith("task_backbone."):
                     foundation_dict[key] = value
 
             # Load with strict=False to allow missing keys
@@ -290,7 +293,9 @@ class Challenge1Trainer:
             )
 
             logger.info(f"Loaded SSL checkpoint from {checkpoint_path}")
-            logger.info(f"Missing keys: {len(missing_keys)}, Unexpected keys: {len(unexpected_keys)}")
+            logger.info(
+                f"Missing keys: {len(missing_keys)}, Unexpected keys: {len(unexpected_keys)}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to load SSL checkpoint: {e}")
@@ -303,8 +308,10 @@ class Challenge1Trainer:
         # Forward pass
         outputs = self.model(
             x=batch["eeg"],
-            task_ids=batch.get("task_label", torch.zeros(batch["eeg"].size(0), device=self.device)),
-            subject_ids=batch.get("subject_id", None)
+            task_ids=batch.get(
+                "task_label", torch.zeros(batch["eeg"].size(0), device=self.device)
+            ),
+            subject_ids=batch.get("subject_id", None),
         )
 
         # Compute losses
@@ -317,7 +324,7 @@ class Challenge1Trainer:
             if rt_mask.any():
                 rt_loss = self.rt_loss_fn(
                     outputs["rt_prediction"][rt_mask],
-                    batch["mean_rt"][rt_mask].unsqueeze(-1)
+                    batch["mean_rt"][rt_mask].unsqueeze(-1),
                 )
                 losses["rt_loss"] = rt_loss
                 total_loss += self.config.rt_loss_weight * rt_loss
@@ -325,8 +332,7 @@ class Challenge1Trainer:
         # Success classification loss
         if "success_label" in batch:
             success_loss = self.success_loss_fn(
-                outputs["success_prediction"],
-                batch["success_label"]
+                outputs["success_prediction"], batch["success_label"]
             )
             losses["success_loss"] = success_loss
             total_loss += self.config.success_loss_weight * success_loss
@@ -357,14 +363,18 @@ class Challenge1Trainer:
         with torch.no_grad():
             outputs = self.model(
                 x=batch["eeg"],
-                task_ids=batch.get("task_label", torch.zeros(batch["eeg"].size(0), device=self.device)),
-                subject_ids=batch.get("subject_id", None)
+                task_ids=batch.get(
+                    "task_label", torch.zeros(batch["eeg"].size(0), device=self.device)
+                ),
+                subject_ids=batch.get("subject_id", None),
             )
 
         # Collect predictions and targets
         predictions = {
             "rt_pred": outputs["rt_prediction"].cpu().numpy(),
-            "success_pred": torch.softmax(outputs["success_prediction"], dim=-1).cpu().numpy()
+            "success_pred": torch.softmax(outputs["success_prediction"], dim=-1)
+            .cpu()
+            .numpy(),
         }
 
         targets = {}
@@ -378,16 +388,24 @@ class Challenge1Trainer:
     def compute_official_metrics(
         self,
         all_predictions: List[Dict[str, np.ndarray]],
-        all_targets: List[Dict[str, np.ndarray]]
+        all_targets: List[Dict[str, np.ndarray]],
     ) -> Dict[str, float]:
         """Compute official Challenge 1 metrics."""
 
         # Concatenate all predictions and targets
-        rt_preds = np.concatenate([p["rt_pred"] for p in all_predictions if "rt_pred" in p])
-        success_preds = np.concatenate([p["success_pred"] for p in all_predictions if "success_pred" in p])
+        rt_preds = np.concatenate(
+            [p["rt_pred"] for p in all_predictions if "rt_pred" in p]
+        )
+        success_preds = np.concatenate(
+            [p["success_pred"] for p in all_predictions if "success_pred" in p]
+        )
 
-        rt_targets = np.concatenate([t["rt_true"] for t in all_targets if "rt_true" in t])
-        success_targets = np.concatenate([t["success_true"] for t in all_targets if "success_true" in t])
+        rt_targets = np.concatenate(
+            [t["rt_true"] for t in all_targets if "rt_true" in t]
+        )
+        success_targets = np.concatenate(
+            [t["success_true"] for t in all_targets if "success_true" in t]
+        )
 
         metrics = {}
 
@@ -397,8 +415,7 @@ class Challenge1Trainer:
             valid_mask = ~(np.isnan(rt_preds.flatten()) | np.isnan(rt_targets))
             if valid_mask.sum() > 10:  # Need sufficient samples
                 rt_corr, rt_p_value = pearsonr(
-                    rt_preds.flatten()[valid_mask],
-                    rt_targets[valid_mask]
+                    rt_preds.flatten()[valid_mask], rt_targets[valid_mask]
                 )
                 metrics["rt_correlation"] = rt_corr
                 metrics["rt_p_value"] = rt_p_value
@@ -425,8 +442,8 @@ class Challenge1Trainer:
         success_score = metrics.get("success_balanced_accuracy", 0.0)
 
         combined_score = (
-            self.config.rt_correlation_weight * rt_score +
-            self.config.success_accuracy_weight * success_score
+            self.config.rt_correlation_weight * rt_score
+            + self.config.success_accuracy_weight * success_score
         )
         metrics["combined_score"] = combined_score
 
@@ -477,7 +494,9 @@ class Challenge1Trainer:
         train_metrics = {}
         if train_losses:
             for key in train_losses[0].keys():
-                train_metrics[f"train_{key}"] = np.mean([loss[key] for loss in train_losses])
+                train_metrics[f"train_{key}"] = np.mean(
+                    [loss[key] for loss in train_losses]
+                )
 
         val_metrics = self.compute_official_metrics(val_predictions, val_targets)
         val_metrics = {f"val_{k}": v for k, v in val_metrics.items()}
@@ -504,7 +523,9 @@ class Challenge1Trainer:
 
         history = {"train_loss": [], "val_combined_score": []}
 
-        logger.info(f"Starting Challenge 1 training for {self.config.max_epochs} epochs")
+        logger.info(
+            f"Starting Challenge 1 training for {self.config.max_epochs} epochs"
+        )
 
         for epoch in range(self.config.max_epochs):
             start_time = time.time()
@@ -517,7 +538,9 @@ class Challenge1Trainer:
             history["val_combined_score"].append(metrics.get("val_combined_score", 0.0))
 
             # Early stopping check
-            current_metric = metrics.get(f"val_{self.config.monitor_metric.replace('val_', '')}", 0.0)
+            current_metric = metrics.get(
+                f"val_{self.config.monitor_metric.replace('val_', '')}", 0.0
+            )
 
             if current_metric > self.best_metric + self.config.min_delta:
                 self.best_metric = current_metric
@@ -525,13 +548,16 @@ class Challenge1Trainer:
 
                 # Save best model
                 if self.log_dir:
-                    torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        'best_metric': self.best_metric,
-                        'config': self.config
-                    }, self.log_dir / "best_model.ckpt")
+                    torch.save(
+                        {
+                            "epoch": epoch,
+                            "model_state_dict": self.model.state_dict(),
+                            "optimizer_state_dict": self.optimizer.state_dict(),
+                            "best_metric": self.best_metric,
+                            "config": self.config,
+                        },
+                        self.log_dir / "best_model.ckpt",
+                    )
 
             else:
                 self.patience_counter += 1

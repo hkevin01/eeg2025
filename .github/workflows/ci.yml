@@ -402,8 +402,8 @@ jobs:
         safety check
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
       if: always()
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
@@ -473,7 +473,7 @@ jobs:
         python -m twine check dist/*
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist
         path: dist/
@@ -492,7 +492,7 @@ jobs:
           --exclude="__pycache__" --exclude="*.pyc" --exclude=".pytest_cache"
 
     - name: Upload release archive
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: submission-archive
         path: eeg2025-challenge-submission.tar.gz

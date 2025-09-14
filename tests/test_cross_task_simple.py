@@ -3,13 +3,15 @@
 Simple test runner for cross-task metrics without pytest dependencies.
 """
 
-import sys
 import os
+import sys
+
 import numpy as np
 import torch
 
 # Add the source path
-sys.path.insert(0, '/home/kevin/Projects/eeg2025/src')
+sys.path.insert(0, "/home/kevin/Projects/eeg2025/src")
+
 
 def test_official_metrics():
     """Test official metrics computation."""
@@ -38,7 +40,9 @@ def test_official_metrics():
     assert 0 <= auroc <= 1, f"AUROC should be in [0,1], got {auroc}"
 
     # Test all metrics together
-    all_metrics = metrics.compute_all_metrics(rt_true, rt_pred, success_true, success_pred)
+    all_metrics = metrics.compute_all_metrics(
+        rt_true, rt_pred, success_true, success_pred
+    )
     assert "combined_score" in all_metrics, "Combined score should be computed"
     assert 0 <= all_metrics["combined_score"] <= 1, "Combined score should be in [0,1]"
 
@@ -49,7 +53,11 @@ def test_corr_mse_loss():
     """Test CorrMSE loss functions."""
     print("Testing CorrMSE Loss...")
 
-    from models.losses.corr_mse import CorrMSELoss, AdaptiveCorrMSELoss, RobustCorrMSELoss
+    from models.losses.corr_mse import (
+        AdaptiveCorrMSELoss,
+        CorrMSELoss,
+        RobustCorrMSELoss,
+    )
 
     torch.manual_seed(42)
     y_true = torch.randn(32)
@@ -84,7 +92,7 @@ def test_ccd_heads():
     """Test CCD task heads."""
     print("Testing CCD Heads...")
 
-    from models.heads import CCDRegressionHead, CCDClassificationHead
+    from models.heads import CCDClassificationHead, CCDRegressionHead
 
     # Test regression head
     reg_head = CCDRegressionHead(input_dim=128)
@@ -95,7 +103,10 @@ def test_ccd_heads():
     # Test classification head
     clf_head = CCDClassificationHead(input_dim=128)
     success_pred = clf_head(x)
-    assert success_pred.shape == (32, 1), f"Expected shape (32, 1), got {success_pred.shape}"
+    assert success_pred.shape == (
+        32,
+        1,
+    ), f"Expected shape (32, 1), got {success_pred.shape}"
 
     print("✅ CCD Heads tests passed")
 
@@ -104,8 +115,8 @@ def test_cross_task_model():
     """Test cross-task model creation."""
     print("Testing Cross-Task Model...")
 
-    from training.train_cross_task import CrossTaskConfig, create_cross_task_model
     from models.backbones.temporal_cnn import TemporalCNN
+    from training.train_cross_task import CrossTaskConfig, create_cross_task_model
 
     config = CrossTaskConfig()
 
@@ -119,9 +130,14 @@ def test_cross_task_model():
         outputs = model(x, task_id=task_id)
 
         assert "rt_prediction" in outputs, "RT prediction should be in outputs"
-        assert "success_prediction" in outputs, "Success prediction should be in outputs"
+        assert (
+            "success_prediction" in outputs
+        ), "Success prediction should be in outputs"
         assert outputs["rt_prediction"].shape == (4, 1), "RT prediction shape mismatch"
-        assert outputs["success_prediction"].shape == (4, 1), "Success prediction shape mismatch"
+        assert outputs["success_prediction"].shape == (
+            4,
+            1,
+        ), "Success prediction shape mismatch"
 
         print("✅ Cross-Task Model tests passed")
 
@@ -152,13 +168,16 @@ def main():
         except Exception as e:
             print(f"❌ {test.__name__} failed: {e}")
             import traceback
+
             traceback.print_exc()
 
     print("=" * 60)
     print(f"Test Results: {passed}/{total} tests passed ({100*passed/total:.1f}%)")
 
     if passed == total:
-        print("🎉 All tests passed! Cross-task transfer implementation is working correctly.")
+        print(
+            "🎉 All tests passed! Cross-task transfer implementation is working correctly."
+        )
     else:
         print("⚠️ Some tests failed. Please check the implementation.")
 

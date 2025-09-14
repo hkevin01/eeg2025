@@ -14,9 +14,10 @@ and supports multi-site, multi-subject domain adaptation.
 """
 
 from __future__ import annotations
+
 import math
 from dataclasses import dataclass
-from typing import Dict, Optional, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -72,7 +73,9 @@ class GradientReversalLayer(nn.Module):
     def lambda_val(self, val: float):
         self._lambda_val = float(val)
 
-    def forward(self, x: torch.Tensor, lambda_val: Optional[float] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, lambda_val: Optional[float] = None
+    ) -> torch.Tensor:
         """
         Forward pass with optional lambda override.
 
@@ -108,13 +111,14 @@ class LambdaScheduleConfig:
         ...     warmup_steps=1000, total_steps=10000
         ... )
     """
+
     kind: str = "linear"  # "linear", "cosine", "step", "exponential"
     start: float = 0.0
     end: float = 0.25
     warmup_steps: int = 0
     total_steps: int = 10000
     step_size: int = 1000  # For step schedule
-    gamma: float = 0.5     # For step schedule
+    gamma: float = 0.5  # For step schedule
 
 
 class LambdaScheduler:
@@ -172,7 +176,7 @@ class LambdaScheduler:
         elif c.kind == "step":
             # Step decay
             n_steps = t // max(1, c.step_size)
-            v = c.start * (c.gamma ** n_steps)
+            v = c.start * (c.gamma**n_steps)
             v = max(min(v, max(c.start, c.end)), min(c.start, c.end))
         elif c.kind == "exponential":
             # Exponential approach to end value
@@ -246,12 +250,14 @@ class DomainAdversary(nn.Module):
         if norm_layer is not None:
             layers.append(norm_layer)
 
-        layers.extend([
-            nn.Linear(emb_dim, hidden),
-            act_fn,
-            nn.Dropout(dropout),
-            nn.Linear(hidden, n_classes),
-        ])
+        layers.extend(
+            [
+                nn.Linear(emb_dim, hidden),
+                act_fn,
+                nn.Dropout(dropout),
+                nn.Linear(hidden, n_classes),
+            ]
+        )
 
         self.net = nn.Sequential(*layers)
         self._init_weights()
@@ -350,7 +356,11 @@ class MultiAdversary(nn.Module):
         targets: Optional[Dict[str, torch.Tensor]] = None,
         reduction: str = "mean",
         return_probs: bool = False,
-    ) -> Tuple[Dict[str, torch.Tensor], Optional[torch.Tensor], Optional[Dict[str, torch.Tensor]]]:
+    ) -> Tuple[
+        Dict[str, torch.Tensor],
+        Optional[torch.Tensor],
+        Optional[Dict[str, torch.Tensor]],
+    ]:
         """
         Forward pass through GRL and all domain adversaries.
 
@@ -384,7 +394,9 @@ class MultiAdversary(nn.Module):
             # Compute loss if targets provided
             if targets is not None and name in targets and targets[name] is not None:
                 weight = float(self.loss_weights.get(name, 1.0))
-                ce_loss = F.cross_entropy(logits[name], targets[name], reduction=reduction)
+                ce_loss = F.cross_entropy(
+                    logits[name], targets[name], reduction=reduction
+                )
                 weighted_loss = weight * ce_loss
                 losses.append(weighted_loss)
 
@@ -399,9 +411,7 @@ class MultiAdversary(nn.Module):
         return logits, total_loss, probs if return_probs else None
 
     def get_domain_accuracy(
-        self,
-        logits: Dict[str, torch.Tensor],
-        targets: Dict[str, torch.Tensor]
+        self, logits: Dict[str, torch.Tensor], targets: Dict[str, torch.Tensor]
     ) -> Dict[str, float]:
         """
         Compute domain classification accuracy for monitoring.
@@ -427,9 +437,7 @@ class MultiAdversary(nn.Module):
 
 
 def create_lambda_scheduler_from_config(
-    config: Dict,
-    total_steps: int,
-    warmup_ratio: float = 0.1
+    config: Dict, total_steps: int, warmup_ratio: float = 0.1
 ) -> LambdaScheduler:
     """
     Create lambda scheduler from configuration dictionary.
@@ -454,7 +462,9 @@ def create_lambda_scheduler_from_config(
         kind=config.get("lambda_schedule", "linear"),
         start=float(config.get("lambda_start", 0.0)),
         end=float(config.get("lambda_end", 0.25)),
-        warmup_steps=int(config.get("lambda_warmup_steps", int(total_steps * warmup_ratio))),
+        warmup_steps=int(
+            config.get("lambda_warmup_steps", int(total_steps * warmup_ratio))
+        ),
         total_steps=int(config.get("lambda_total_steps", total_steps)),
         step_size=int(config.get("lambda_step_size", max(1, total_steps // 10))),
         gamma=float(config.get("lambda_gamma", 0.5)),
@@ -463,9 +473,7 @@ def create_lambda_scheduler_from_config(
 
 
 def create_multi_adversary_from_config(
-    config: Dict,
-    emb_dim: int,
-    domain_info: Dict[str, int]
+    config: Dict, emb_dim: int, domain_info: Dict[str, int]
 ) -> MultiAdversary:
     """
     Create MultiAdversary from configuration and domain information.
@@ -519,11 +527,7 @@ def create_multi_adversary_from_config(
 if __name__ == "__main__":
     # Test lambda scheduler
     config = LambdaScheduleConfig(
-        kind="cosine",
-        start=0.0,
-        end=0.25,
-        warmup_steps=100,
-        total_steps=1000
+        kind="cosine", start=0.0, end=0.25, warmup_steps=100, total_steps=1000
     )
     scheduler = LambdaScheduler(config)
 
@@ -542,9 +546,7 @@ if __name__ == "__main__":
     }
 
     dann = MultiAdversary(
-        emb_dim=emb_dim,
-        domains=domains,
-        loss_weights={"subject": 1.0, "site": 0.5}
+        emb_dim=emb_dim, domains=domains, loss_weights={"subject": 1.0, "site": 0.5}
     )
 
     # Test forward pass

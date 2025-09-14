@@ -5,15 +5,22 @@ RMSNorm implementation using Triton for EEG data normalization.
 Per-channel normalization over time dimension.
 """
 from __future__ import annotations
+
+from typing import Optional
+
+import torch
 import triton
 import triton.language as tl
-import torch
-from typing import Optional
-from .utils import to_contig_float, assert_device_cuda, validate_eeg_shape
+
+from .utils import assert_device_cuda, to_contig_float, validate_eeg_shape
+
 
 @triton.jit
 def rmsnorm_kernel(
-    x_ptr, y_ptr, w_ptr, b_ptr,
+    x_ptr,
+    y_ptr,
+    w_ptr,
+    b_ptr,
     B: tl.constexpr,
     C: tl.constexpr,
     T: tl.constexpr,
@@ -125,7 +132,9 @@ def rmsnorm_time(
     has_bias = bias is not None and bias.is_cuda
 
     # Create dummy pointers for unused parameters
-    w_ptr = weight if has_weight else torch.zeros(1, device=x.device, dtype=torch.float32)
+    w_ptr = (
+        weight if has_weight else torch.zeros(1, device=x.device, dtype=torch.float32)
+    )
     b_ptr = bias if has_bias else torch.zeros(1, device=x.device, dtype=torch.float32)
 
     # Ensure parameters are contiguous and correct dtype
@@ -142,9 +151,16 @@ def rmsnorm_time(
     # Launch kernel
     grid = (B, C)
     rmsnorm_kernel[grid](
-        x, y, w_ptr, b_ptr,
-        B, C, T,
-        x.stride(0), x.stride(1), x.stride(2),
+        x,
+        y,
+        w_ptr,
+        b_ptr,
+        B,
+        C,
+        T,
+        x.stride(0),
+        x.stride(1),
+        x.stride(2),
         eps,
         has_weight,
         has_bias,
@@ -170,7 +186,7 @@ class RMSNormTime(torch.nn.Module):
         eps: float = 1e-5,
         elementwise_affine: bool = True,
         device: Optional[torch.device] = None,
-        dtype: Optional[torch.dtype] = None
+        dtype: Optional[torch.dtype] = None,
     ):
         """
         Initialize RMSNorm module.
@@ -195,8 +211,8 @@ class RMSNormTime(torch.nn.Module):
                 torch.zeros(num_channels, device=device, dtype=dtype)
             )
         else:
-            self.register_parameter('weight', None)
-            self.register_parameter('bias', None)
+            self.register_parameter("weight", None)
+            self.register_parameter("bias", None)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -214,15 +230,10 @@ class RMSNormTime(torch.nn.Module):
                 f"module channels {self.num_channels}"
             )
 
-        return rmsnorm_time(
-            x,
-            weight=self.weight,
-            bias=self.bias,
-            eps=self.eps
-        )
+        return rmsnorm_time(x, weight=self.weight, bias=self.bias, eps=self.eps)
 
     def extra_repr(self) -> str:
-        return f'num_channels={self.num_channels}, eps={self.eps}, elementwise_affine={self.elementwise_affine}'
+        return f"num_channels={self.num_channels}, eps={self.eps}, elementwise_affine={self.elementwise_affine}"
 
 
 # CPU fallback implementation
@@ -240,7 +251,7 @@ def rmsnorm_time_cpu(
     B, C, T = x_cpu.shape
 
     # Compute RMS over time dimension (dim=2)
-    x_sq_mean = torch.mean(x_cpu ** 2, dim=2, keepdim=True)  # (B, C, 1)
+    x_sq_mean = torch.mean(x_cpu**2, dim=2, keepdim=True)  # (B, C, 1)
     rms = torch.sqrt(x_sq_mean + eps)
 
     # Normalize

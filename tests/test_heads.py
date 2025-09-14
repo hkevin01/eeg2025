@@ -5,9 +5,10 @@ Unit tests for EEG prediction heads.
 import pytest
 import torch
 import torch.nn as nn
-from src.models.heads.regression import TemporalRegressionHead
+
 from src.models.heads.classification import CalibratedClassificationHead
 from src.models.heads.psychopathology import PsychopathologyHead
+from src.models.heads.regression import TemporalRegressionHead
 
 
 class TestTemporalRegressionHead:
@@ -16,10 +17,7 @@ class TestTemporalRegressionHead:
     def test_initialization(self):
         """Test proper initialization."""
         head = TemporalRegressionHead(
-            input_dim=768,
-            hidden_dim=256,
-            num_heads=8,
-            dropout=0.1
+            input_dim=768, hidden_dim=256, num_heads=8, dropout=0.1
         )
 
         assert head.input_dim == 768
@@ -57,25 +55,21 @@ class TestTemporalRegressionHead:
     def test_uncertainty_estimation(self):
         """Test uncertainty estimation capability."""
         head = TemporalRegressionHead(
-            input_dim=256,
-            hidden_dim=128,
-            uncertainty_estimation=True
+            input_dim=256, hidden_dim=128, uncertainty_estimation=True
         )
 
         x = torch.randn(16, 500, 256)
         output = head(x)
 
         # With uncertainty, should output mean and variance
-        if hasattr(head, 'uncertainty_estimation') and head.uncertainty_estimation:
+        if hasattr(head, "uncertainty_estimation") and head.uncertainty_estimation:
             # Implementation detail - check if uncertainty is returned
             assert output.shape[1] >= 1  # At least mean prediction
 
     def test_multi_scale_aggregation(self):
         """Test multi-scale temporal aggregation."""
         head = TemporalRegressionHead(
-            input_dim=256,
-            hidden_dim=128,
-            use_multi_scale=True
+            input_dim=256, hidden_dim=128, use_multi_scale=True
         )
 
         x = torch.randn(16, 1000, 256)
@@ -106,10 +100,7 @@ class TestCalibratedClassificationHead:
     def test_initialization(self):
         """Test proper initialization."""
         head = CalibratedClassificationHead(
-            input_dim=768,
-            num_classes=2,
-            hidden_dim=256,
-            use_temperature_scaling=True
+            input_dim=768, num_classes=2, hidden_dim=256, use_temperature_scaling=True
         )
 
         assert head.input_dim == 768
@@ -120,9 +111,7 @@ class TestCalibratedClassificationHead:
     def test_forward_pass_shapes(self):
         """Test forward pass produces correct shapes."""
         head = CalibratedClassificationHead(
-            input_dim=512,
-            num_classes=3,
-            hidden_dim=128
+            input_dim=512, num_classes=3, hidden_dim=128
         )
 
         # Input: (batch, time, features) or (batch, features)
@@ -145,24 +134,20 @@ class TestCalibratedClassificationHead:
     def test_temperature_scaling(self):
         """Test temperature scaling for calibration."""
         head = CalibratedClassificationHead(
-            input_dim=256,
-            num_classes=2,
-            use_temperature_scaling=True
+            input_dim=256, num_classes=2, use_temperature_scaling=True
         )
 
         x = torch.randn(32, 256)
         logits = head(x)
 
         # Temperature should affect the logits scale
-        assert hasattr(head, 'temperature')
+        assert hasattr(head, "temperature")
         assert logits.shape == (32, 2)
 
     def test_confidence_estimation(self):
         """Test confidence estimation capability."""
         head = CalibratedClassificationHead(
-            input_dim=256,
-            num_classes=2,
-            confidence_estimation=True
+            input_dim=256, num_classes=2, confidence_estimation=True
         )
 
         x = torch.randn(16, 256)
@@ -216,7 +201,7 @@ class TestPsychopathologyHead:
             input_dim=768,
             target_factors=target_factors,
             hidden_dim=256,
-            use_clinical_normalization=True
+            use_clinical_normalization=True,
         )
 
         assert head.input_dim == 768
@@ -228,9 +213,7 @@ class TestPsychopathologyHead:
         """Test forward pass produces correct shapes."""
         target_factors = ["p_factor", "internalizing", "externalizing", "attention"]
         head = PsychopathologyHead(
-            input_dim=512,
-            target_factors=target_factors,
-            hidden_dim=128
+            input_dim=512, target_factors=target_factors, hidden_dim=128
         )
 
         x = torch.randn(32, 512)
@@ -247,13 +230,13 @@ class TestPsychopathologyHead:
             input_dim=256,
             target_factors=target_factors,
             use_clinical_normalization=True,
-            use_demographic_features=True
+            use_demographic_features=True,
         )
 
         x = torch.randn(16, 256)
         demographics = {
-            "age": torch.randn(16, 1),    # Age in years
-            "gender": torch.randint(0, 2, (16, 1)).float()  # Binary gender
+            "age": torch.randn(16, 1),  # Age in years
+            "gender": torch.randint(0, 2, (16, 1)).float(),  # Binary gender
         }
 
         predictions = head(x, demographics=demographics)
@@ -266,7 +249,7 @@ class TestPsychopathologyHead:
         head = PsychopathologyHead(
             input_dim=256,
             target_factors=target_factors,
-            enforce_factor_correlations=True
+            enforce_factor_correlations=True,
         )
 
         x = torch.randn(64, 256)  # Larger batch for correlation analysis
@@ -286,9 +269,7 @@ class TestPsychopathologyHead:
         """Test uncertainty quantification for clinical predictions."""
         target_factors = ["p_factor", "internalizing"]
         head = PsychopathologyHead(
-            input_dim=256,
-            target_factors=target_factors,
-            uncertainty_estimation=True
+            input_dim=256, target_factors=target_factors, uncertainty_estimation=True
         )
 
         x = torch.randn(16, 256)
@@ -298,7 +279,7 @@ class TestPsychopathologyHead:
         assert predictions.shape == (16, 2)
 
         # If uncertainty is estimated, check if additional outputs exist
-        if hasattr(head, 'uncertainty_estimation') and head.uncertainty_estimation:
+        if hasattr(head, "uncertainty_estimation") and head.uncertainty_estimation:
             # Implementation-specific uncertainty handling
             assert torch.isfinite(predictions).all()
 
@@ -308,14 +289,14 @@ class TestPsychopathologyHead:
         head = PsychopathologyHead(
             input_dim=256,
             target_factors=target_factors,
-            use_clinical_normalization=True
+            use_clinical_normalization=True,
         )
 
         x = torch.randn(32, 256)
 
         # Test with different age groups
-        young_age = torch.full((16, 1), 8.0)    # 8 years old
-        old_age = torch.full((16, 1), 16.0)     # 16 years old
+        young_age = torch.full((16, 1), 8.0)  # 8 years old
+        old_age = torch.full((16, 1), 16.0)  # 16 years old
 
         pred_young = head(x[:16], demographics={"age": young_age})
         pred_old = head(x[16:32], demographics={"age": old_age})
@@ -326,10 +307,7 @@ class TestPsychopathologyHead:
     def test_multi_output_regression(self):
         """Test multi-output regression capability."""
         target_factors = ["p_factor", "internalizing", "externalizing", "attention"]
-        head = PsychopathologyHead(
-            input_dim=512,
-            target_factors=target_factors
-        )
+        head = PsychopathologyHead(input_dim=512, target_factors=target_factors)
 
         x = torch.randn(32, 512)
         predictions = head(x)
@@ -346,10 +324,7 @@ class TestPsychopathologyHead:
     def test_correlation_aware_loss_compatibility(self):
         """Test compatibility with correlation-aware losses."""
         target_factors = ["p_factor", "internalizing", "externalizing"]
-        head = PsychopathologyHead(
-            input_dim=256,
-            target_factors=target_factors
-        )
+        head = PsychopathologyHead(input_dim=256, target_factors=target_factors)
 
         x = torch.randn(64, 256)  # Larger batch for correlation
         targets = torch.randn(64, 3)
@@ -362,8 +337,8 @@ class TestPsychopathologyHead:
 
         # Should be able to compute correlations
         correlation = (pred_centered * target_centered).sum(dim=0) / (
-            torch.sqrt((pred_centered**2).sum(dim=0)) *
-            torch.sqrt((target_centered**2).sum(dim=0))
+            torch.sqrt((pred_centered**2).sum(dim=0))
+            * torch.sqrt((target_centered**2).sum(dim=0))
         )
 
         assert correlation.shape == (3,)  # One correlation per factor
@@ -390,8 +365,7 @@ class TestHeadIntegration:
 
         # Psychopathology head
         psych_head = PsychopathologyHead(
-            input_dim=768,
-            target_factors=["p_factor", "internalizing"]
+            input_dim=768, target_factors=["p_factor", "internalizing"]
         )
         psych_pred = psych_head(backbone_features)
         assert psych_pred.shape == (16, 2)
@@ -406,9 +380,8 @@ class TestHeadIntegration:
             "rt": TemporalRegressionHead(input_dim=512, hidden_dim=128),
             "success": CalibratedClassificationHead(input_dim=512, num_classes=2),
             "factors": PsychopathologyHead(
-                input_dim=512,
-                target_factors=["p_factor", "attention"]
-            )
+                input_dim=512, target_factors=["p_factor", "attention"]
+            ),
         }
 
         # Forward pass through all heads
@@ -428,13 +401,13 @@ class TestHeadIntegration:
         targets = {
             "rt": torch.randn(32, 1),
             "success": torch.randint(0, 2, (32,)),
-            "factors": torch.randn(32, 2)
+            "factors": torch.randn(32, 2),
         }
 
         losses = {
             "rt": nn.MSELoss()(outputs["rt"], targets["rt"]),
             "success": nn.CrossEntropyLoss()(outputs["success"], targets["success"]),
-            "factors": nn.MSELoss()(outputs["factors"], targets["factors"])
+            "factors": nn.MSELoss()(outputs["factors"], targets["factors"]),
         }
 
         total_loss = sum(losses.values())

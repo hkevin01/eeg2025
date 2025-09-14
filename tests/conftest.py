@@ -1,9 +1,10 @@
 """Test configuration for pytest."""
 
+from pathlib import Path
+
+import numpy as np
 import pytest
 import torch
-import numpy as np
-from pathlib import Path
 
 
 @pytest.fixture
@@ -41,9 +42,7 @@ def temp_bids_dir(tmp_path):
 
     # Create basic BIDS files
     (bids_root / "participants.tsv").write_text(
-        "participant_id\tage\tsex\n"
-        "sub-001\t25\tM\n"
-        "sub-002\t30\tF\n"
+        "participant_id\tage\tsex\n" "sub-001\t25\tM\n" "sub-002\t30\tF\n"
     )
 
     (bids_root / "dataset_description.json").write_text(
@@ -86,7 +85,7 @@ def mock_config():
                 "h_freq": 40.0,
                 "notch_freq": 60.0,
                 "reference": "average",
-            }
+            },
         },
         "training": {
             "max_epochs": 2,
@@ -94,6 +93,6 @@ def mock_config():
                 "name": "adamw",
                 "lr": 1e-3,
                 "weight_decay": 0.01,
-            }
-        }
+            },
+        },
     }

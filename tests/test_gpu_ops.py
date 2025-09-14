@@ -2,37 +2,38 @@
 Unit tests for GPU operations with CPU fallbacks.
 """
 
+from unittest.mock import MagicMock, patch
+
+import numpy as np
 import pytest
 import torch
-import numpy as np
-from unittest.mock import patch, MagicMock
 
 # Test both GPU and CPU implementations
 try:
     import cupy as cp
+
     HAS_CUPY = True
 except ImportError:
     HAS_CUPY = False
 
 try:
     import triton
+
     HAS_TRITON = True
 except ImportError:
     HAS_TRITON = False
 
+from src.gpu.cupy.perceptual_quant import (
+    perceptual_quantize_numpy_fallback,
+    perceptual_quantize_torch,
+)
+
 # Import modules with potential fallbacks
 from src.gpu.triton.fir_iir_fused import (
+    bandpass_notch_car_cpu_fallback,
     fused_bandpass_notch_car,
-    bandpass_notch_car_cpu_fallback
 )
-from src.gpu.triton.rmsnorm import (
-    rmsnorm_triton,
-    rmsnorm_cpu_fallback
-)
-from src.gpu.cupy.perceptual_quant import (
-    perceptual_quantize_torch,
-    perceptual_quantize_numpy_fallback
-)
+from src.gpu.triton.rmsnorm import rmsnorm_cpu_fallback, rmsnorm_triton
 
 
 class TestFusedFiltering:
@@ -43,11 +44,7 @@ class TestFusedFiltering:
         x = torch.randn(16, 128, 1000)  # (batch, channels, time)
 
         filtered = bandpass_notch_car_cpu_fallback(
-            x,
-            lowcut=1.0,
-            highcut=50.0,
-            notch_freq=60.0,
-            fs=500.0
+            x, lowcut=1.0, highcut=50.0, notch_freq=60.0, fs=500.0
         )
 
         assert filtered.shape == x.shape
@@ -68,18 +65,14 @@ class TestFusedFiltering:
         x = noisy_signal.unsqueeze(0).unsqueeze(0)  # (1, 1, time)
 
         filtered = bandpass_notch_car_cpu_fallback(
-            x,
-            lowcut=1.0,
-            highcut=50.0,
-            notch_freq=60.0,
-            fs=fs
+            x, lowcut=1.0, highcut=50.0, notch_freq=60.0, fs=fs
         )
 
         # Compute power spectral density (simplified)
         fft_original = torch.fft.fft(x.squeeze())
         fft_filtered = torch.fft.fft(filtered.squeeze())
 
-        freqs = torch.fft.fftfreq(len(t), 1/fs)
+        freqs = torch.fft.fftfreq(len(t), 1 / fs)
 
         # Find 60Hz bin
         freq_60_idx = torch.argmin(torch.abs(freqs - 60))
@@ -103,11 +96,7 @@ class TestFusedFiltering:
         signals_with_cm = signals + common_mode
 
         filtered = bandpass_notch_car_cpu_fallback(
-            signals_with_cm,
-            lowcut=1.0,
-            highcut=50.0,
-            notch_freq=60.0,
-            fs=500.0
+            signals_with_cm, lowcut=1.0, highcut=50.0, notch_freq=60.0, fs=500.0
         )
 
         # After CAR, average across channels should be near zero
@@ -179,7 +168,7 @@ class TestRMSNorm:
         test_cases = [
             torch.zeros(8, 64, 500),  # All zeros
             torch.ones(8, 64, 500) * 1e-8,  # Very small values
-            torch.ones(8, 64, 500) * 1e8,   # Very large values
+            torch.ones(8, 64, 500) * 1e8,  # Very large values
         ]
 
         for x in test_cases:

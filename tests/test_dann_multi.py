@@ -5,13 +5,14 @@ Unit tests for Multi-Adversary DANN implementation.
 import pytest
 import torch
 import torch.nn as nn
+
 from src.models.invariance.dann_multi import (
+    DomainClassifier,
     GradientReversalFunction,
     GradientReversalLayer,
     LambdaScheduler,
-    DomainClassifier,
     MultiAdversaryDANN,
-    create_hbn_domain_adaptation
+    create_hbn_domain_adaptation,
 )
 
 
@@ -51,9 +52,7 @@ class TestLambdaScheduler:
     def test_linear_schedule(self):
         """Test linear scheduling."""
         scheduler = LambdaScheduler(
-            schedule_type="linear",
-            max_lambda=1.0,
-            max_epochs=100
+            schedule_type="linear", max_lambda=1.0, max_epochs=100
         )
 
         assert scheduler.get_lambda(0) == 0.0
@@ -63,9 +62,7 @@ class TestLambdaScheduler:
     def test_cosine_schedule(self):
         """Test cosine scheduling."""
         scheduler = LambdaScheduler(
-            schedule_type="cosine",
-            max_lambda=1.0,
-            max_epochs=100
+            schedule_type="cosine", max_lambda=1.0, max_epochs=100
         )
 
         assert scheduler.get_lambda(0) == 0.0
@@ -75,9 +72,7 @@ class TestLambdaScheduler:
     def test_step_schedule(self):
         """Test step scheduling."""
         scheduler = LambdaScheduler(
-            schedule_type="step",
-            max_lambda=1.0,
-            step_epochs=[30, 60]
+            schedule_type="step", max_lambda=1.0, step_epochs=[30, 60]
         )
 
         assert scheduler.get_lambda(20) == 0.0
@@ -87,10 +82,7 @@ class TestLambdaScheduler:
     def test_exp_schedule(self):
         """Test exponential scheduling."""
         scheduler = LambdaScheduler(
-            schedule_type="exp",
-            max_lambda=1.0,
-            max_epochs=100,
-            gamma=10.0
+            schedule_type="exp", max_lambda=1.0, max_epochs=100, gamma=10.0
         )
 
         # Should start near 0 and approach 1
@@ -104,9 +96,7 @@ class TestDomainClassifier:
     def test_forward_pass(self):
         """Test forward pass shapes."""
         classifier = DomainClassifier(
-            input_dim=768,
-            num_domains=4,
-            hidden_dims=[256, 128]
+            input_dim=768, num_domains=4, hidden_dims=[256, 128]
         )
 
         x = torch.randn(32, 768)
@@ -142,16 +132,9 @@ class TestMultiAdversaryDANN:
 
     def test_initialization(self):
         """Test proper initialization."""
-        domain_configs = {
-            "subject": 100,
-            "site": 4,
-            "montage": 3
-        }
+        domain_configs = {"subject": 100, "site": 4, "montage": 3}
 
-        dann = MultiAdversaryDANN(
-            feature_dim=768,
-            domain_configs=domain_configs
-        )
+        dann = MultiAdversaryDANN(feature_dim=768, domain_configs=domain_configs)
 
         assert len(dann.domain_classifiers) == 3
         assert "subject" in dann.domain_classifiers
@@ -160,10 +143,7 @@ class TestMultiAdversaryDANN:
 
     def test_forward_pass_shapes(self):
         """Test forward pass produces correct shapes."""
-        domain_configs = {
-            "subject": 100,
-            "site": 4
-        }
+        domain_configs = {"subject": 100, "site": 4}
 
         dann = MultiAdversaryDANN(768, domain_configs)
         features = torch.randn(32, 768)
@@ -184,7 +164,7 @@ class TestMultiAdversaryDANN:
         features = torch.randn(32, 768)
         domain_targets = {
             "subject": torch.randint(0, 10, (32,)),
-            "site": torch.randint(0, 4, (32,))
+            "site": torch.randint(0, 4, (32,)),
         }
 
         output = dann(features, domain_targets, epoch=50)
@@ -210,8 +190,9 @@ class TestMultiAdversaryDANN:
         features_site1 = torch.randn(16, 64) + torch.tensor([-1.0] * 64)
 
         features = torch.cat([features_site0, features_site1])
-        targets = torch.cat([torch.zeros(16, dtype=torch.long),
-                           torch.ones(16, dtype=torch.long)])
+        targets = torch.cat(
+            [torch.zeros(16, dtype=torch.long), torch.ones(16, dtype=torch.long)]
+        )
 
         initial_loss = None
         for epoch in range(10):
@@ -240,10 +221,7 @@ class TestHBNDomainAdaptation:
     def test_factory_function(self):
         """Test HBN domain adaptation factory."""
         dann = create_hbn_domain_adaptation(
-            feature_dim=512,
-            num_subjects=50,
-            num_sites=3,
-            num_montages=2
+            feature_dim=512, num_subjects=50, num_sites=3, num_montages=2
         )
 
         assert dann.feature_dim == 512
@@ -260,7 +238,7 @@ class TestHBNDomainAdaptation:
         targets = {
             "subject": torch.randint(0, 100, (16,)),
             "site": torch.randint(0, 4, (16,)),
-            "montage": torch.randint(0, 3, (16,))
+            "montage": torch.randint(0, 3, (16,)),
         }
 
         output = dann(features, targets, epoch=50)

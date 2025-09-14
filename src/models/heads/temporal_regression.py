@@ -5,10 +5,11 @@ Temporal Regression Head
 Specialized head for temporal regression tasks in EEG analysis.
 """
 
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
 
 
 class TemporalRegressionHead(nn.Module):
@@ -25,7 +26,7 @@ class TemporalRegressionHead(nn.Module):
         hidden_dims: list = [512, 256],
         dropout: float = 0.1,
         use_uncertainty: bool = True,
-        activation: str = "relu"
+        activation: str = "relu",
     ):
         super().__init__()
 
@@ -48,12 +49,14 @@ class TemporalRegressionHead(nn.Module):
         prev_dim = input_dim
 
         for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                act_fn,
-                nn.Dropout(dropout)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(prev_dim, hidden_dim),
+                    nn.BatchNorm1d(hidden_dim),
+                    act_fn,
+                    nn.Dropout(dropout),
+                ]
+            )
             prev_dim = hidden_dim
 
         self.regression_net = nn.Sequential(*layers)
@@ -78,9 +81,7 @@ class TemporalRegressionHead(nn.Module):
             nn.init.zeros_(module.bias)
 
     def forward(
-        self,
-        x: torch.Tensor,
-        return_features: bool = False
+        self, x: torch.Tensor, return_features: bool = False
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         """
         Forward pass through regression head.
@@ -126,7 +127,7 @@ class TemporalRegressionHead(nn.Module):
         predictions: torch.Tensor,
         targets: torch.Tensor,
         log_var: Optional[torch.Tensor] = None,
-        mask: Optional[torch.Tensor] = None
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Compute regression loss with optional uncertainty weighting.
@@ -146,7 +147,7 @@ class TemporalRegressionHead(nn.Module):
             loss = 0.5 * ((predictions - targets) ** 2 / var + log_var)
         else:
             # Standard MSE loss
-            loss = F.mse_loss(predictions, targets, reduction='none')
+            loss = F.mse_loss(predictions, targets, reduction="none")
 
         # Apply mask if provided
         if mask is not None:
@@ -169,7 +170,7 @@ class CalibratedClassificationHead(nn.Module):
         n_classes: int,
         hidden_dims: list = [512, 256],
         dropout: float = 0.1,
-        use_temperature_scaling: bool = True
+        use_temperature_scaling: bool = True,
     ):
         super().__init__()
 
@@ -182,12 +183,14 @@ class CalibratedClassificationHead(nn.Module):
         prev_dim = input_dim
 
         for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                nn.ReLU(),
-                nn.Dropout(dropout)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(prev_dim, hidden_dim),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.ReLU(),
+                    nn.Dropout(dropout),
+                ]
+            )
             prev_dim = hidden_dim
 
         self.classifier = nn.Sequential(*layers)
@@ -238,9 +241,7 @@ class CalibratedClassificationHead(nn.Module):
         return logits, calibrated_logits
 
     def compute_calibration_loss(
-        self,
-        logits: torch.Tensor,
-        targets: torch.Tensor
+        self, logits: torch.Tensor, targets: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute cross-entropy loss for calibration.
@@ -267,7 +268,7 @@ class PsychopathologyHead(nn.Module):
         disorders: list = ["adhd", "asd", "anxiety", "depression"],
         hidden_dims: list = [512, 256, 128],
         dropout: float = 0.1,
-        use_multi_scale: bool = True
+        use_multi_scale: bool = True,
     ):
         super().__init__()
 
@@ -281,12 +282,14 @@ class PsychopathologyHead(nn.Module):
         prev_dim = input_dim
 
         for hidden_dim in hidden_dims[:-1]:
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                nn.ReLU(),
-                nn.Dropout(dropout)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(prev_dim, hidden_dim),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.ReLU(),
+                    nn.Dropout(dropout),
+                ]
+            )
             prev_dim = hidden_dim
 
         self.shared_net = nn.Sequential(*layers)
@@ -299,15 +302,17 @@ class PsychopathologyHead(nn.Module):
                 nn.ReLU(),
                 nn.Dropout(dropout),
                 nn.Linear(hidden_dims[-1], 1),
-                nn.Sigmoid()
+                nn.Sigmoid(),
             )
 
         # Multi-scale processing if enabled
         if use_multi_scale:
-            self.scale_layers = nn.ModuleList([
-                nn.Conv1d(input_dim, input_dim, kernel_size=k, padding=k//2)
-                for k in [3, 7, 15]  # Different temporal scales
-            ])
+            self.scale_layers = nn.ModuleList(
+                [
+                    nn.Conv1d(input_dim, input_dim, kernel_size=k, padding=k // 2)
+                    for k in [3, 7, 15]  # Different temporal scales
+                ]
+            )
 
         self.apply(self._init_weights)
 
@@ -340,11 +345,15 @@ class PsychopathologyHead(nn.Module):
             scale_features = []
             for scale_layer in self.scale_layers:
                 scale_feat = scale_layer(x_transpose)
-                scale_feat = scale_feat.transpose(1, 2)  # Back to [batch, seq_len, input_dim]
+                scale_feat = scale_feat.transpose(
+                    1, 2
+                )  # Back to [batch, seq_len, input_dim]
                 scale_features.append(scale_feat.mean(dim=1))  # Global average pooling
 
             # Combine multi-scale features
-            x = torch.stack(scale_features, dim=1).mean(dim=1)  # [batch_size, input_dim]
+            x = torch.stack(scale_features, dim=1).mean(
+                dim=1
+            )  # [batch_size, input_dim]
         else:
             # Simple global average pooling
             x = x.mean(dim=1)  # [batch_size, input_dim]
@@ -355,15 +364,14 @@ class PsychopathologyHead(nn.Module):
         # Disorder-specific predictions
         predictions = {}
         for disorder in self.disorders:
-            predictions[disorder] = self.disorder_heads[disorder](shared_features).squeeze(-1)
+            predictions[disorder] = self.disorder_heads[disorder](
+                shared_features
+            ).squeeze(-1)
 
         return predictions
 
     def compute_loss(
-        self,
-        predictions: dict,
-        targets: dict,
-        weights: Optional[dict] = None
+        self, predictions: dict, targets: dict, weights: Optional[dict] = None
     ) -> torch.Tensor:
         """
         Compute multi-task loss for psychopathology prediction.
@@ -381,8 +389,7 @@ class PsychopathologyHead(nn.Module):
         for disorder in self.disorders:
             if disorder in targets:
                 disorder_loss = F.binary_cross_entropy(
-                    predictions[disorder],
-                    targets[disorder].float()
+                    predictions[disorder], targets[disorder].float()
                 )
 
                 if weights and disorder in weights:
@@ -395,38 +402,40 @@ class PsychopathologyHead(nn.Module):
 
 def create_temporal_regression_head(config: dict) -> TemporalRegressionHead:
     """Factory function to create temporal regression head from config."""
-    head_config = config.get('heads', {}).get('temporal_regression', {})
+    head_config = config.get("heads", {}).get("temporal_regression", {})
 
     return TemporalRegressionHead(
-        input_dim=config.get('d_model', 768),
-        output_dim=head_config.get('output_dim', 128),
-        hidden_dims=head_config.get('hidden_dims', [512, 256]),
-        dropout=config.get('dropout', 0.1),
-        use_uncertainty=head_config.get('use_uncertainty', True)
+        input_dim=config.get("d_model", 768),
+        output_dim=head_config.get("output_dim", 128),
+        hidden_dims=head_config.get("hidden_dims", [512, 256]),
+        dropout=config.get("dropout", 0.1),
+        use_uncertainty=head_config.get("use_uncertainty", True),
     )
 
 
 def create_classification_head(config: dict) -> CalibratedClassificationHead:
     """Factory function to create classification head from config."""
-    head_config = config.get('heads', {}).get('classification', {})
+    head_config = config.get("heads", {}).get("classification", {})
 
     return CalibratedClassificationHead(
-        input_dim=config.get('d_model', 768),
-        n_classes=head_config.get('n_classes', 2),
-        hidden_dims=head_config.get('hidden_dims', [512, 256]),
-        dropout=config.get('dropout', 0.1),
-        use_temperature_scaling=head_config.get('use_temperature_scaling', True)
+        input_dim=config.get("d_model", 768),
+        n_classes=head_config.get("n_classes", 2),
+        hidden_dims=head_config.get("hidden_dims", [512, 256]),
+        dropout=config.get("dropout", 0.1),
+        use_temperature_scaling=head_config.get("use_temperature_scaling", True),
     )
 
 
 def create_psychopathology_head(config: dict) -> PsychopathologyHead:
     """Factory function to create psychopathology head from config."""
-    head_config = config.get('heads', {}).get('psychopathology', {})
+    head_config = config.get("heads", {}).get("psychopathology", {})
 
     return PsychopathologyHead(
-        input_dim=config.get('d_model', 768),
-        disorders=head_config.get('disorders', ["adhd", "asd", "anxiety", "depression"]),
-        hidden_dims=head_config.get('hidden_dims', [512, 256, 128]),
-        dropout=config.get('dropout', 0.1),
-        use_multi_scale=head_config.get('use_multi_scale', True)
+        input_dim=config.get("d_model", 768),
+        disorders=head_config.get(
+            "disorders", ["adhd", "asd", "anxiety", "depression"]
+        ),
+        hidden_dims=head_config.get("hidden_dims", [512, 256, 128]),
+        dropout=config.get("dropout", 0.1),
+        use_multi_scale=head_config.get("use_multi_scale", True),
     )

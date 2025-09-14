@@ -9,10 +9,10 @@ import logging
 import math
 from typing import Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class GradientReversalScheduler:
         max_lambda: float = 1.0,
         warmup_steps: int = 1000,
         decay_steps: Optional[int] = None,
-        schedule_type: str = "linear"
+        schedule_type: str = "linear",
     ):
         """
         Initialize gradient reversal scheduler.
@@ -68,7 +68,10 @@ class GradientReversalScheduler:
             else:
                 raise ValueError(f"Unknown schedule type: {self.schedule_type}")
 
-        elif self.decay_steps is not None and step >= self.warmup_steps + self.decay_steps:
+        elif (
+            self.decay_steps is not None
+            and step >= self.warmup_steps + self.decay_steps
+        ):
             # Decay phase
             decay_progress = (step - self.warmup_steps) / self.decay_steps
             decay_progress = min(decay_progress, 1.0)
@@ -102,7 +105,7 @@ class MMDLoss(nn.Module):
         kernel_type: str = "rbf",
         kernel_mul: float = 2.0,
         kernel_num: int = 5,
-        fix_sigma: Optional[float] = None
+        fix_sigma: Optional[float] = None,
     ):
         """
         Initialize MMD loss.
@@ -125,8 +128,8 @@ class MMDLoss(nn.Module):
         n_Y = Y.size(0)
 
         # Compute pairwise distances
-        X_norm = (X ** 2).sum(dim=1, keepdim=True)
-        Y_norm = (Y ** 2).sum(dim=1, keepdim=True)
+        X_norm = (X**2).sum(dim=1, keepdim=True)
+        Y_norm = (Y**2).sum(dim=1, keepdim=True)
 
         distances = X_norm + Y_norm.T - 2 * X @ Y.T
         distances = torch.clamp(distances, min=0)
@@ -142,8 +145,8 @@ class MMDLoss(nn.Module):
         # Multi-scale RBF
         kernel_val = torch.zeros_like(distances)
         for i in range(self.kernel_num):
-            bandwidth = sigma * (self.kernel_mul ** i)
-            kernel_val += torch.exp(-distances / (2 * bandwidth ** 2))
+            bandwidth = sigma * (self.kernel_mul**i)
+            kernel_val += torch.exp(-distances / (2 * bandwidth**2))
 
         return kernel_val / self.kernel_num
 
@@ -151,11 +154,15 @@ class MMDLoss(nn.Module):
         """Compute linear kernel matrix."""
         return X @ Y.T
 
-    def polynomial_kernel(self, X: torch.Tensor, Y: torch.Tensor, degree: int = 3) -> torch.Tensor:
+    def polynomial_kernel(
+        self, X: torch.Tensor, Y: torch.Tensor, degree: int = 3
+    ) -> torch.Tensor:
         """Compute polynomial kernel matrix."""
         return (X @ Y.T + 1) ** degree
 
-    def forward(self, source_features: torch.Tensor, target_features: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, source_features: torch.Tensor, target_features: torch.Tensor
+    ) -> torch.Tensor:
         """
         Compute MMD loss between source and target features.
 
@@ -209,7 +216,7 @@ class IRMPenalty(nn.Module):
         self,
         logits_list: List[torch.Tensor],
         targets_list: List[torch.Tensor],
-        dummy_classifier: nn.Module
+        dummy_classifier: nn.Module,
     ) -> torch.Tensor:
         """
         Compute IRM penalty across multiple environments.
@@ -237,10 +244,10 @@ class IRMPenalty(nn.Module):
                 inputs=dummy_classifier.weight,
                 create_graph=True,
                 retain_graph=True,
-                only_inputs=True
+                only_inputs=True,
             )[0]
 
-            penalty += (grad ** 2).sum()
+            penalty += (grad**2).sum()
 
         return self.penalty_weight * penalty
 
@@ -259,7 +266,7 @@ class MultiDomainLoss(nn.Module):
         dann_weight: float = 0.1,
         mmd_weight: float = 0.1,
         irm_weight: float = 1.0,
-        scheduler_config: Optional[Dict] = None
+        scheduler_config: Optional[Dict] = None,
     ):
         """
         Initialize multi-domain loss.
@@ -301,7 +308,7 @@ class MultiDomainLoss(nn.Module):
         target_features: Optional[torch.Tensor] = None,
         env_logits: Optional[List[torch.Tensor]] = None,
         env_targets: Optional[List[torch.Tensor]] = None,
-        dummy_classifier: Optional[nn.Module] = None
+        dummy_classifier: Optional[nn.Module] = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Compute multi-domain loss.
@@ -341,19 +348,23 @@ class MultiDomainLoss(nn.Module):
             total_loss += weighted_dann_loss
 
         # MMD loss
-        if ("mmd" in self.adaptation_methods and
-            source_features is not None and
-            target_features is not None):
+        if (
+            "mmd" in self.adaptation_methods
+            and source_features is not None
+            and target_features is not None
+        ):
 
             mmd_loss = self.mmd_loss(source_features, target_features)
             losses["mmd_loss"] = mmd_loss
             total_loss += self.mmd_weight * mmd_loss
 
         # IRM penalty
-        if ("irm" in self.adaptation_methods and
-            env_logits is not None and
-            env_targets is not None and
-            dummy_classifier is not None):
+        if (
+            "irm" in self.adaptation_methods
+            and env_logits is not None
+            and env_targets is not None
+            and dummy_classifier is not None
+        ):
 
             irm_penalty = self.irm_penalty(env_logits, env_targets, dummy_classifier)
             losses["irm_penalty"] = irm_penalty
@@ -372,7 +383,7 @@ class DomainClassifier(nn.Module):
         feature_dim: int,
         domain_configs: Dict[str, int],
         hidden_dim: int = 256,
-        dropout: float = 0.5
+        dropout: float = 0.5,
     ):
         """
         Initialize domain classifier.
@@ -392,7 +403,7 @@ class DomainClassifier(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
         # Domain-specific heads
@@ -401,10 +412,7 @@ class DomainClassifier(nn.Module):
             self.domain_heads[domain_type] = nn.Linear(hidden_dim, num_classes)
 
     def forward(
-        self,
-        features: torch.Tensor,
-        domain_type: str,
-        alpha: float = 1.0
+        self, features: torch.Tensor, domain_type: str, alpha: float = 1.0
     ) -> torch.Tensor:
         """
         Forward pass for specific domain type.
@@ -440,10 +448,7 @@ class DomainAdapter(nn.Module):
     """
 
     def __init__(
-        self,
-        feature_dim: int,
-        num_tasks: int,
-        adapter_dim: Optional[int] = None
+        self, feature_dim: int, num_tasks: int, adapter_dim: Optional[int] = None
     ):
         """
         Initialize domain adapter.
@@ -489,7 +494,7 @@ class DomainAdapter(nn.Module):
 
         # Compute FiLM parameters
         gamma = self.gamma_net(task_emb)  # [batch_size, feature_dim]
-        beta = self.beta_net(task_emb)   # [batch_size, feature_dim]
+        beta = self.beta_net(task_emb)  # [batch_size, feature_dim]
 
         # Apply FiLM transformation
         adapted_features = gamma * features + beta
@@ -501,7 +506,7 @@ def create_domain_adaptation_components(
     feature_dim: int,
     domain_configs: Dict[str, int],
     adaptation_config: Dict,
-    task_loss_fn: nn.Module
+    task_loss_fn: nn.Module,
 ) -> Dict[str, nn.Module]:
     """
     Factory function to create domain adaptation components.
@@ -523,7 +528,7 @@ def create_domain_adaptation_components(
             feature_dim=feature_dim,
             domain_configs=domain_configs,
             hidden_dim=adaptation_config.get("hidden_dim", 256),
-            dropout=adaptation_config.get("dropout", 0.5)
+            dropout=adaptation_config.get("dropout", 0.5),
         )
 
     # Domain adapter
@@ -531,7 +536,7 @@ def create_domain_adaptation_components(
         components["domain_adapter"] = DomainAdapter(
             feature_dim=feature_dim,
             num_tasks=adaptation_config.get("num_tasks", 10),
-            adapter_dim=adaptation_config.get("adapter_dim")
+            adapter_dim=adaptation_config.get("adapter_dim"),
         )
 
     # Multi-domain loss
@@ -541,7 +546,7 @@ def create_domain_adaptation_components(
         dann_weight=adaptation_config.get("dann_weight", 0.1),
         mmd_weight=adaptation_config.get("mmd_weight", 0.1),
         irm_weight=adaptation_config.get("irm_weight", 1.0),
-        scheduler_config=adaptation_config.get("scheduler", {})
+        scheduler_config=adaptation_config.get("scheduler", {}),
     )
 
     return components

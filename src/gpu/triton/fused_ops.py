@@ -5,16 +5,18 @@ Fused GPU Operations using Triton
 High-performance fused operations for EEG processing using Triton kernels.
 """
 
+import math
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
-from typing import Optional, Tuple
 
 # Try to import Triton, fall back to PyTorch if not available
 try:
     import triton
     import triton.language as tl
+
     TRITON_AVAILABLE = True
 except ImportError:
     TRITON_AVAILABLE = False
@@ -23,12 +25,10 @@ except ImportError:
 
 # Triton kernels (if available)
 if TRITON_AVAILABLE:
+
     @triton.jit
     def fused_filter_kernel(
-        x_ptr, y_ptr,
-        N, L,
-        cutoff_freq: tl.constexpr,
-        BLOCK_SIZE: tl.constexpr
+        x_ptr, y_ptr, N, L, cutoff_freq: tl.constexpr, BLOCK_SIZE: tl.constexpr
     ):
         """Triton kernel for fused filtering."""
         pid = tl.program_id(axis=0)
@@ -49,10 +49,7 @@ if TRITON_AVAILABLE:
 
     @triton.jit
     def rms_norm_kernel(
-        x_ptr, y_ptr, weight_ptr,
-        N, D,
-        eps: tl.constexpr,
-        BLOCK_SIZE: tl.constexpr
+        x_ptr, y_ptr, weight_ptr, N, D, eps: tl.constexpr, BLOCK_SIZE: tl.constexpr
     ):
         """Triton kernel for RMS normalization."""
         row = tl.program_id(0)
@@ -80,9 +77,7 @@ if TRITON_AVAILABLE:
 
 
 def fused_filtering(
-    x: torch.Tensor,
-    cutoff_freq: float = 0.1,
-    use_triton: bool = True
+    x: torch.Tensor, cutoff_freq: float = 0.1, use_triton: bool = True
 ) -> torch.Tensor:
     """
     Fused filtering operation with Triton acceleration.
@@ -111,21 +106,13 @@ def fused_filtering(
     grid = (triton.cdiv(N * L, BLOCK_SIZE),)
 
     # Launch kernel
-    fused_filter_kernel[grid](
-        x_flat, y_flat,
-        N, L,
-        cutoff_freq,
-        BLOCK_SIZE=BLOCK_SIZE
-    )
+    fused_filter_kernel[grid](x_flat, y_flat, N, L, cutoff_freq, BLOCK_SIZE=BLOCK_SIZE)
 
     # Reshape back
     return y_flat.reshape(batch_size, channels, seq_len)
 
 
-def _fused_filtering_fallback(
-    x: torch.Tensor,
-    cutoff_freq: float
-) -> torch.Tensor:
+def _fused_filtering_fallback(x: torch.Tensor, cutoff_freq: float) -> torch.Tensor:
     """
     Fallback implementation using PyTorch.
 
@@ -145,7 +132,7 @@ def _fused_filtering_fallback(
 
     # Apply filter
     for t in range(1, x.shape[-1]):
-        y[..., t] = alpha * x[..., t] + (1 - alpha) * y[..., t-1]
+        y[..., t] = alpha * x[..., t] + (1 - alpha) * y[..., t - 1]
 
     return y
 
@@ -154,7 +141,7 @@ def rms_norm(
     x: torch.Tensor,
     weight: Optional[torch.Tensor] = None,
     eps: float = 1e-8,
-    use_triton: bool = True
+    use_triton: bool = True,
 ) -> torch.Tensor:
     """
     RMS normalization with Triton acceleration.
@@ -192,21 +179,14 @@ def rms_norm(
     BLOCK_SIZE = triton.next_power_of_2(D)
     grid = (N,)
 
-    rms_norm_kernel[grid](
-        x, y, weight,
-        N, D,
-        eps,
-        BLOCK_SIZE=BLOCK_SIZE
-    )
+    rms_norm_kernel[grid](x, y, weight, N, D, eps, BLOCK_SIZE=BLOCK_SIZE)
 
     # Reshape back to original shape
     return y.reshape(original_shape)
 
 
 def _rms_norm_fallback(
-    x: torch.Tensor,
-    weight: Optional[torch.Tensor] = None,
-    eps: float = 1e-8
+    x: torch.Tensor, weight: Optional[torch.Tensor] = None, eps: float = 1e-8
 ) -> torch.Tensor:
     """
     Fallback RMS normalization using PyTorch.
@@ -220,7 +200,7 @@ def _rms_norm_fallback(
         RMS normalized tensor
     """
     # Compute RMS
-    rms = torch.sqrt(torch.mean(x ** 2, dim=-1, keepdim=True) + eps)
+    rms = torch.sqrt(torch.mean(x**2, dim=-1, keepdim=True) + eps)
 
     # Normalize
     x_normalized = x / rms
@@ -244,7 +224,7 @@ class FusedLinear(nn.Module):
         bias: bool = True,
         activation: str = "none",
         use_norm: bool = False,
-        use_triton: bool = True
+        use_triton: bool = True,
     ):
         super().__init__()
 
@@ -291,11 +271,7 @@ class FusedMultiHeadAttention(nn.Module):
     """
 
     def __init__(
-        self,
-        d_model: int,
-        n_heads: int,
-        dropout: float = 0.1,
-        use_triton: bool = True
+        self, d_model: int, n_heads: int, dropout: float = 0.1, use_triton: bool = True
     ):
         super().__init__()
 
@@ -314,9 +290,7 @@ class FusedMultiHeadAttention(nn.Module):
         self.scale = 1.0 / math.sqrt(self.d_k)
 
     def forward(
-        self,
-        x: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Forward pass through fused attention.
@@ -356,7 +330,7 @@ class FusedMultiHeadAttention(nn.Module):
         q: torch.Tensor,
         k: torch.Tensor,
         v: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Triton-optimized attention (placeholder).
@@ -371,7 +345,7 @@ class FusedMultiHeadAttention(nn.Module):
         q: torch.Tensor,
         k: torch.Tensor,
         v: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Standard PyTorch attention implementation.
@@ -403,12 +377,12 @@ def create_fused_ops_config(config: dict) -> dict:
     Returns:
         Fused operations configuration
     """
-    gpu_config = config.get('gpu', {})
-    triton_config = gpu_config.get('triton', {})
+    gpu_config = config.get("gpu", {})
+    triton_config = gpu_config.get("triton", {})
 
     return {
-        'use_triton': triton_config.get('fused_filtering', True) and TRITON_AVAILABLE,
-        'use_fused_rmsnorm': triton_config.get('fused_rmsnorm', True),
-        'block_size': triton_config.get('block_size', 512),
-        'available': TRITON_AVAILABLE
+        "use_triton": triton_config.get("fused_filtering", True) and TRITON_AVAILABLE,
+        "use_fused_rmsnorm": triton_config.get("fused_rmsnorm", True),
+        "block_size": triton_config.get("block_size", 512),
+        "available": TRITON_AVAILABLE,
     }

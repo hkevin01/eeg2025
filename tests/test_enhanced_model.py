@@ -6,37 +6,40 @@ This script demonstrates the full pipeline with task-aware architecture,
 multi-adversary DANN, compression-aware SSL, and GPU optimization.
 """
 
+import argparse
+import json
+import logging
+import time
+import warnings
+from pathlib import Path
+from typing import Any, Dict, List
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-import logging
-import json
-from pathlib import Path
-import argparse
-import time
-from typing import Dict, List, Any
-import warnings
 
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore")
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Import our enhanced components
 try:
+    from src.data.enhanced_pipeline import EnhancedHBNDataset, RealLabelManager
+    from src.models.invariance.dann import AdversaryType, MultiAdversaryDANN
     from src.models.task_aware import (
-        TaskAwareTemporalCNN, MultiTaskHead, HBNTask, TaskTokenEmbedding
+        HBNTask,
+        MultiTaskHead,
+        TaskAwareTemporalCNN,
+        TaskTokenEmbedding,
     )
-    from src.models.invariance.dann import MultiAdversaryDANN, AdversaryType
-    from src.utils.gpu_optimization import OptimizedModel, ModelBenchmarker
-    from src.utils.augmentations import TimeMasking, CompressionDistortion
-    from src.data.enhanced_pipeline import RealLabelManager, EnhancedHBNDataset
-    from src.training.enhanced_trainer import TrainingConfig, EnhancedTrainer
+    from src.training.enhanced_trainer import EnhancedTrainer, TrainingConfig
+    from src.utils.augmentations import CompressionDistortion, TimeMasking
+    from src.utils.gpu_optimization import ModelBenchmarker, OptimizedModel
 except ImportError as e:
     logger.error(f"Import error: {e}")
     logger.error("Please ensure all modules are in the correct location")
@@ -45,9 +48,9 @@ except ImportError as e:
 
 def test_task_aware_architecture():
     """Test task-aware architecture with all HBN tasks."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING TASK-AWARE ARCHITECTURE")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize model
     model = TaskAwareTemporalCNN(
@@ -55,10 +58,12 @@ def test_task_aware_architecture():
         hidden_dim=128,
         num_layers=4,
         use_task_tokens=True,
-        adaptation_method="film"
+        adaptation_method="film",
     )
 
-    print(f"✅ Created TaskAwareTemporalCNN with {sum(p.numel() for p in model.parameters()):,} parameters")
+    print(
+        f"✅ Created TaskAwareTemporalCNN with {sum(p.numel() for p in model.parameters()):,} parameters"
+    )
 
     # Test all tasks
     batch_size = 8
@@ -75,7 +80,7 @@ def test_task_aware_architecture():
             print(f"  {task.value:>3}: {output.shape} | {inference_time:.2f}ms")
             results[task.value] = {
                 "output_shape": output.shape,
-                "inference_time_ms": inference_time
+                "inference_time_ms": inference_time,
             }
         except Exception as e:
             print(f"  {task.value:>3}: ERROR - {e}")
@@ -85,9 +90,9 @@ def test_task_aware_architecture():
 
 def test_multi_task_head():
     """Test multi-task prediction head."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING MULTI-TASK HEAD")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize head
     head = MultiTaskHead(hidden_dim=128, dropout=0.1)
@@ -107,16 +112,14 @@ def test_multi_task_head():
 
 def test_multi_adversary_dann():
     """Test multi-adversary domain adaptation."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING MULTI-ADVERSARY DANN")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize DANN
     adversary_types = [AdversaryType.SITE, AdversaryType.SUBJECT, AdversaryType.TASK]
     dann = MultiAdversaryDANN(
-        feature_dim=128,
-        adversary_types=adversary_types,
-        hidden_dim=64
+        feature_dim=128, adversary_types=adversary_types, hidden_dim=64
     )
 
     print(f"✅ Created MultiAdversaryDANN with {len(adversary_types)} adversaries")
@@ -129,11 +132,13 @@ def test_multi_adversary_dann():
     adversary_labels = {
         AdversaryType.SITE: torch.randint(0, 5, (batch_size,)),
         AdversaryType.SUBJECT: torch.randint(0, 100, (batch_size,)),
-        AdversaryType.TASK: torch.randint(0, 6, (batch_size,))
+        AdversaryType.TASK: torch.randint(0, 6, (batch_size,)),
     }
 
     try:
-        adversarial_loss = dann.compute_adversarial_loss(features, adversary_labels, lambda_val=1.0)
+        adversarial_loss = dann.compute_adversarial_loss(
+            features, adversary_labels, lambda_val=1.0
+        )
         print(f"  Adversarial loss: {adversarial_loss.item():.4f}")
 
         # Test individual adversaries
@@ -141,7 +146,10 @@ def test_multi_adversary_dann():
         for adv_type, loss in individual_losses.items():
             print(f"  {adv_type.value} loss: {loss.item():.4f}")
 
-        return {"total_loss": adversarial_loss.item(), "individual_losses": individual_losses}
+        return {
+            "total_loss": adversarial_loss.item(),
+            "individual_losses": individual_losses,
+        }
 
     except Exception as e:
         print(f"  ERROR: {e}")
@@ -150,9 +158,9 @@ def test_multi_adversary_dann():
 
 def test_compression_aware_ssl():
     """Test compression-aware self-supervised learning."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING COMPRESSION-AWARE SSL")
-    print("="*60)
+    print("=" * 60)
 
     # Test augmentations
     sequence_length = 1000
@@ -171,7 +179,7 @@ def test_compression_aware_ssl():
         distortion_percentage=0.05,
         compression_method="wavelet",
         quantization_snr=30.0,
-        schedulable=True
+        schedulable=True,
     )
     compressed_data = compression(eeg_data.copy())
     comp_diff = np.mean(np.abs(eeg_data - compressed_data))
@@ -184,24 +192,17 @@ def test_compression_aware_ssl():
     print(f"  Updated mask ratio: {time_masking.mask_ratio}")
     print(f"  Updated compression: {compression.distortion_percentage}")
 
-    return {
-        "mask_difference": mask_diff,
-        "compression_difference": comp_diff
-    }
+    return {"mask_difference": mask_diff, "compression_difference": comp_diff}
 
 
 def test_gpu_optimization():
     """Test GPU optimization features."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING GPU OPTIMIZATION")
-    print("="*60)
+    print("=" * 60)
 
     # Create test model
-    model = TaskAwareTemporalCNN(
-        input_channels=19,
-        hidden_dim=128,
-        num_layers=4
-    )
+    model = TaskAwareTemporalCNN(input_channels=19, hidden_dim=128, num_layers=4)
 
     # Test optimization configurations
     configs = [
@@ -209,7 +210,7 @@ def test_gpu_optimization():
         {"use_amp": True, "compile_mode": None},
     ]
 
-    if torch.cuda.is_available() and hasattr(torch, 'compile'):
+    if torch.cuda.is_available() and hasattr(torch, "compile"):
         configs.append({"use_amp": True, "compile_mode": "reduce-overhead"})
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -219,11 +220,7 @@ def test_gpu_optimization():
     for i, config in enumerate(configs):
         try:
             # Create optimized model
-            opt_model = OptimizedModel(
-                model=model,
-                device=device,
-                **config
-            )
+            opt_model = OptimizedModel(model=model, device=device, **config)
 
             print(f"  Config {i+1}: {config}")
             print(f"    Optimization info: {opt_model.get_optimization_info()}")
@@ -252,10 +249,7 @@ def test_gpu_optimization():
             avg_time = (time.time() - start_time) / 10 * 1000
             print(f"    Average inference time: {avg_time:.2f}ms")
 
-            results.append({
-                "config": config,
-                "avg_inference_time_ms": avg_time
-            })
+            results.append({"config": config, "avg_inference_time_ms": avg_time})
 
         except Exception as e:
             print(f"    ERROR: {e}")
@@ -265,9 +259,9 @@ def test_gpu_optimization():
 
 def test_enhanced_data_pipeline():
     """Test enhanced data pipeline (mock)."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING ENHANCED DATA PIPELINE")
-    print("="*60)
+    print("=" * 60)
 
     # Mock data root (since we don't have real HBN data)
     data_root = Path("./mock_data")
@@ -301,9 +295,9 @@ def test_enhanced_data_pipeline():
 
 def test_integration():
     """Test full pipeline integration."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING FULL INTEGRATION")
-    print("="*60)
+    print("=" * 60)
 
     # Create full pipeline
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -314,7 +308,7 @@ def test_integration():
         hidden_dim=128,
         num_layers=4,
         use_task_tokens=True,
-        adaptation_method="film"
+        adaptation_method="film",
     )
 
     # Multi-task head
@@ -324,26 +318,26 @@ def test_integration():
     dann = MultiAdversaryDANN(
         feature_dim=128,
         adversary_types=[AdversaryType.SITE, AdversaryType.TASK],
-        hidden_dim=64
+        hidden_dim=64,
     )
 
     # Combined model
-    combined_model = nn.ModuleDict({
-        'backbone': backbone,
-        'multi_task_head': multi_task_head,
-        'dann': dann
-    })
+    combined_model = nn.ModuleDict(
+        {"backbone": backbone, "multi_task_head": multi_task_head, "dann": dann}
+    )
 
     # Optimize
     optimized_model = OptimizedModel(
         model=combined_model,
         use_amp=True,
         compile_mode=None,  # Skip compilation for test
-        device=device
+        device=device,
     )
 
     print(f"✅ Created integrated model on {device}")
-    print(f"   Total parameters: {sum(p.numel() for p in combined_model.parameters()):,}")
+    print(
+        f"   Total parameters: {sum(p.numel() for p in combined_model.parameters()):,}"
+    )
 
     # Test full forward pass
     batch_size = 4
@@ -356,20 +350,20 @@ def test_integration():
     # Forward pass
     try:
         # Through backbone
-        features = optimized_model.model['backbone'](eeg_data, task)
+        features = optimized_model.model["backbone"](eeg_data, task)
         print(f"  Backbone output: {features.shape}")
 
         # Through multi-task head
-        predictions = optimized_model.model['multi_task_head'](features)
+        predictions = optimized_model.model["multi_task_head"](features)
         print(f"  Predictions: {list(predictions.keys())}")
 
         # Through DANN
         adversary_labels = {
             AdversaryType.SITE: torch.randint(0, 5, (batch_size,)).to(device),
-            AdversaryType.TASK: torch.randint(0, 6, (batch_size,)).to(device)
+            AdversaryType.TASK: torch.randint(0, 6, (batch_size,)).to(device),
         }
 
-        adv_loss = optimized_model.model['dann'].compute_adversarial_loss(
+        adv_loss = optimized_model.model["dann"].compute_adversarial_loss(
             features, adversary_labels, lambda_val=1.0
         )
         print(f"  Adversarial loss: {adv_loss.item():.4f}")
@@ -379,7 +373,7 @@ def test_integration():
         return {
             "backbone_output_shape": features.shape,
             "predictions": list(predictions.keys()),
-            "adversarial_loss": adv_loss.item()
+            "adversarial_loss": adv_loss.item(),
         }
 
     except Exception as e:
@@ -390,7 +384,7 @@ def test_integration():
 def run_comprehensive_test():
     """Run comprehensive test suite."""
     print("🚀 STARTING COMPREHENSIVE EEG FOUNDATION MODEL TEST")
-    print("="*80)
+    print("=" * 80)
 
     results = {}
 
@@ -437,9 +431,9 @@ def run_comprehensive_test():
         results["integration"] = {"error": str(e)}
 
     # Summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST SUMMARY")
-    print("="*80)
+    print("=" * 80)
 
     success_count = 0
     total_tests = len(results)
@@ -451,11 +445,13 @@ def run_comprehensive_test():
             print(f"✅ {test_name:>20}: PASSED")
             success_count += 1
 
-    print(f"\nOverall: {success_count}/{total_tests} tests passed ({success_count/total_tests*100:.1f}%)")
+    print(
+        f"\nOverall: {success_count}/{total_tests} tests passed ({success_count/total_tests*100:.1f}%)"
+    )
 
     # Save results
     output_path = Path("test_results.json")
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(results, f, indent=2, default=str)
 
     print(f"Detailed results saved to: {output_path}")
@@ -466,9 +462,22 @@ def run_comprehensive_test():
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(description="Test enhanced EEG foundation model")
-    parser.add_argument("--test", type=str, choices=[
-        "task_aware", "multi_task", "dann", "ssl", "gpu", "data", "integration", "all"
-    ], default="all", help="Specific test to run")
+    parser.add_argument(
+        "--test",
+        type=str,
+        choices=[
+            "task_aware",
+            "multi_task",
+            "dann",
+            "ssl",
+            "gpu",
+            "data",
+            "integration",
+            "all",
+        ],
+        default="all",
+        help="Specific test to run",
+    )
 
     args = parser.parse_args()
 

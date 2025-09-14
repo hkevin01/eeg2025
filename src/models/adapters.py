@@ -14,21 +14,21 @@ Key Features:
 - Minimal parameter overhead while maintaining task-specific adaptability
 """
 
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dataclasses import dataclass
-
 
 # Task definitions for HBN-EEG paradigms
 TASK_NAMES = {
-    'RS': 0,    # Resting State
-    'SuS': 1,   # Sustained Attention
-    'MW': 2,    # Mind Wandering
-    'CCD': 3,   # Cognitive Control Demand
-    'SL': 4,    # Statistical Learning
-    'SyS': 5,   # Symbolic System
+    "RS": 0,  # Resting State
+    "SuS": 1,  # Sustained Attention
+    "MW": 2,  # Mind Wandering
+    "CCD": 3,  # Cognitive Control Demand
+    "SL": 4,  # Statistical Learning
+    "SyS": 5,  # Symbolic System
 }
 
 TASK_ID_TO_NAME = {v: k for k, v in TASK_NAMES.items()}
@@ -37,6 +37,7 @@ TASK_ID_TO_NAME = {v: k for k, v in TASK_NAMES.items()}
 @dataclass
 class TaskAdapterConfig:
     """Configuration for task adapters."""
+
     adapter_type: str = "film"  # "film", "lora", "both"
     task_emb_dim: int = 64
     hidden_dim: int = 128
@@ -67,7 +68,7 @@ class TaskTokenEmbedding(nn.Module):
         num_tasks: int = 6,
         emb_dim: int = 64,
         learnable: bool = True,
-        init_std: float = 0.02
+        init_std: float = 0.02,
     ):
         super().__init__()
         self.num_tasks = num_tasks
@@ -75,12 +76,11 @@ class TaskTokenEmbedding(nn.Module):
 
         # Create task embeddings
         self.task_embeddings = nn.Parameter(
-            torch.randn(num_tasks, emb_dim) * init_std,
-            requires_grad=learnable
+            torch.randn(num_tasks, emb_dim) * init_std, requires_grad=learnable
         )
 
         # Optional task names for interpretability
-        self.register_buffer('task_names', torch.arange(num_tasks))
+        self.register_buffer("task_names", torch.arange(num_tasks))
 
     def forward(self, task_ids: torch.Tensor) -> torch.Tensor:
         """
@@ -121,7 +121,7 @@ class FiLMAdapter(nn.Module):
         feature_dim: int,
         task_emb_dim: int,
         hidden_dim: int = 128,
-        dropout: float = 0.1
+        dropout: float = 0.1,
     ):
         super().__init__()
         self.feature_dim = feature_dim
@@ -131,7 +131,7 @@ class FiLMAdapter(nn.Module):
             nn.Linear(task_emb_dim, hidden_dim),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, 2 * feature_dim)  # gamma and beta
+            nn.Linear(hidden_dim, 2 * feature_dim),  # gamma and beta
         )
 
         # Initialize to identity transformation
@@ -161,8 +161,12 @@ class FiLMAdapter(nn.Module):
         if len(original_shape) > 2:
             # Reshape for broadcasting
             batch_size = gamma.shape[0]
-            gamma = gamma.view(batch_size, *([1] * (len(original_shape) - 2)), self.feature_dim)
-            beta = beta.view(batch_size, *([1] * (len(original_shape) - 2)), self.feature_dim)
+            gamma = gamma.view(
+                batch_size, *([1] * (len(original_shape) - 2)), self.feature_dim
+            )
+            beta = beta.view(
+                batch_size, *([1] * (len(original_shape) - 2)), self.feature_dim
+            )
 
         return gamma * features + beta
 
@@ -190,7 +194,7 @@ class LoRAAdapter(nn.Module):
         out_features: int,
         rank: int = 16,
         alpha: float = 16.0,
-        dropout: float = 0.1
+        dropout: float = 0.1,
     ):
         super().__init__()
         self.rank = rank
@@ -231,7 +235,7 @@ class TaskAdaptiveLinear(nn.Module):
         out_features: int,
         task_emb_dim: int,
         config: TaskAdapterConfig,
-        bias: bool = True
+        bias: bool = True,
     ):
         super().__init__()
         self.base_linear = nn.Linear(in_features, out_features, bias=bias)
@@ -251,7 +255,7 @@ class TaskAdaptiveLinear(nn.Module):
                 feature_dim=out_features,
                 task_emb_dim=task_emb_dim,
                 hidden_dim=config.hidden_dim,
-                dropout=config.dropout
+                dropout=config.dropout,
             )
 
         if config.adapter_type in ["lora", "both"]:
@@ -260,7 +264,7 @@ class TaskAdaptiveLinear(nn.Module):
                 out_features=out_features,
                 rank=config.lora_rank,
                 alpha=config.lora_alpha,
-                dropout=config.dropout
+                dropout=config.dropout,
             )
 
     def forward(self, x: torch.Tensor, task_emb: torch.Tensor) -> torch.Tensor:
@@ -301,7 +305,7 @@ class TaskConditionedAttention(nn.Module):
         hidden_dim: int,
         task_emb_dim: int,
         num_heads: int = 8,
-        dropout: float = 0.1
+        dropout: float = 0.1,
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
@@ -320,13 +324,13 @@ class TaskConditionedAttention(nn.Module):
         self.task_to_bias = nn.Linear(task_emb_dim, num_heads)
 
         self.dropout = nn.Dropout(dropout)
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
 
     def forward(
         self,
         x: torch.Tensor,
         task_emb: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Task-conditioned attention forward pass.
@@ -342,9 +346,21 @@ class TaskConditionedAttention(nn.Module):
         B, seq_len, _ = x.shape
 
         # Project to Q, K, V
-        q = self.q_proj(x).view(B, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
-        k = self.k_proj(x).view(B, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
-        v = self.v_proj(x).view(B, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        q = (
+            self.q_proj(x)
+            .view(B, seq_len, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
+        k = (
+            self.k_proj(x)
+            .view(B, seq_len, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
+        v = (
+            self.v_proj(x)
+            .view(B, seq_len, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
 
         # Compute attention scores
         attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale
@@ -360,7 +376,7 @@ class TaskConditionedAttention(nn.Module):
                 mask = mask.unsqueeze(1).unsqueeze(1)  # (B, 1, 1, seq_len)
             elif mask.dim() == 3:
                 mask = mask.unsqueeze(1)  # (B, 1, seq_len, seq_len)
-            attn_scores = attn_scores.masked_fill(mask == 0, float('-inf'))
+            attn_scores = attn_scores.masked_fill(mask == 0, float("-inf"))
 
         # Softmax and dropout
         attn_weights = F.softmax(attn_scores, dim=-1)
@@ -370,7 +386,9 @@ class TaskConditionedAttention(nn.Module):
         attn_output = torch.matmul(attn_weights, v)
 
         # Reshape and project
-        attn_output = attn_output.transpose(1, 2).contiguous().view(B, seq_len, self.hidden_dim)
+        attn_output = (
+            attn_output.transpose(1, 2).contiguous().view(B, seq_len, self.hidden_dim)
+        )
         output = self.out_proj(attn_output)
 
         return output
@@ -389,7 +407,7 @@ class TaskAwareBackbone(nn.Module):
         backbone: nn.Module,
         config: TaskAdapterConfig,
         backbone_output_dim: int,
-        num_tasks: int = 6
+        num_tasks: int = 6,
     ):
         super().__init__()
         self.backbone = backbone
@@ -398,8 +416,7 @@ class TaskAwareBackbone(nn.Module):
 
         # Task token embeddings
         self.task_tokens = TaskTokenEmbedding(
-            num_tasks=num_tasks,
-            emb_dim=config.task_emb_dim
+            num_tasks=num_tasks, emb_dim=config.task_emb_dim
         )
 
         # Optional task-conditioned layers
@@ -408,7 +425,7 @@ class TaskAwareBackbone(nn.Module):
             self.task_projection = TaskConditionedAttention(
                 hidden_dim=backbone_output_dim,
                 task_emb_dim=config.task_emb_dim,
-                dropout=config.dropout
+                dropout=config.dropout,
             )
 
         # Freeze backbone if specified
@@ -417,10 +434,7 @@ class TaskAwareBackbone(nn.Module):
                 param.requires_grad = False
 
     def forward(
-        self,
-        x: torch.Tensor,
-        task_ids: torch.Tensor,
-        return_features: bool = False
+        self, x: torch.Tensor, task_ids: torch.Tensor, return_features: bool = False
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
         Forward pass with task conditioning.
@@ -437,7 +451,9 @@ class TaskAwareBackbone(nn.Module):
         task_emb = self.task_tokens(task_ids)  # (B, task_emb_dim)
 
         # Forward through backbone
-        features = self.backbone(x)  # (B, backbone_output_dim) or (B, seq_len, backbone_output_dim)
+        features = self.backbone(
+            x
+        )  # (B, backbone_output_dim) or (B, seq_len, backbone_output_dim)
 
         # Apply task conditioning if configured
         if self.task_projection is not None:
@@ -472,7 +488,7 @@ class TaskSpecificHead(nn.Module):
         output_dim: int,
         task_emb_dim: int,
         config: TaskAdapterConfig,
-        head_type: str = "regression"  # "regression" or "classification"
+        head_type: str = "regression",  # "regression" or "classification"
     ):
         super().__init__()
         self.head_type = head_type
@@ -490,7 +506,7 @@ class TaskSpecificHead(nn.Module):
                     in_features=input_dim,
                     out_features=hidden_dim,
                     task_emb_dim=task_emb_dim,
-                    config=config
+                    config=config,
                 ),
                 nn.ReLU(inplace=True),
                 nn.Dropout(config.dropout),
@@ -498,8 +514,8 @@ class TaskSpecificHead(nn.Module):
                     in_features=hidden_dim,
                     out_features=output_dim,
                     task_emb_dim=task_emb_dim,
-                    config=config
-                )
+                    config=config,
+                ),
             )
 
         # Output activation
@@ -539,7 +555,7 @@ def create_task_aware_model(
     backbone_output_dim: int,
     config: TaskAdapterConfig,
     num_tasks: int = 6,
-    output_dims: Optional[Dict[str, int]] = None
+    output_dims: Optional[Dict[str, int]] = None,
 ) -> Tuple[TaskAwareBackbone, Dict[str, TaskSpecificHead]]:
     """
     Create a complete task-aware model with backbone and heads.
@@ -556,9 +572,9 @@ def create_task_aware_model(
     """
     if output_dims is None:
         output_dims = {
-            "regression": 1,      # RT prediction
+            "regression": 1,  # RT prediction
             "classification": 1,  # Success prediction
-            "psychopathology": 4  # CBCL factors
+            "psychopathology": 4,  # CBCL factors
         }
 
     # Create task-aware backbone
@@ -566,7 +582,7 @@ def create_task_aware_model(
         backbone=backbone,
         config=config,
         backbone_output_dim=backbone_output_dim,
-        num_tasks=num_tasks
+        num_tasks=num_tasks,
     )
 
     # Create task-specific heads
@@ -578,7 +594,7 @@ def create_task_aware_model(
             output_dim=output_dim,
             task_emb_dim=config.task_emb_dim,
             config=config,
-            head_type=head_type
+            head_type=head_type,
         )
 
     return task_backbone, heads

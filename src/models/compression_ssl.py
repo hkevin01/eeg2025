@@ -14,19 +14,21 @@ Key Features:
 - Adaptive augmentation scheduling
 """
 
-from typing import Dict, List, Optional, Tuple, Union, Callable
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 import math
 from dataclasses import dataclass
 from enum import Enum
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 import pywt
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 class ScheduleType(Enum):
     """Types of parameter schedules."""
+
     CONSTANT = "constant"
     LINEAR = "linear"
     COSINE = "cosine"
@@ -38,6 +40,7 @@ class ScheduleType(Enum):
 @dataclass
 class ScheduleConfig:
     """Configuration for parameter scheduling."""
+
     schedule_type: ScheduleType = ScheduleType.COSINE
     start_value: float = 0.1
     end_value: float = 0.6
@@ -51,6 +54,7 @@ class ScheduleConfig:
 @dataclass
 class CompressionSSLConfig:
     """Configuration for compression-augmented SSL."""
+
     # Masking parameters
     mask_ratio_schedule: ScheduleConfig = None
     temporal_mask_span: int = 50
@@ -77,9 +81,7 @@ class CompressionSSLConfig:
 
     def __post_init__(self):
         if self.mask_ratio_schedule is None:
-            self.mask_ratio_schedule = ScheduleConfig(
-                start_value=0.15, end_value=0.75
-            )
+            self.mask_ratio_schedule = ScheduleConfig(start_value=0.15, end_value=0.75)
         if self.compression_levels is None:
             self.compression_levels = [1, 2, 4, 8]
         if self.quantization_bits is None:
@@ -137,26 +139,34 @@ class ParameterScheduler:
                 return config.end_value
             ratio = adjusted_step / adjusted_total
             cosine_ratio = (1 + math.cos(math.pi * ratio)) / 2
-            return config.end_value + (config.start_value - config.end_value) * cosine_ratio
+            return (
+                config.end_value
+                + (config.start_value - config.end_value) * cosine_ratio
+            )
 
         elif config.schedule_type == ScheduleType.EXPONENTIAL:
             if adjusted_step >= adjusted_total:
                 return config.end_value
             # Exponential decay/growth
-            decay_rate = math.log(config.end_value / config.start_value) / adjusted_total
+            decay_rate = (
+                math.log(config.end_value / config.start_value) / adjusted_total
+            )
             return config.start_value * math.exp(decay_rate * adjusted_step)
 
         elif config.schedule_type == ScheduleType.STEP:
             # Step schedule
             num_steps = step // config.step_size
-            return config.start_value * (config.step_gamma ** num_steps)
+            return config.start_value * (config.step_gamma**num_steps)
 
         elif config.schedule_type == ScheduleType.POLYNOMIAL:
             if adjusted_step >= adjusted_total:
                 return config.end_value
             ratio = adjusted_step / adjusted_total
-            poly_ratio = ratio ** config.polynomial_power
-            return config.start_value + (config.end_value - config.start_value) * poly_ratio
+            poly_ratio = ratio**config.polynomial_power
+            return (
+                config.start_value
+                + (config.end_value - config.start_value) * poly_ratio
+            )
 
         else:
             raise ValueError(f"Unknown schedule type: {config.schedule_type}")
@@ -179,7 +189,7 @@ class WaveletCompressor:
         self,
         signal: torch.Tensor,
         compression_level: int,
-        quantization_bits: Optional[int] = None
+        quantization_bits: Optional[int] = None,
     ) -> torch.Tensor:
         """
         Apply wavelet compression to signal.
@@ -201,14 +211,18 @@ class WaveletCompressor:
                 sig = signal[b, c].cpu().numpy()
 
                 # Wavelet decomposition
-                coeffs = pywt.wavedec(sig, self.wavelet, level=min(compression_level, self.max_level))
+                coeffs = pywt.wavedec(
+                    sig, self.wavelet, level=min(compression_level, self.max_level)
+                )
 
                 # Apply compression by zeroing high-frequency coefficients
                 compressed_coeffs = list(coeffs)
                 for i in range(1, len(compressed_coeffs)):
                     # Zero out a fraction of detail coefficients
                     coeff = compressed_coeffs[i]
-                    threshold = np.percentile(np.abs(coeff), 100 - 100/compression_level)
+                    threshold = np.percentile(
+                        np.abs(coeff), 100 - 100 / compression_level
+                    )
                     mask = np.abs(coeff) < threshold
                     compressed_coeffs[i] = coeff * (~mask)
 
@@ -219,8 +233,10 @@ class WaveletCompressor:
                         # Quantize to specified bits
                         max_val = np.max(np.abs(coeff))
                         if max_val > 0:
-                            levels = 2 ** quantization_bits - 1
-                            quantized = np.round(coeff / max_val * levels) / levels * max_val
+                            levels = 2**quantization_bits - 1
+                            quantized = (
+                                np.round(coeff / max_val * levels) / levels * max_val
+                            )
                             compressed_coeffs[i] = quantized
 
                 # Reconstruction
@@ -231,16 +247,16 @@ class WaveletCompressor:
                     if len(reconstructed) > T:
                         reconstructed = reconstructed[:T]
                     else:
-                        reconstructed = np.pad(reconstructed, (0, T - len(reconstructed)), 'constant')
+                        reconstructed = np.pad(
+                            reconstructed, (0, T - len(reconstructed)), "constant"
+                        )
 
                 compressed[b, c] = torch.from_numpy(reconstructed).to(signal.device)
 
         return compressed
 
     def add_compression_artifacts(
-        self,
-        signal: torch.Tensor,
-        artifact_intensity: float = 0.1
+        self, signal: torch.Tensor, artifact_intensity: float = 0.1
     ) -> torch.Tensor:
         """
         Add compression-like artifacts to signal.
@@ -262,7 +278,9 @@ class WaveletCompressor:
             end = min(i + block_size, T)
             # Add slight discontinuities at block boundaries
             if i > 0:
-                signal[:, :, i] += torch.randn_like(signal[:, :, i]) * artifact_intensity * 0.05
+                signal[:, :, i] += (
+                    torch.randn_like(signal[:, :, i]) * artifact_intensity * 0.05
+                )
 
         return signal + noise
 
@@ -276,11 +294,7 @@ class MaskGenerator:
         self.config = config
 
     def generate_temporal_mask(
-        self,
-        batch_size: int,
-        seq_len: int,
-        mask_ratio: float,
-        device: torch.device
+        self, batch_size: int, seq_len: int, mask_ratio: float, device: torch.device
     ) -> torch.Tensor:
         """
         Generate temporal mask with contiguous spans.
@@ -315,10 +329,7 @@ class MaskGenerator:
         return mask
 
     def generate_channel_mask(
-        self,
-        batch_size: int,
-        num_channels: int,
-        device: torch.device
+        self, batch_size: int, num_channels: int, device: torch.device
     ) -> torch.Tensor:
         """
         Generate channel mask.
@@ -343,10 +354,7 @@ class MaskGenerator:
         return mask
 
     def apply_masks(
-        self,
-        x: torch.Tensor,
-        temporal_mask: torch.Tensor,
-        channel_mask: torch.Tensor
+        self, x: torch.Tensor, temporal_mask: torch.Tensor, channel_mask: torch.Tensor
     ) -> torch.Tensor:
         """
         Apply temporal and channel masks to input.
@@ -382,7 +390,7 @@ class SpectralDistorter:
         self,
         signal: torch.Tensor,
         intensity: float = 0.1,
-        freq_bands: Optional[List[Tuple[float, float]]] = None
+        freq_bands: Optional[List[Tuple[float, float]]] = None,
     ) -> torch.Tensor:
         """
         Add frequency-specific noise.
@@ -403,7 +411,7 @@ class SpectralDistorter:
 
         # FFT
         signal_fft = torch.fft.rfft(signal, dim=-1)
-        freqs = torch.fft.rfftfreq(T, 1/self.sampling_rate).to(signal.device)
+        freqs = torch.fft.rfftfreq(T, 1 / self.sampling_rate).to(signal.device)
 
         # Add noise to specific frequency bands
         for low_freq, high_freq in freq_bands:
@@ -419,9 +427,7 @@ class SpectralDistorter:
         return distorted
 
     def add_phase_distortion(
-        self,
-        signal: torch.Tensor,
-        intensity: float = 0.1
+        self, signal: torch.Tensor, intensity: float = 0.1
     ) -> torch.Tensor:
         """
         Add phase distortions while preserving magnitude spectrum.
@@ -464,7 +470,7 @@ class CompressionSSLFramework(nn.Module):
         encoder: nn.Module,
         decoder: nn.Module,
         config: CompressionSSLConfig,
-        sampling_rate: int = 500
+        sampling_rate: int = 500,
     ):
         super().__init__()
         self.encoder = encoder
@@ -475,7 +481,9 @@ class CompressionSSLFramework(nn.Module):
         # Initialize schedulers
         self.mask_ratio_scheduler = ParameterScheduler(config.mask_ratio_schedule)
         self.noise_scheduler = ParameterScheduler(config.noise_intensity_schedule)
-        self.distortion_scheduler = ParameterScheduler(config.distortion_intensity_schedule)
+        self.distortion_scheduler = ParameterScheduler(
+            config.distortion_intensity_schedule
+        )
 
         # Initialize augmentation modules
         self.wavelet_compressor = WaveletCompressor(config.wavelet_family)
@@ -494,19 +502,19 @@ class CompressionSSLFramework(nn.Module):
         self.projection_head = nn.Sequential(
             nn.Linear(encoder_dim, encoder_dim),
             nn.ReLU(inplace=True),
-            nn.Linear(encoder_dim, 256)
+            nn.Linear(encoder_dim, 256),
         )
 
         if self.momentum_encoder is not None:
             self.momentum_projection_head = nn.Sequential(
                 nn.Linear(encoder_dim, encoder_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(encoder_dim, 256)
+                nn.Linear(encoder_dim, 256),
             )
             # Initialize momentum projection head
             for param_q, param_k in zip(
                 self.projection_head.parameters(),
-                self.momentum_projection_head.parameters()
+                self.momentum_projection_head.parameters(),
             ):
                 param_k.data.copy_(param_q.data)
                 param_k.requires_grad = False
@@ -516,7 +524,9 @@ class CompressionSSLFramework(nn.Module):
     def _create_momentum_encoder(self) -> nn.Module:
         """Create momentum encoder as copy of main encoder."""
         momentum_encoder = type(self.encoder)(**self.encoder.__dict__)
-        for param_q, param_k in zip(self.encoder.parameters(), momentum_encoder.parameters()):
+        for param_q, param_k in zip(
+            self.encoder.parameters(), momentum_encoder.parameters()
+        ):
             param_k.data.copy_(param_q.data)
             param_k.requires_grad = False
         return momentum_encoder
@@ -524,9 +534,9 @@ class CompressionSSLFramework(nn.Module):
     def _get_encoder_dim(self) -> int:
         """Get encoder output dimension."""
         # Try to infer from encoder
-        if hasattr(self.encoder, 'embed_dim'):
+        if hasattr(self.encoder, "embed_dim"):
             return self.encoder.embed_dim
-        elif hasattr(self.encoder, 'hidden_dim'):
+        elif hasattr(self.encoder, "hidden_dim"):
             return self.encoder.hidden_dim
         else:
             # Default fallback
@@ -537,14 +547,20 @@ class CompressionSSLFramework(nn.Module):
         if self.momentum_encoder is None:
             return
 
-        for param_q, param_k in zip(self.encoder.parameters(), self.momentum_encoder.parameters()):
-            param_k.data = param_k.data * self.momentum + param_q.data * (1.0 - self.momentum)
+        for param_q, param_k in zip(
+            self.encoder.parameters(), self.momentum_encoder.parameters()
+        ):
+            param_k.data = param_k.data * self.momentum + param_q.data * (
+                1.0 - self.momentum
+            )
 
         for param_q, param_k in zip(
             self.projection_head.parameters(),
-            self.momentum_projection_head.parameters()
+            self.momentum_projection_head.parameters(),
         ):
-            param_k.data = param_k.data * self.momentum + param_q.data * (1.0 - self.momentum)
+            param_k.data = param_k.data * self.momentum + param_q.data * (
+                1.0 - self.momentum
+            )
 
     def generate_augmentations(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
@@ -565,43 +581,46 @@ class CompressionSSLFramework(nn.Module):
         distortion_intensity = self.distortion_scheduler.step()
 
         # Original view
-        views = {'original': x.clone()}
+        views = {"original": x.clone()}
 
         # Masked view
-        temporal_mask = self.mask_generator.generate_temporal_mask(B, T, mask_ratio, device)
+        temporal_mask = self.mask_generator.generate_temporal_mask(
+            B, T, mask_ratio, device
+        )
         channel_mask = self.mask_generator.generate_channel_mask(B, C, device)
         masked_x = self.mask_generator.apply_masks(x, temporal_mask, channel_mask)
-        views['masked'] = masked_x
-        views['temporal_mask'] = temporal_mask
-        views['channel_mask'] = channel_mask
+        views["masked"] = masked_x
+        views["temporal_mask"] = temporal_mask
+        views["channel_mask"] = channel_mask
 
         # Compressed views
         compression_views = []
         for comp_level in self.config.compression_levels:
             for quant_bits in self.config.quantization_bits:
-                compressed = self.wavelet_compressor.compress_signal(x, comp_level, quant_bits)
+                compressed = self.wavelet_compressor.compress_signal(
+                    x, comp_level, quant_bits
+                )
                 # Add artifacts
                 compressed = self.wavelet_compressor.add_compression_artifacts(
                     compressed, distortion_intensity
                 )
                 compression_views.append(compressed)
 
-        views['compressed'] = compression_views
+        views["compressed"] = compression_views
 
         # Spectral distortions
         spectral_noise = self.spectral_distorter.add_spectral_noise(x, noise_intensity)
-        phase_distorted = self.spectral_distorter.add_phase_distortion(x, distortion_intensity)
+        phase_distorted = self.spectral_distorter.add_phase_distortion(
+            x, distortion_intensity
+        )
 
-        views['spectral_noise'] = spectral_noise
-        views['phase_distorted'] = phase_distorted
+        views["spectral_noise"] = spectral_noise
+        views["phase_distorted"] = phase_distorted
 
         return views
 
     def compute_reconstruction_loss(
-        self,
-        original: torch.Tensor,
-        reconstructed: torch.Tensor,
-        mask: torch.Tensor
+        self, original: torch.Tensor, reconstructed: torch.Tensor, mask: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute masked reconstruction loss.
@@ -618,7 +637,7 @@ class CompressionSSLFramework(nn.Module):
         mask = mask.unsqueeze(1)  # (B, 1, T)
 
         # Compute MSE loss only on masked tokens
-        mse = F.mse_loss(reconstructed, original, reduction='none')  # (B, C, T)
+        mse = F.mse_loss(reconstructed, original, reduction="none")  # (B, C, T)
         masked_mse = mse * (1 - mask)  # Only compute loss on masked tokens
 
         # Average over masked tokens
@@ -633,7 +652,7 @@ class CompressionSSLFramework(nn.Module):
     def compute_compression_consistency_loss(
         self,
         original_features: torch.Tensor,
-        compressed_features_list: List[torch.Tensor]
+        compressed_features_list: List[torch.Tensor],
     ) -> torch.Tensor:
         """
         Compute consistency loss between original and compressed features.
@@ -657,9 +676,7 @@ class CompressionSSLFramework(nn.Module):
         return torch.stack(consistency_losses).mean()
 
     def compute_contrastive_loss(
-        self,
-        features_q: torch.Tensor,
-        features_k: torch.Tensor
+        self, features_q: torch.Tensor, features_k: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute contrastive loss between query and key features.
@@ -700,24 +717,24 @@ class CompressionSSLFramework(nn.Module):
         views = self.generate_augmentations(x)
 
         # Encode different views
-        original_encoded = self.encoder(views['original'])
-        masked_encoded = self.encoder(views['masked'])
+        original_encoded = self.encoder(views["original"])
+        masked_encoded = self.encoder(views["masked"])
 
         # Encode compressed views
         compressed_encoded = []
-        for compressed_view in views['compressed']:
+        for compressed_view in views["compressed"]:
             compressed_encoded.append(self.encoder(compressed_view))
 
         # Encode spectral views
-        spectral_encoded = self.encoder(views['spectral_noise'])
-        phase_encoded = self.encoder(views['phase_distorted'])
+        spectral_encoded = self.encoder(views["spectral_noise"])
+        phase_encoded = self.encoder(views["phase_distorted"])
 
         # Decode masked view for reconstruction
         reconstructed = self.decoder(masked_encoded)
 
         # Compute reconstruction loss
         recon_loss = self.compute_reconstruction_loss(
-            views['original'], reconstructed, 1 - views['temporal_mask']
+            views["original"], reconstructed, 1 - views["temporal_mask"]
         )
 
         # Compute compression consistency loss
@@ -731,34 +748,38 @@ class CompressionSSLFramework(nn.Module):
         # Contrastive with momentum encoder if available
         if self.momentum_encoder is not None:
             with torch.no_grad():
-                momentum_features = self.momentum_encoder(views['spectral_noise'])
+                momentum_features = self.momentum_encoder(views["spectral_noise"])
                 momentum_proj = self.momentum_projection_head(momentum_features)
-            contrastive_loss = self.compute_contrastive_loss(original_proj, momentum_proj)
+            contrastive_loss = self.compute_contrastive_loss(
+                original_proj, momentum_proj
+            )
 
             # Update momentum encoder
             self._update_momentum_encoder()
         else:
             spectral_proj = self.projection_head(spectral_encoded)
-            contrastive_loss = self.compute_contrastive_loss(original_proj, spectral_proj)
+            contrastive_loss = self.compute_contrastive_loss(
+                original_proj, spectral_proj
+            )
 
         # Combined loss
         total_loss = (
-            self.config.reconstruction_weight * recon_loss +
-            self.config.compression_consistency_weight * consistency_loss +
-            self.config.contrastive_weight * contrastive_loss
+            self.config.reconstruction_weight * recon_loss
+            + self.config.compression_consistency_weight * consistency_loss
+            + self.config.contrastive_weight * contrastive_loss
         )
 
         # Advance step counter
         self.current_step += 1
 
         return {
-            'total_loss': total_loss,
-            'reconstruction_loss': recon_loss,
-            'consistency_loss': consistency_loss,
-            'contrastive_loss': contrastive_loss,
-            'reconstructed': reconstructed,
-            'original_features': original_encoded,
-            'views': views
+            "total_loss": total_loss,
+            "reconstruction_loss": recon_loss,
+            "consistency_loss": consistency_loss,
+            "contrastive_loss": contrastive_loss,
+            "reconstructed": reconstructed,
+            "original_features": original_encoded,
+            "views": views,
         }
 
 
@@ -771,18 +792,22 @@ if __name__ == "__main__":
         start_value=0.1,
         end_value=0.6,
         warmup_steps=100,
-        total_steps=1000
+        total_steps=1000,
     )
     scheduler = ParameterScheduler(schedule_config)
 
     values = [scheduler.step() for _ in range(200)]
-    print(f"Scheduler values: start={values[0]:.3f}, mid={values[100]:.3f}, end={values[-1]:.3f}")
+    print(
+        f"Scheduler values: start={values[0]:.3f}, mid={values[100]:.3f}, end={values[-1]:.3f}"
+    )
 
     # Test wavelet compressor
     print("\nTesting wavelet compressor...")
     compressor = WaveletCompressor()
     signal = torch.randn(4, 19, 1000)  # 4 samples, 19 channels, 1000 timepoints
-    compressed = compressor.compress_signal(signal, compression_level=4, quantization_bits=8)
+    compressed = compressor.compress_signal(
+        signal, compression_level=4, quantization_bits=8
+    )
     print(f"Compression input shape: {signal.shape}, output shape: {compressed.shape}")
 
     # Test SSL framework

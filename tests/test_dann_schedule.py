@@ -5,22 +5,23 @@ This module tests the GRL (Gradient Reversal Layer) lambda scheduling,
 domain adversarial training components, and IRM compatibility.
 """
 
-import numpy as np
-import torch
-import pytest
-from unittest.mock import MagicMock
 import math
-
 import sys
-sys.path.append('/home/kevin/Projects/eeg2025/src')
+from unittest.mock import MagicMock
+
+import numpy as np
+import pytest
+import torch
+
+sys.path.append("/home/kevin/Projects/eeg2025/src")
 
 from models.invariance.dann import (
-    GradientReversalLayer,
-    DomainAdversarialHead,
-    GRLScheduler,
     DANNModel,
+    DomainAdversarialHead,
+    GradientReversalLayer,
+    GRLScheduler,
     IRMPenalty,
-    create_dann_model
+    create_dann_model,
 )
 
 
@@ -33,14 +34,14 @@ class TestGRLScheduler:
             strategy="linear_warmup",
             initial_lambda=0.0,
             final_lambda=0.2,
-            warmup_steps=1000
+            warmup_steps=1000,
         )
 
         self.exponential_scheduler = GRLScheduler(
             strategy="exponential",
             initial_lambda=0.0,
             final_lambda=0.2,
-            total_steps=5000
+            total_steps=5000,
         )
 
         self.cosine_scheduler = GRLScheduler(
@@ -48,14 +49,11 @@ class TestGRLScheduler:
             initial_lambda=0.0,
             final_lambda=0.2,
             warmup_steps=500,
-            total_steps=2000
+            total_steps=2000,
         )
 
         self.adaptive_scheduler = GRLScheduler(
-            strategy="adaptive",
-            initial_lambda=0.0,
-            final_lambda=0.2,
-            warmup_steps=1000
+            strategy="adaptive", initial_lambda=0.0, final_lambda=0.2, warmup_steps=1000
         )
 
     def test_linear_warmup_schedule_correctness(self):
@@ -70,19 +68,25 @@ class TestGRLScheduler:
 
         lambda_mid = self.linear_scheduler.step()
         expected_mid = 0.1  # 50% of way from 0.0 to 0.2
-        assert abs(lambda_mid - expected_mid) < 0.001, f"Expected lambda ~{expected_mid}, got {lambda_mid}"
+        assert (
+            abs(lambda_mid - expected_mid) < 0.001
+        ), f"Expected lambda ~{expected_mid}, got {lambda_mid}"
 
         # Test final value
         for _ in range(499):  # Step to 1000
             self.linear_scheduler.step()
 
         lambda_final = self.linear_scheduler.step()
-        assert abs(lambda_final - 0.2) < 0.001, f"Expected final lambda 0.2, got {lambda_final}"
+        assert (
+            abs(lambda_final - 0.2) < 0.001
+        ), f"Expected final lambda 0.2, got {lambda_final}"
 
         # Test post-warmup (should stay at final value)
         for _ in range(100):
             lambda_post = self.linear_scheduler.step()
-            assert abs(lambda_post - 0.2) < 0.001, f"Expected post-warmup lambda 0.2, got {lambda_post}"
+            assert (
+                abs(lambda_post - 0.2) < 0.001
+            ), f"Expected post-warmup lambda 0.2, got {lambda_post}"
 
     def test_exponential_schedule_monotonicity(self):
         """Test exponential schedule is monotonically increasing."""
@@ -94,7 +98,9 @@ class TestGRLScheduler:
 
         # Check monotonic increase
         for i in range(1, len(lambdas)):
-            assert lambdas[i] >= lambdas[i-1], f"Non-monotonic at step {i}: {lambdas[i-1]} -> {lambdas[i]}"
+            assert (
+                lambdas[i] >= lambdas[i - 1]
+            ), f"Non-monotonic at step {i}: {lambdas[i-1]} -> {lambdas[i]}"
 
         # Check bounds
         assert lambdas[0] >= 0.0, f"First lambda should be >= 0, got {lambdas[0]}"
@@ -112,10 +118,14 @@ class TestGRLScheduler:
         # Check warmup phase (first 500 steps should be linear)
         warmup_lambdas = lambdas[:500]
         for i in range(1, len(warmup_lambdas)):
-            assert warmup_lambdas[i] >= warmup_lambdas[i-1], f"Warmup not monotonic at step {i}"
+            assert (
+                warmup_lambdas[i] >= warmup_lambdas[i - 1]
+            ), f"Warmup not monotonic at step {i}"
 
         # Check that warmup reaches final value
-        assert abs(lambdas[499] - 0.2) < 0.01, f"Warmup didn't reach final value: {lambdas[499]}"
+        assert (
+            abs(lambdas[499] - 0.2) < 0.01
+        ), f"Warmup didn't reach final value: {lambdas[499]}"
 
         # Check annealing phase (should decrease after warmup)
         assert lambdas[1999] < lambdas[500], "Annealing phase should decrease lambda"
@@ -144,7 +154,9 @@ class TestGRLScheduler:
         final_low = low_acc_lambdas[-1]
 
         # At least check that both are valid values
-        assert 0 <= final_high <= 1.0, f"High accuracy lambda out of bounds: {final_high}"
+        assert (
+            0 <= final_high <= 1.0
+        ), f"High accuracy lambda out of bounds: {final_high}"
         assert 0 <= final_low <= 1.0, f"Low accuracy lambda out of bounds: {final_low}"
 
     def test_schedule_bounds_always_valid(self):
@@ -153,22 +165,28 @@ class TestGRLScheduler:
             self.linear_scheduler,
             self.exponential_scheduler,
             self.cosine_scheduler,
-            self.adaptive_scheduler
+            self.adaptive_scheduler,
         ]
 
         for scheduler in schedulers:
             # Reset scheduler
             scheduler.current_step = 0
-            if hasattr(scheduler, 'domain_acc_history'):
+            if hasattr(scheduler, "domain_acc_history"):
                 scheduler.domain_acc_history = []
 
             # Test many steps
             for _ in range(1000):
                 lambda_val = scheduler.step(domain_accuracy=np.random.uniform(0.4, 0.9))
 
-                assert 0 <= lambda_val <= 1.0, f"Lambda out of bounds: {lambda_val} for {scheduler.strategy}"
-                assert not math.isnan(lambda_val), f"Lambda is NaN for {scheduler.strategy}"
-                assert not math.isinf(lambda_val), f"Lambda is infinite for {scheduler.strategy}"
+                assert (
+                    0 <= lambda_val <= 1.0
+                ), f"Lambda out of bounds: {lambda_val} for {scheduler.strategy}"
+                assert not math.isnan(
+                    lambda_val
+                ), f"Lambda is NaN for {scheduler.strategy}"
+                assert not math.isinf(
+                    lambda_val
+                ), f"Lambda is infinite for {scheduler.strategy}"
 
     def test_schedule_determinism(self):
         """Test that schedules are deterministic given same inputs."""
@@ -177,14 +195,14 @@ class TestGRLScheduler:
             strategy="linear_warmup",
             initial_lambda=0.0,
             final_lambda=0.2,
-            warmup_steps=1000
+            warmup_steps=1000,
         )
 
         scheduler2 = GRLScheduler(
             strategy="linear_warmup",
             initial_lambda=0.0,
             final_lambda=0.2,
-            warmup_steps=1000
+            warmup_steps=1000,
         )
 
         # Step both identically
@@ -192,7 +210,9 @@ class TestGRLScheduler:
             lambda1 = scheduler1.step()
             lambda2 = scheduler2.step()
 
-            assert abs(lambda1 - lambda2) < 1e-10, f"Schedulers not deterministic: {lambda1} vs {lambda2}"
+            assert (
+                abs(lambda1 - lambda2) < 1e-10
+            ), f"Schedulers not deterministic: {lambda1} vs {lambda2}"
 
 
 class TestGradientReversalLayer:
@@ -229,7 +249,9 @@ class TestGradientReversalLayer:
 
         # The gradient should be scaled by -lambda
         expected_grad = -0.5 * torch.ones_like(x)
-        assert torch.allclose(x.grad, expected_grad), f"Expected {expected_grad[0,0]}, got {x.grad[0,0]}"
+        assert torch.allclose(
+            x.grad, expected_grad
+        ), f"Expected {expected_grad[0,0]}, got {x.grad[0,0]}"
 
     def test_lambda_update(self):
         """Test lambda parameter updates."""
@@ -244,7 +266,9 @@ class TestGradientReversalLayer:
         loss.backward()
 
         expected_grad = -0.8 * torch.ones_like(x)
-        assert torch.allclose(x.grad, expected_grad, atol=1e-6), "Gradient scaling should use new lambda"
+        assert torch.allclose(
+            x.grad, expected_grad, atol=1e-6
+        ), "Gradient scaling should use new lambda"
 
 
 class TestDomainAdversarialHead:
@@ -253,10 +277,7 @@ class TestDomainAdversarialHead:
     def setup_method(self):
         """Setup test domain head."""
         self.domain_head = DomainAdversarialHead(
-            input_dim=128,
-            num_domains=3,
-            hidden_dims=[64, 32],
-            dropout_rate=0.2
+            input_dim=128, num_domains=3, hidden_dims=[64, 32], dropout_rate=0.2
         )
 
     def test_forward_pass_shape(self):
@@ -267,7 +288,9 @@ class TestDomainAdversarialHead:
         output = self.domain_head(x)
 
         expected_shape = (batch_size, 3)  # 3 domains
-        assert output.shape == expected_shape, f"Expected shape {expected_shape}, got {output.shape}"
+        assert (
+            output.shape == expected_shape
+        ), f"Expected shape {expected_shape}, got {output.shape}"
 
     def test_domain_classification_probabilities(self):
         """Test that domain predictions can be converted to valid probabilities."""
@@ -278,7 +301,9 @@ class TestDomainAdversarialHead:
         probs = torch.softmax(logits, dim=1)
 
         # Check probability constraints
-        assert torch.allclose(probs.sum(dim=1), torch.ones(10)), "Probabilities should sum to 1"
+        assert torch.allclose(
+            probs.sum(dim=1), torch.ones(10)
+        ), "Probabilities should sum to 1"
         assert torch.all(probs >= 0), "Probabilities should be non-negative"
         assert torch.all(probs <= 1), "Probabilities should be <= 1"
 
@@ -318,7 +343,7 @@ class TestDANNModel:
             strategy="linear_warmup",
             initial_lambda=0.0,
             final_lambda=0.2,
-            warmup_steps=100
+            warmup_steps=100,
         )
 
         # Create DANN model
@@ -327,7 +352,7 @@ class TestDANNModel:
             task_head=self.task_head,
             num_domains=2,
             feature_dim=128,
-            lambda_scheduler=self.scheduler
+            lambda_scheduler=self.scheduler,
         )
 
     def test_forward_pass_outputs(self):
@@ -351,7 +376,9 @@ class TestDANNModel:
 
         # Initial lambda should be 0
         outputs1 = self.dann_model(x)
-        assert outputs1["lambda"] == 0.0, f"Initial lambda should be 0, got {outputs1['lambda']}"
+        assert (
+            outputs1["lambda"] == 0.0
+        ), f"Initial lambda should be 0, got {outputs1['lambda']}"
 
         # Step several times
         for _ in range(10):
@@ -360,7 +387,9 @@ class TestDANNModel:
         # Lambda should have increased
         final_lambda = self.dann_model.get_current_lambda()
         assert final_lambda > 0.0, f"Lambda should increase, got {final_lambda}"
-        assert final_lambda <= 0.2, f"Lambda should not exceed final value, got {final_lambda}"
+        assert (
+            final_lambda <= 0.2
+        ), f"Lambda should not exceed final value, got {final_lambda}"
 
     def test_optional_features_return(self):
         """Test optional features are returned when requested."""
@@ -369,7 +398,9 @@ class TestDANNModel:
         outputs = self.dann_model(x, return_features=True)
 
         assert "features" in outputs, "Features should be returned when requested"
-        assert "raw_features" in outputs, "Raw features should be returned when requested"
+        assert (
+            "raw_features" in outputs
+        ), "Raw features should be returned when requested"
 
     def test_lambda_update_control(self):
         """Test lambda update can be controlled."""
@@ -383,14 +414,18 @@ class TestDANNModel:
         lambda_after_no_update = self.dann_model.get_current_lambda()
 
         # Lambda should not have changed
-        assert lambda_after_no_update == initial_lambda, "Lambda should not update when disabled"
+        assert (
+            lambda_after_no_update == initial_lambda
+        ), "Lambda should not update when disabled"
 
         # Forward pass with lambda update
         self.dann_model(x, update_lambda=True)
         lambda_after_update = self.dann_model.get_current_lambda()
 
         # Lambda should have changed
-        assert lambda_after_update != initial_lambda, "Lambda should update when enabled"
+        assert (
+            lambda_after_update != initial_lambda
+        ), "Lambda should update when enabled"
 
 
 class TestIRMPenalty:
@@ -411,7 +446,9 @@ class TestIRMPenalty:
         classifier = torch.nn.Linear(10, 1)
 
         # Compute penalty
-        penalty = self.irm_penalty.compute_penalty(features, targets, domain_ids, classifier)
+        penalty = self.irm_penalty.compute_penalty(
+            features, targets, domain_ids, classifier
+        )
 
         # Check penalty properties
         assert isinstance(penalty, torch.Tensor), "Penalty should be a tensor"
@@ -427,15 +464,21 @@ class TestIRMPenalty:
         domain_ids = torch.zeros(10, dtype=torch.long)  # All same domain
         classifier = torch.nn.Linear(5, 1)
 
-        penalty = self.irm_penalty.compute_penalty(features, targets, domain_ids, classifier)
+        penalty = self.irm_penalty.compute_penalty(
+            features, targets, domain_ids, classifier
+        )
         assert torch.isfinite(penalty), "Penalty should be finite for single domain"
 
         # Empty domain (should be handled gracefully)
-        domain_ids = torch.tensor([0, 1, 2, 0, 1], dtype=torch.long)  # Some domains have single samples
+        domain_ids = torch.tensor(
+            [0, 1, 2, 0, 1], dtype=torch.long
+        )  # Some domains have single samples
         features = torch.randn(5, 5, requires_grad=True)
         targets = torch.randn(5, requires_grad=True)
 
-        penalty = self.irm_penalty.compute_penalty(features, targets, domain_ids, classifier)
+        penalty = self.irm_penalty.compute_penalty(
+            features, targets, domain_ids, classifier
+        )
         assert torch.isfinite(penalty), "Penalty should be finite with sparse domains"
 
 
@@ -460,8 +503,8 @@ class TestDANNCreation:
                 "strategy": "linear_warmup",
                 "initial_lambda": 0.0,
                 "final_lambda": 0.1,
-                "warmup_steps": 500
-            }
+                "warmup_steps": 500,
+            },
         )
 
         # Test that model was created properly
@@ -475,7 +518,9 @@ class TestDANNCreation:
 
         assert "task_output" in outputs, "Should have task output"
         assert "domain_output" in outputs, "Should have domain output"
-        assert outputs["domain_output"].shape[1] == 3, "Domain output should match num_domains"
+        assert (
+            outputs["domain_output"].shape[1] == 3
+        ), "Domain output should match num_domains"
 
 
 def test_dann_irm_compatibility():
@@ -490,9 +535,7 @@ def test_dann_irm_compatibility():
 
     # Create DANN model
     dann_model = create_dann_model(
-        backbone=backbone,
-        task_head=task_head,
-        num_domains=2
+        backbone=backbone, task_head=task_head, num_domains=2
     )
 
     # Create IRM penalty
@@ -508,10 +551,7 @@ def test_dann_irm_compatibility():
 
     # Compute IRM penalty (should not interfere with DANN)
     irm_loss = irm_penalty.compute_penalty(
-        outputs["features"],
-        targets,
-        domain_labels,
-        task_head
+        outputs["features"], targets, domain_labels, task_head
     )
 
     # Both should work without errors

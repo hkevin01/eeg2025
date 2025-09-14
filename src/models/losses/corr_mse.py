@@ -6,11 +6,12 @@ Pearson correlation coefficient to optimize both accuracy and correlation
 in regression tasks, particularly for reaction time (RT) prediction.
 """
 
+import math
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
-import math
 
 
 class CorrMSELoss(nn.Module):
@@ -34,7 +35,7 @@ class CorrMSELoss(nn.Module):
         alpha: float = 1.0,
         beta: float = 1.0,
         eps: float = 1e-8,
-        normalize_targets: bool = True
+        normalize_targets: bool = True,
     ):
         """
         Initialize CorrMSE loss.
@@ -56,9 +57,7 @@ class CorrMSELoss(nn.Module):
         self.mse_loss = nn.MSELoss()
 
     def pearson_correlation(
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor
+        self, y_pred: torch.Tensor, y_true: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute Pearson correlation coefficient between predictions and targets.
@@ -91,8 +90,8 @@ class CorrMSELoss(nn.Module):
         numerator = (y_pred_centered * y_true_centered).sum()
 
         # Compute standard deviations
-        pred_std = torch.sqrt((y_pred_centered ** 2).sum() + self.eps)
-        true_std = torch.sqrt((y_true_centered ** 2).sum() + self.eps)
+        pred_std = torch.sqrt((y_pred_centered**2).sum() + self.eps)
+        true_std = torch.sqrt((y_true_centered**2).sum() + self.eps)
 
         denominator = pred_std * true_std + self.eps
 
@@ -103,11 +102,7 @@ class CorrMSELoss(nn.Module):
 
         return correlation
 
-    def forward(
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         """
         Compute CorrMSE loss.
 
@@ -168,7 +163,7 @@ class AdaptiveCorrMSELoss(nn.Module):
         normalize_targets: bool = True,
         adapt_frequency: int = 100,
         alpha_range: Tuple[float, float] = (0.1, 2.0),
-        beta_range: Tuple[float, float] = (0.1, 2.0)
+        beta_range: Tuple[float, float] = (0.1, 2.0),
     ):
         """
         Initialize Adaptive CorrMSE loss.
@@ -201,7 +196,7 @@ class AdaptiveCorrMSELoss(nn.Module):
             alpha=1.0,  # We'll handle weighting ourselves
             beta=1.0,
             eps=eps,
-            normalize_targets=normalize_targets
+            normalize_targets=normalize_targets,
         )
 
         # Adaptation tracking
@@ -219,8 +214,13 @@ class AdaptiveCorrMSELoss(nn.Module):
             corr_value: Current correlation value
         """
         # Update running averages
-        self.running_mse = self.adaptation_momentum * self.running_mse + (1 - self.adaptation_momentum) * mse_value
-        self.running_corr = self.adaptation_momentum * self.running_corr + (1 - self.adaptation_momentum) * abs(corr_value)
+        self.running_mse = (
+            self.adaptation_momentum * self.running_mse
+            + (1 - self.adaptation_momentum) * mse_value
+        )
+        self.running_corr = self.adaptation_momentum * self.running_corr + (
+            1 - self.adaptation_momentum
+        ) * abs(corr_value)
 
         # Adaptive logic: if MSE is much larger than correlation, reduce alpha
         # If correlation is very low, increase beta
@@ -248,21 +248,13 @@ class AdaptiveCorrMSELoss(nn.Module):
 
             # Clamp to valid ranges
             self.alpha.data = torch.clamp(
-                torch.tensor(new_alpha),
-                self.alpha_range[0],
-                self.alpha_range[1]
+                torch.tensor(new_alpha), self.alpha_range[0], self.alpha_range[1]
             )
             self.beta.data = torch.clamp(
-                torch.tensor(new_beta),
-                self.beta_range[0],
-                self.beta_range[1]
+                torch.tensor(new_beta), self.beta_range[0], self.beta_range[1]
             )
 
-    def forward(
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         """
         Compute adaptive CorrMSE loss.
 
@@ -311,7 +303,7 @@ class RobustCorrMSELoss(nn.Module):
         normalize_targets: bool = True,
         outlier_quantile: float = 0.95,
         use_huber: bool = False,
-        huber_delta: float = 1.0
+        huber_delta: float = 1.0,
     ):
         """
         Initialize Robust CorrMSE loss.
@@ -342,9 +334,7 @@ class RobustCorrMSELoss(nn.Module):
             self.regression_loss = nn.MSELoss()
 
     def clip_outliers(
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor
+        self, y_pred: torch.Tensor, y_true: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Clip outliers based on quantile thresholds.
@@ -378,9 +368,7 @@ class RobustCorrMSELoss(nn.Module):
         return y_pred[combined_mask], y_true[combined_mask]
 
     def spearman_correlation(
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor
+        self, y_pred: torch.Tensor, y_true: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute Spearman rank correlation (more robust to outliers).
@@ -401,19 +389,15 @@ class RobustCorrMSELoss(nn.Module):
         true_centered = true_ranks - true_ranks.mean()
 
         numerator = (pred_centered * true_centered).sum()
-        pred_std = torch.sqrt((pred_centered ** 2).sum() + self.eps)
-        true_std = torch.sqrt((true_centered ** 2).sum() + self.eps)
+        pred_std = torch.sqrt((pred_centered**2).sum() + self.eps)
+        true_std = torch.sqrt((true_centered**2).sum() + self.eps)
 
         denominator = pred_std * true_std + self.eps
         correlation = numerator / denominator
 
         return torch.clamp(correlation, -1.0, 1.0)
 
-    def forward(
-        self,
-        y_pred: torch.Tensor,
-        y_true: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         """
         Compute robust CorrMSE loss.
 
@@ -460,10 +444,7 @@ class RobustCorrMSELoss(nn.Module):
 
 # Factory function for easy loss creation
 def create_corr_mse_loss(
-    loss_type: str = "standard",
-    alpha: float = 1.0,
-    beta: float = 1.0,
-    **kwargs
+    loss_type: str = "standard", alpha: float = 1.0, beta: float = 1.0, **kwargs
 ) -> nn.Module:
     """
     Factory function to create CorrMSE loss variants.
@@ -480,11 +461,7 @@ def create_corr_mse_loss(
     if loss_type == "standard":
         return CorrMSELoss(alpha=alpha, beta=beta, **kwargs)
     elif loss_type == "adaptive":
-        return AdaptiveCorrMSELoss(
-            initial_alpha=alpha,
-            initial_beta=beta,
-            **kwargs
-        )
+        return AdaptiveCorrMSELoss(initial_alpha=alpha, initial_beta=beta, **kwargs)
     elif loss_type == "robust":
         return RobustCorrMSELoss(alpha=alpha, beta=beta, **kwargs)
     else:

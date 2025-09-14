@@ -7,17 +7,19 @@ Tests the interactive GPU demo setup and validates all components.
 Provides helpful setup guidance when dependencies are missing.
 """
 import os
+import subprocess
 import sys
 import time
-import subprocess
 from pathlib import Path
 
 # Optional imports with graceful handling
 try:
     import requests
+
     REQUESTS_AVAILABLE = True
 except ImportError:
     REQUESTS_AVAILABLE = False
+
 
 def check_dependency_installation():
     """Check if demo dependencies are installed and provide guidance."""
@@ -26,7 +28,7 @@ def check_dependency_installation():
     missing_deps = []
 
     # Check core Python dependencies
-    core_deps = ['fastapi', 'uvicorn', 'pydantic', 'torch', 'numpy', 'scipy']
+    core_deps = ["fastapi", "uvicorn", "pydantic", "torch", "numpy", "scipy"]
 
     for dep in core_deps:
         try:
@@ -35,7 +37,7 @@ def check_dependency_installation():
             missing_deps.append(dep)
 
     # Check optional dependencies
-    optional_deps = {'requests': REQUESTS_AVAILABLE}
+    optional_deps = {"requests": REQUESTS_AVAILABLE}
 
     if missing_deps:
         print(f"❌ Missing required dependencies: {', '.join(missing_deps)}")
@@ -43,7 +45,9 @@ def check_dependency_installation():
         print("   ./scripts/setup_demo.sh")
         print("\n   Or manually install:")
         print("   pip install fastapi uvicorn[standard] pydantic requests scipy")
-        print("   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu")
+        print(
+            "   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu"
+        )
         return False
     else:
         print("✅ All required dependencies found")
@@ -52,12 +56,14 @@ def check_dependency_installation():
         gpu_deps = []
         try:
             import triton
+
             gpu_deps.append("Triton")
         except ImportError:
             pass
 
         try:
             import cupy
+
             gpu_deps.append("CuPy")
         except ImportError:
             pass
@@ -65,9 +71,12 @@ def check_dependency_installation():
         if gpu_deps:
             print(f"⚡ Optional GPU libraries found: {', '.join(gpu_deps)}")
         else:
-            print("⚠️  No GPU libraries found (install with: pip install triton cupy-cuda12x)")
+            print(
+                "⚠️  No GPU libraries found (install with: pip install triton cupy-cuda12x)"
+            )
 
         return True
+
 
 def test_file_structure():
     """Test that all demo files are in place."""
@@ -82,7 +91,7 @@ def test_file_structure():
         "scripts/setup_demo.sh",
         "docker/docker-compose.demo.yml",
         "docker/Dockerfile.demo",
-        "docker/nginx.conf"
+        "docker/nginx.conf",
     ]
 
     missing_files = []
@@ -100,6 +109,7 @@ def test_file_structure():
     print("✅ All demo files present")
     return True
 
+
 def test_backend_imports():
     """Test that backend can import required modules."""
     print("🔍 Testing backend imports...")
@@ -107,8 +117,8 @@ def test_backend_imports():
     # Skip if dependencies not available
     try:
         import fastapi
-        import uvicorn
         import pydantic
+        import uvicorn
     except ImportError as e:
         print(f"⚠️  Skipping backend import test - missing dependency: {e}")
         print("   Run ./scripts/setup_demo.sh to install dependencies")
@@ -125,12 +135,14 @@ def test_backend_imports():
         print(f"❌ Backend import failed: {e}")
         return False
 
+
 def test_gpu_detection():
     """Test GPU component detection."""
     print("🔍 Testing GPU detection...")
 
     try:
         import torch
+
         cuda_available = torch.cuda.is_available()
         print(f"  CUDA: {'✅' if cuda_available else '❌'}")
 
@@ -138,12 +150,14 @@ def test_gpu_detection():
         gpu_components = []
         try:
             import triton
+
             gpu_components.append("Triton")
         except ImportError:
             pass
 
         try:
             import cupy
+
             gpu_components.append("CuPy")
         except ImportError:
             pass
@@ -159,6 +173,7 @@ def test_gpu_detection():
         print(f"⚠️  PyTorch not available: {e}")
         print("   Install with: pip install torch torchvision torchaudio")
         return True  # Don't fail test, just note missing dependency
+
 
 def test_demo_server_start():
     """Test that demo server can start."""
@@ -183,13 +198,23 @@ def test_demo_server_start():
 
     try:
         # Start server in background
-        proc = subprocess.Popen([
-            sys.executable, "-m", "uvicorn",
-            "backend.demo_server:app",
-            "--host", "127.0.0.1",
-            "--port", "8001",  # Use different port to avoid conflicts
-            "--log-level", "error"
-        ], cwd=project_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "backend.demo_server:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8001",  # Use different port to avoid conflicts
+                "--log-level",
+                "error",
+            ],
+            cwd=project_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
         # Wait for startup
         time.sleep(3)
@@ -197,6 +222,7 @@ def test_demo_server_start():
         # Test health endpoint
         try:
             import requests
+
             response = requests.get("http://127.0.0.1:8001/health", timeout=5)
             if response.status_code == 200:
                 health_data = response.json()
@@ -222,6 +248,7 @@ def test_demo_server_start():
         print(f"❌ Failed to start server: {e}")
         return False
 
+
 def test_inference_endpoint():
     """Test inference endpoint functionality."""
     print("🔍 Testing inference endpoint...")
@@ -242,13 +269,23 @@ def test_inference_endpoint():
 
     try:
         # Start server
-        proc = subprocess.Popen([
-            sys.executable, "-m", "uvicorn",
-            "backend.demo_server:app",
-            "--host", "127.0.0.1",
-            "--port", "8002",
-            "--log-level", "error"
-        ], cwd=project_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "backend.demo_server:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8002",
+                "--log-level",
+                "error",
+            ],
+            cwd=project_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
         time.sleep(3)
 
@@ -262,15 +299,14 @@ def test_inference_endpoint():
             "notch": 60.0,
             "use_rmsnorm": True,
             "use_perceptual_quant": False,
-            "simulate": True
+            "simulate": True,
         }
 
         try:
             import requests
+
             response = requests.post(
-                "http://127.0.0.1:8002/infer_once",
-                json=payload,
-                timeout=10
+                "http://127.0.0.1:8002/infer_once", json=payload, timeout=10
             )
 
             if response.status_code == 200:
@@ -300,6 +336,7 @@ def test_inference_endpoint():
         print(f"❌ Inference test failed: {e}")
         return False
 
+
 def test_html_content():
     """Test that HTML demo page has required components."""
     print("🔍 Testing HTML content...")
@@ -318,11 +355,11 @@ def test_html_content():
         "EEG GPU Demo",
         "Performance Metrics",
         "Live EEG Visualization",
-        "canvas id=\"ts\"",
-        "fetch(api(\"/health\"))",
-        "fetch(api(\"/infer_once\")",
+        'canvas id="ts"',
+        'fetch(api("/health"))',
+        'fetch(api("/infer_once")',
         "updatePerformanceMetrics",
-        "drawTimeSeries"
+        "drawTimeSeries",
     ]
 
     missing_components = []
@@ -337,6 +374,7 @@ def test_html_content():
     print("✅ HTML content validated")
     return True
 
+
 def main():
     """Run all tests."""
     print("🚀 Demo Integration Test Suite")
@@ -349,7 +387,7 @@ def main():
         ("Backend Imports", test_backend_imports),
         ("GPU Detection", test_gpu_detection),
         ("Server Startup", test_demo_server_start),
-        ("Inference Endpoint", test_inference_endpoint)
+        ("Inference Endpoint", test_inference_endpoint),
     ]
 
     results = []
@@ -385,6 +423,7 @@ def main():
         print("2. Start demo: ./scripts/demo.sh start")
         print("3. View at: http://localhost:8000")
         print("4. Check logs: ./scripts/demo.sh logs")
+
 
 if __name__ == "__main__":
     main()

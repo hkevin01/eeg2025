@@ -4,19 +4,19 @@ Simple validation script for EEG Foundation Challenge 2025 data infrastructure.
 This script validates the enhanced implementation and challenge-compliant infrastructure.
 """
 
-import os
-import sys
 import json
 import logging
+import os
+import sys
 from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 logger = logging.getLogger(__name__)
+
 
 def validate_file_structure():
     """Validate that all enhanced files exist and have expected content."""
@@ -31,7 +31,7 @@ def validate_file_structure():
         "Preprocessing": "src/dataio/preprocessing.py",
         "Official Splits": "scripts/make_splits.py",
         "HBN BIDS Prep": "scripts/prepare_hbn_bids.py",
-        "Data Config": "configs/data.yaml"
+        "Data Config": "configs/data.yaml",
     }
 
     results = {}
@@ -47,11 +47,11 @@ def validate_file_structure():
             continue
 
         try:
-            with open(full_path, 'r') as f:
+            with open(full_path, "r") as f:
                 content = f.read()
 
             file_size = len(content)
-            lines = content.split('\n')
+            lines = content.split("\n")
             line_count = len(lines)
 
             logger.info(f"✅ {component}: {line_count:,} lines, {file_size:,} chars")
@@ -59,7 +59,7 @@ def validate_file_structure():
                 "exists": True,
                 "size": file_size,
                 "lines": line_count,
-                "path": str(full_path)
+                "path": str(full_path),
             }
 
             # Component-specific validation
@@ -75,6 +75,7 @@ def validate_file_structure():
 
     return all_valid, results
 
+
 def validate_challenge_infrastructure():
     """Validate challenge-specific infrastructure components."""
     logger.info("=" * 60)
@@ -84,39 +85,45 @@ def validate_challenge_infrastructure():
     # Test splits file
     splits_file = Path("/home/kevin/Projects/eeg2025/scripts/make_splits.py")
     if splits_file.exists():
-        with open(splits_file, 'r') as f:
+        with open(splits_file, "r") as f:
             splits_content = f.read()
 
         # Check for key features
         splits_features = [
-            'OfficialSplitGenerator',
-            'stratified',
-            'leakage',
-            'subject_level',
-            'validation'
+            "OfficialSplitGenerator",
+            "stratified",
+            "leakage",
+            "subject_level",
+            "validation",
         ]
 
-        splits_found = sum(1 for feature in splits_features if feature in splits_content)
-        logger.info(f"✅ Official splits: {splits_found}/{len(splits_features)} features found")
+        splits_found = sum(
+            1 for feature in splits_features if feature in splits_content
+        )
+        logger.info(
+            f"✅ Official splits: {splits_found}/{len(splits_features)} features found"
+        )
     else:
         logger.warning("⚠️ Official splits script not found")
 
     # Test preprocessing
     prep_file = Path("/home/kevin/Projects/eeg2025/src/dataio/preprocessing.py")
     if prep_file.exists():
-        with open(prep_file, 'r') as f:
+        with open(prep_file, "r") as f:
             prep_content = f.read()
 
         prep_features = [
-            'LeakageFreePreprocessor',
-            'SessionAwareSampler',
-            'normalization',
-            'fit_normalization_stats',
-            'validate_leakage'
+            "LeakageFreePreprocessor",
+            "SessionAwareSampler",
+            "normalization",
+            "fit_normalization_stats",
+            "validate_leakage",
         ]
 
         prep_found = sum(1 for feature in prep_features if feature in prep_content)
-        logger.info(f"✅ Preprocessing: {prep_found}/{len(prep_features)} features found")
+        logger.info(
+            f"✅ Preprocessing: {prep_found}/{len(prep_features)} features found"
+        )
     else:
         logger.warning("⚠️ Preprocessing module not found")
 
@@ -128,6 +135,7 @@ def validate_challenge_infrastructure():
         logger.warning("⚠️ Data configuration not found")
 
     return True
+
 
 def validate_enhanced_features(file_results):
     """Validate that enhanced features are present across all files."""
@@ -141,44 +149,44 @@ def validate_enhanced_features(file_results):
         logger.error("❌ StarterKitDataLoader not found")
         return False
 
-    with open(starter_kit_path, 'r') as f:
+    with open(starter_kit_path, "r") as f:
         starter_content = f.read()
 
     # Essential enhanced features for StarterKitDataLoader
     required_features = {
-        'Memory Management': [
-            'MemoryStats',
-            'memory_monitor',
-            '_get_current_memory_usage',
-            'psutil',
-            'gc.collect'
+        "Memory Management": [
+            "MemoryStats",
+            "memory_monitor",
+            "_get_current_memory_usage",
+            "psutil",
+            "gc.collect",
         ],
-        'Error Handling': [
-            'graceful_error_handler',
-            'contextmanager',
-            'logger.error',
-            'try:',
-            'except Exception'
+        "Error Handling": [
+            "graceful_error_handler",
+            "contextmanager",
+            "logger.error",
+            "try:",
+            "except Exception",
         ],
-        'Challenge Integration': [
-            'load_ccd_labels',
-            'load_cbcl_labels',
-            'official_splits',
-            '_load_participants_data',
-            'leakage'
+        "Challenge Integration": [
+            "load_ccd_labels",
+            "load_cbcl_labels",
+            "official_splits",
+            "_load_participants_data",
+            "leakage",
         ],
-        'Data Quality': [
-            '_validate_bids_structure',
-            '_validate_splits',
-            'data_quality_metrics',
-            'boundary condition'
+        "Data Quality": [
+            "_validate_bids_structure",
+            "_validate_splits",
+            "data_quality_metrics",
+            "boundary condition",
         ],
-        'Performance Monitoring': [
-            'TimingStats',
-            'timing_monitor',
-            'cache',
-            'performance'
-        ]
+        "Performance Monitoring": [
+            "TimingStats",
+            "timing_monitor",
+            "cache",
+            "performance",
+        ],
     }
 
     results = {}
@@ -210,6 +218,7 @@ def validate_enhanced_features(file_results):
 
     return overall_success
 
+
 def validate_syntax():
     """Validate Python syntax."""
     logger.info("=" * 60)
@@ -219,11 +228,11 @@ def validate_syntax():
     starter_kit_path = Path("/home/kevin/Projects/eeg2025/src/dataio/starter_kit.py")
 
     try:
-        with open(starter_kit_path, 'r') as f:
+        with open(starter_kit_path, "r") as f:
             code = f.read()
 
         # Test compilation
-        compile(code, starter_kit_path, 'exec')
+        compile(code, starter_kit_path, "exec")
         logger.info("✅ Python syntax is valid")
         return True
 
@@ -236,6 +245,7 @@ def validate_syntax():
         logger.error(f"❌ Unexpected error during syntax validation: {e}")
         return False
 
+
 def validate_enhancement_completeness(content):
     """Validate that the enhancement is comprehensive."""
     logger.info("=" * 60)
@@ -244,30 +254,60 @@ def validate_enhancement_completeness(content):
 
     # Check for production-ready patterns
     production_patterns = {
-        'Robustness': [
-            'try:', 'except:', 'finally:', 'raise',
-            'graceful', 'error handling', 'fallback'
+        "Robustness": [
+            "try:",
+            "except:",
+            "finally:",
+            "raise",
+            "graceful",
+            "error handling",
+            "fallback",
         ],
-        'Memory Safety': [
-            'memory', 'gc.collect', 'cleanup', 'optimize',
-            'memory_limit', 'threshold'
+        "Memory Safety": [
+            "memory",
+            "gc.collect",
+            "cleanup",
+            "optimize",
+            "memory_limit",
+            "threshold",
         ],
-        'Performance': [
-            'timing', 'performance', 'monitor', 'profile',
-            'cache', 'efficient'
+        "Performance": [
+            "timing",
+            "performance",
+            "monitor",
+            "profile",
+            "cache",
+            "efficient",
         ],
-        'Data Quality': [
-            'validate', 'check', 'verify', 'quality',
-            'boundary', 'completeness', 'integrity'
+        "Data Quality": [
+            "validate",
+            "check",
+            "verify",
+            "quality",
+            "boundary",
+            "completeness",
+            "integrity",
         ],
-        'Logging & Monitoring': [
-            'logger', 'logging', 'debug', 'info', 'warning', 'error',
-            'monitor', 'stats', 'metrics'
+        "Logging & Monitoring": [
+            "logger",
+            "logging",
+            "debug",
+            "info",
+            "warning",
+            "error",
+            "monitor",
+            "stats",
+            "metrics",
         ],
-        'Documentation': [
-            '"""', "'''", 'Args:', 'Returns:', 'Raises:',
-            'Example:', 'Note:'
-        ]
+        "Documentation": [
+            '"""',
+            "'''",
+            "Args:",
+            "Returns:",
+            "Raises:",
+            "Example:",
+            "Note:",
+        ],
     }
 
     enhancement_scores = {}
@@ -284,7 +324,9 @@ def validate_enhancement_completeness(content):
         overall_score += score
 
         status = "✅" if score >= 0.7 else "⚠️" if score >= 0.4 else "❌"
-        logger.info(f"{status} {category}: {score:.1%} ({len(found_patterns)}/{len(patterns)})")
+        logger.info(
+            f"{status} {category}: {score:.1%} ({len(found_patterns)}/{len(patterns)})"
+        )
 
     overall_score = overall_score / len(production_patterns)
 
@@ -299,6 +341,7 @@ def validate_enhancement_completeness(content):
     else:
         logger.warning("❌ Enhancements may be incomplete")
         return False
+
 
 def main():
     """Run comprehensive validation for EEG Challenge 2025 infrastructure."""
@@ -343,7 +386,9 @@ def main():
         total_tests = len(test_results)
         success_rate = passed_tests / total_tests
 
-        logger.info(f"\nOverall Result: {passed_tests}/{total_tests} tests passed ({success_rate:.1%})")
+        logger.info(
+            f"\nOverall Result: {passed_tests}/{total_tests} tests passed ({success_rate:.1%})"
+        )
 
         if success_rate >= 0.75:
             logger.info("\n🎉 VALIDATION SUCCESSFUL!")
@@ -353,13 +398,16 @@ def main():
             logger.info("✅ Ready for challenge submission")
             return 0
         else:
-            logger.warning(f"\n⚠️ VALIDATION INCOMPLETE ({success_rate:.1%} success rate)")
+            logger.warning(
+                f"\n⚠️ VALIDATION INCOMPLETE ({success_rate:.1%} success rate)"
+            )
             logger.warning("Some components may need additional work")
             return 1
 
     except Exception as e:
         logger.error(f"❌ Validation failed with error: {e}")
         return 1
+
 
 def validate_syntax():
     """Validate Python syntax for key files."""
@@ -371,7 +419,7 @@ def validate_syntax():
         "src/dataio/starter_kit.py",
         "src/dataio/bids_loader.py",
         "src/dataio/preprocessing.py",
-        "scripts/make_splits.py"
+        "scripts/make_splits.py",
     ]
 
     all_valid = True
@@ -384,11 +432,11 @@ def validate_syntax():
             continue
 
         try:
-            with open(full_path, 'r') as f:
+            with open(full_path, "r") as f:
                 code = f.read()
 
             # Test compilation
-            compile(code, full_path, 'exec')
+            compile(code, full_path, "exec")
             logger.info(f"✅ {filepath}: Syntax valid")
 
         except SyntaxError as e:
@@ -401,6 +449,7 @@ def validate_syntax():
             all_valid = False
 
     return all_valid
+
 
 if __name__ == "__main__":
     exit_code = main()

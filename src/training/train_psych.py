@@ -7,20 +7,26 @@ domain adversarial training, IRM penalty, and uncertainty weighting for multi-ta
 
 import logging
 import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any, Union
-from dataclasses import dataclass
 import wandb
-from torch.utils.tensorboard import SummaryWriter
 from scipy.stats import pearsonr
+from torch.utils.tensorboard import SummaryWriter
 
-from ..models.invariance.dann import DANNModel, GRLScheduler, IRMPenalty, create_dann_model
 from ..models.backbones.temporal_cnn import TemporalCNN
 from ..models.heads import create_head
+from ..models.invariance.dann import (
+    DANNModel,
+    GRLScheduler,
+    IRMPenalty,
+    create_dann_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +40,9 @@ class PsychConfig:
     backbone_config: Dict = None
 
     # Task configuration
-    target_factors: List[str] = None  # ["p_factor", "internalizing", "externalizing", "attention"]
+    target_factors: List[str] = (
+        None  # ["p_factor", "internalizing", "externalizing", "attention"]
+    )
     normalize_targets: bool = True
 
     # Domain adversarial training
@@ -76,27 +84,25 @@ class PsychConfig:
 
     def __post_init__(self):
         if self.target_factors is None:
-            self.target_factors = ["p_factor", "internalizing", "externalizing", "attention"]
+            self.target_factors = [
+                "p_factor",
+                "internalizing",
+                "externalizing",
+                "attention",
+            ]
 
         if self.backbone_config is None:
-            self.backbone_config = {
-                "n_filters": 128,
-                "kernel_size": 25,
-                "n_blocks": 4
-            }
+            self.backbone_config = {"n_filters": 128, "kernel_size": 25, "n_blocks": 4}
 
         if self.dann_config is None:
-            self.dann_config = {
-                "hidden_dims": [128, 64],
-                "dropout_rate": 0.3
-            }
+            self.dann_config = {"hidden_dims": [128, 64], "dropout_rate": 0.3}
 
         if self.grl_schedule is None:
             self.grl_schedule = {
                 "strategy": "linear_warmup",
                 "initial_lambda": 0.0,
                 "final_lambda": 0.2,
-                "warmup_steps": 1000
+                "warmup_steps": 1000,
             }
 
         if self.initial_log_vars is None:
@@ -115,7 +121,7 @@ class UncertaintyWeightedLoss(nn.Module):
         self,
         task_names: List[str],
         initial_log_vars: Optional[Dict[str, float]] = None,
-        learned_weights: bool = True
+        learned_weights: bool = True,
     ):
         """
         Initialize uncertainty-weighted loss.
@@ -135,19 +141,21 @@ class UncertaintyWeightedLoss(nn.Module):
             if initial_log_vars is None:
                 initial_log_vars = {name: 0.0 for name in task_names}
 
-            self.log_vars = nn.ParameterDict({
-                name: nn.Parameter(torch.tensor(initial_log_vars.get(name, 0.0)))
-                for name in task_names
-            })
+            self.log_vars = nn.ParameterDict(
+                {
+                    name: nn.Parameter(torch.tensor(initial_log_vars.get(name, 0.0)))
+                    for name in task_names
+                }
+            )
         else:
             # Fixed uniform weights
-            self.register_buffer('log_vars', torch.zeros(len(task_names)))
+            self.register_buffer("log_vars", torch.zeros(len(task_names)))
 
     def forward(
         self,
         predictions: Dict[str, torch.Tensor],
         targets: Dict[str, torch.Tensor],
-        base_loss_fn: Optional[nn.Module] = None
+        base_loss_fn: Optional[nn.Module] = None,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
         Compute uncertainty-weighted multi-task loss.
@@ -217,7 +225,7 @@ class PsychometricMetrics:
         """Compute Root Mean Square Error."""
         mask = ~(np.isnan(y_true) | np.isnan(y_pred))
         if mask.sum() == 0:
-            return float('inf')
+            return float("inf")
 
         return np.sqrt(np.mean((y_true[mask] - y_pred[mask]) ** 2))
 
@@ -226,15 +234,13 @@ class PsychometricMetrics:
         """Compute Mean Absolute Error."""
         mask = ~(np.isnan(y_true) | np.isnan(y_pred))
         if mask.sum() == 0:
-            return float('inf')
+            return float("inf")
 
         return np.mean(np.abs(y_true[mask] - y_pred[mask]))
 
     @classmethod
     def compute_all_metrics(
-        cls,
-        predictions: Dict[str, np.ndarray],
-        targets: Dict[str, np.ndarray]
+        cls, predictions: Dict[str, np.ndarray], targets: Dict[str, np.ndarray]
     ) -> Dict[str, float]:
         """Compute all metrics for all factors."""
         metrics = {}
@@ -279,7 +285,7 @@ class PsychTrainer:
         config: PsychConfig,
         model: Union[nn.Module, DANNModel],
         device: torch.device,
-        num_sites: Optional[int] = None
+        num_sites: Optional[int] = None,
     ):
         self.config = config
         self.device = device
@@ -299,15 +305,12 @@ class PsychTrainer:
 
         # Initialize optimizer
         self.optimizer = torch.optim.AdamW(
-            self.model.parameters(),
-            lr=config.lr,
-            weight_decay=config.weight_decay
+            self.model.parameters(), lr=config.lr, weight_decay=config.weight_decay
         )
 
         # Initialize scheduler
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optimizer,
-            T_max=config.epochs
+            self.optimizer, T_max=config.epochs
         )
 
         # IRM penalty
@@ -320,7 +323,7 @@ class PsychTrainer:
         # Training state
         self.current_epoch = 0
         self.global_step = 0
-        self.best_metric = -float('inf')
+        self.best_metric = -float("inf")
         self.patience_counter = 0
 
         # Metrics tracker
@@ -333,9 +336,11 @@ class PsychTrainer:
         # Create multi-task head
         task_head = create_head(
             "multitask",
-            in_features=base_model.feature_dim if hasattr(base_model, 'feature_dim') else 128,
+            in_features=(
+                base_model.feature_dim if hasattr(base_model, "feature_dim") else 128
+            ),
             num_outputs=len(self.config.target_factors),
-            hidden_dim=128
+            hidden_dim=128,
         )
 
         # Determine number of domains
@@ -349,7 +354,7 @@ class PsychTrainer:
             task_head=task_head,
             num_domains=num_domains,
             lambda_schedule_config=self.config.grl_schedule,
-            domain_head_config=self.config.dann_config
+            domain_head_config=self.config.dann_config,
         )
 
         return dann_model
@@ -363,7 +368,7 @@ class PsychTrainer:
             losses["task_loss"] = UncertaintyWeightedLoss(
                 task_names=self.config.target_factors,
                 initial_log_vars=self.config.initial_log_vars,
-                learned_weights=self.config.learned_loss_weights
+                learned_weights=self.config.learned_loss_weights,
             )
         else:
             losses["task_loss"] = nn.MSELoss()
@@ -389,16 +394,13 @@ class PsychTrainer:
                 wandb.init(
                     project="eeg2025_psych",
                     config=self.config.__dict__,
-                    dir=str(self.ckpt_dir)
+                    dir=str(self.ckpt_dir),
                 )
             self.use_wandb = True
         except Exception as e:
             logger.warning(f"W&B initialization failed: {e}")
 
-    def training_step(
-        self,
-        batch: Dict[str, torch.Tensor]
-    ) -> Dict[str, float]:
+    def training_step(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
         """Single training step."""
         self.model.train()
 
@@ -421,7 +423,9 @@ class PsychTrainer:
                 domain_labels = batch["domain"].to(self.device).long()
             else:
                 # Create dummy domain labels
-                domain_labels = torch.zeros(batch_size, dtype=torch.long, device=self.device)
+                domain_labels = torch.zeros(
+                    batch_size, dtype=torch.long, device=self.device
+                )
 
         losses = {}
         total_loss = 0
@@ -441,13 +445,17 @@ class PsychTrainer:
 
             # Task loss
             if self.config.use_uncertainty_weighting:
-                task_loss, loss_components = self.losses["task_loss"](predictions, targets)
+                task_loss, loss_components = self.losses["task_loss"](
+                    predictions, targets
+                )
                 losses.update(loss_components)
             else:
                 task_loss = 0
                 for factor in self.config.target_factors:
                     if factor in predictions and factor in targets:
-                        task_loss += self.losses["task_loss"](predictions[factor], targets[factor])
+                        task_loss += self.losses["task_loss"](
+                            predictions[factor], targets[factor]
+                        )
                 losses["task_loss"] = task_loss.item()
 
             total_loss += task_loss
@@ -455,22 +463,38 @@ class PsychTrainer:
             # Domain adversarial loss
             if domain_labels is not None:
                 domain_predictions = outputs["domain_output"]
-                domain_loss = self.losses["domain_loss"](domain_predictions, domain_labels)
+                domain_loss = self.losses["domain_loss"](
+                    domain_predictions, domain_labels
+                )
                 losses["domain_loss"] = domain_loss.item()
                 total_loss += domain_loss
 
                 # Track domain accuracy
-                domain_acc = (domain_predictions.argmax(dim=1) == domain_labels).float().mean().item()
+                domain_acc = (
+                    (domain_predictions.argmax(dim=1) == domain_labels)
+                    .float()
+                    .mean()
+                    .item()
+                )
                 losses["domain_accuracy"] = domain_acc
                 losses["grl_lambda"] = outputs["lambda"]
 
             # IRM penalty
-            if self.config.use_irm and self.global_step > self.config.irm_penalty_anneal_iters:
+            if (
+                self.config.use_irm
+                and self.global_step > self.config.irm_penalty_anneal_iters
+            ):
                 irm_loss = self.irm_penalty.compute_penalty(
                     outputs["features"],
-                    targets[self.config.target_factors[0]],  # Use first factor as representative
-                    domain_labels if domain_labels is not None else torch.zeros_like(targets[self.config.target_factors[0]]),
-                    lambda x: predictions[self.config.target_factors[0]]
+                    targets[
+                        self.config.target_factors[0]
+                    ],  # Use first factor as representative
+                    (
+                        domain_labels
+                        if domain_labels is not None
+                        else torch.zeros_like(targets[self.config.target_factors[0]])
+                    ),
+                    lambda x: predictions[self.config.target_factors[0]],
                 )
                 losses["irm_penalty"] = irm_loss.item()
                 total_loss += irm_loss
@@ -489,13 +513,17 @@ class PsychTrainer:
 
             # Task loss
             if self.config.use_uncertainty_weighting:
-                task_loss, loss_components = self.losses["task_loss"](predictions, targets)
+                task_loss, loss_components = self.losses["task_loss"](
+                    predictions, targets
+                )
                 losses.update(loss_components)
             else:
                 task_loss = 0
                 for factor in self.config.target_factors:
                     if factor in predictions and factor in targets:
-                        task_loss += self.losses["task_loss"](predictions[factor], targets[factor])
+                        task_loss += self.losses["task_loss"](
+                            predictions[factor], targets[factor]
+                        )
                 losses["task_loss"] = task_loss.item()
 
             total_loss += task_loss
@@ -547,10 +575,7 @@ class PsychTrainer:
             for factor in targets:
                 targets_np[factor] = targets[factor].cpu().numpy()
 
-            return {
-                "predictions": predictions,
-                "targets": targets_np
-            }
+            return {"predictions": predictions, "targets": targets_np}
 
     def train_epoch(self, train_loader, val_loader=None) -> Dict[str, float]:
         """Train for one epoch."""
@@ -568,9 +593,11 @@ class PsychTrainer:
                 self.log_step(step_losses, batch_idx, len(train_loader))
 
             # Validation
-            if (val_loader is not None and
-                batch_idx % self.config.eval_every == 0 and
-                batch_idx > 0):
+            if (
+                val_loader is not None
+                and batch_idx % self.config.eval_every == 0
+                and batch_idx > 0
+            ):
                 val_results = self.validate(val_loader)
                 self.log_validation(val_results)
 
@@ -631,7 +658,9 @@ class PsychTrainer:
 
         # W&B logging
         if self.use_wandb:
-            wandb.log({f"train/{k}": v for k, v in losses.items()}, step=self.global_step)
+            wandb.log(
+                {f"train/{k}": v for k, v in losses.items()}, step=self.global_step
+            )
 
     def log_validation(self, metrics: Dict[str, float]):
         """Log validation metrics."""
@@ -650,9 +679,13 @@ class PsychTrainer:
 
         # W&B logging
         if self.use_wandb:
-            wandb.log({f"val/{k}": v for k, v in metrics.items()}, step=self.global_step)
+            wandb.log(
+                {f"val/{k}": v for k, v in metrics.items()}, step=self.global_step
+            )
 
-    def save_checkpoint(self, epoch: int, metrics: Dict[str, float], is_best: bool = False):
+    def save_checkpoint(
+        self, epoch: int, metrics: Dict[str, float], is_best: bool = False
+    ):
         """Save model checkpoint."""
         checkpoint = {
             "epoch": epoch,
@@ -673,7 +706,9 @@ class PsychTrainer:
         if is_best:
             best_path = self.ckpt_dir / "best.ckpt"
             torch.save(checkpoint, best_path)
-            logger.info(f"Saved best checkpoint at epoch {epoch} with {self.config.primary_metric}: {metrics[self.config.primary_metric]:.4f}")
+            logger.info(
+                f"Saved best checkpoint at epoch {epoch} with {self.config.primary_metric}: {metrics[self.config.primary_metric]:.4f}"
+            )
 
         logger.info(f"Checkpoint saved: {ckpt_path}")
 
@@ -710,7 +745,9 @@ class PsychTrainer:
 
                 # Early stopping
                 if self.patience_counter >= self.config.early_stopping_patience:
-                    logger.info(f"Early stopping at epoch {epoch} (patience: {self.patience_counter})")
+                    logger.info(
+                        f"Early stopping at epoch {epoch} (patience: {self.patience_counter})"
+                    )
                     break
             else:
                 is_best = False
@@ -722,7 +759,9 @@ class PsychTrainer:
 
             # Epoch logging
             epoch_time = time.time() - start_time
-            log_str = f"Epoch {epoch}/{self.config.epochs} completed in {epoch_time:.2f}s"
+            log_str = (
+                f"Epoch {epoch}/{self.config.epochs} completed in {epoch_time:.2f}s"
+            )
             log_str += f" | Train Loss: {train_loss:.4f}"
             if val_metrics:
                 log_str += f" | {self.config.primary_metric}: {val_metrics.get(self.config.primary_metric, 0):.4f}"
@@ -755,10 +794,7 @@ def create_psych_model(config: PsychConfig, n_channels: int = 64) -> nn.Module:
     """
     # Create backbone
     if config.backbone == "temporal_cnn":
-        backbone = TemporalCNN(
-            n_channels=n_channels,
-            **config.backbone_config
-        )
+        backbone = TemporalCNN(n_channels=n_channels, **config.backbone_config)
     else:
         raise ValueError(f"Unknown backbone: {config.backbone}")
 

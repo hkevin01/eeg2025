@@ -5,25 +5,25 @@ This module provides streaming data readers, real label integration,
 and efficient data loading for improved performance.
 """
 
+import json
+import logging
+import pickle
+import time
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import h5py
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
-from pathlib import Path
-import h5py
-import json
-from typing import Dict, List, Optional, Tuple, Union, Any
-import warnings
-from concurrent.futures import ThreadPoolExecutor
-import time
-from dataclasses import dataclass
-import pickle
 from scipy import stats
-import logging
+from torch.utils.data import DataLoader, Dataset
 
 # Task definitions from task_aware module
 from ..models.task_aware import HBNTask
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,41 +31,43 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CCDMetrics:
     """CCD (Continuous Cognitive Performance) task metrics."""
-    rt_mean: float           # Mean reaction time (ms)
-    rt_std: float            # RT standard deviation
-    rt_median: float         # Median reaction time
-    accuracy: float          # Overall accuracy (0-1)
-    commission_errors: int   # False alarms
-    omission_errors: int     # Missed targets
-    hit_rate: float         # True positive rate
-    false_alarm_rate: float # False positive rate
-    dprime: float           # Sensitivity index
-    beta: float             # Response bias
-    variability: float      # RT coefficient of variation
+
+    rt_mean: float  # Mean reaction time (ms)
+    rt_std: float  # RT standard deviation
+    rt_median: float  # Median reaction time
+    accuracy: float  # Overall accuracy (0-1)
+    commission_errors: int  # False alarms
+    omission_errors: int  # Missed targets
+    hit_rate: float  # True positive rate
+    false_alarm_rate: float  # False positive rate
+    dprime: float  # Sensitivity index
+    beta: float  # Response bias
+    variability: float  # RT coefficient of variation
 
 
 @dataclass
 class CBCLFactors:
     """CBCL (Child Behavior Checklist) factor scores."""
-    anxious_depressed: float        # T-score
-    withdrawn_depressed: float      # T-score
-    somatic_complaints: float       # T-score
-    social_problems: float          # T-score
-    thought_problems: float         # T-score
-    attention_problems: float       # T-score
-    rule_breaking: float           # T-score
-    aggressive_behavior: float      # T-score
-    internalizing: float           # Composite T-score
-    externalizing: float           # Composite T-score
-    total_problems: float          # Total T-score
+
+    anxious_depressed: float  # T-score
+    withdrawn_depressed: float  # T-score
+    somatic_complaints: float  # T-score
+    social_problems: float  # T-score
+    thought_problems: float  # T-score
+    attention_problems: float  # T-score
+    rule_breaking: float  # T-score
+    aggressive_behavior: float  # T-score
+    internalizing: float  # Composite T-score
+    externalizing: float  # Composite T-score
+    total_problems: float  # Total T-score
 
 
 class RealLabelManager:
     """Manager for real HBN behavioral labels and outcomes."""
 
-    def __init__(self,
-                 data_root: Union[str, Path],
-                 cache_dir: Optional[Union[str, Path]] = None):
+    def __init__(
+        self, data_root: Union[str, Path], cache_dir: Optional[Union[str, Path]] = None
+    ):
         """
         Initialize real label manager.
 
@@ -138,7 +140,7 @@ class RealLabelManager:
             return None
 
         # Find subject data
-        subject_data = self._ccd_data[self._ccd_data['subject_id'] == subject_id]
+        subject_data = self._ccd_data[self._ccd_data["subject_id"] == subject_id]
         if subject_data.empty:
             return None
 
@@ -146,18 +148,22 @@ class RealLabelManager:
 
         try:
             # Calculate derived metrics
-            rt_mean = row.get('rt_mean', np.nan)
-            rt_std = row.get('rt_std', np.nan)
-            accuracy = row.get('accuracy', np.nan)
+            rt_mean = row.get("rt_mean", np.nan)
+            rt_std = row.get("rt_std", np.nan)
+            accuracy = row.get("accuracy", np.nan)
 
             # Calculate sensitivity metrics
-            hits = row.get('hits', 0)
-            misses = row.get('misses', 0)
-            false_alarms = row.get('false_alarms', 0)
-            correct_rejections = row.get('correct_rejections', 0)
+            hits = row.get("hits", 0)
+            misses = row.get("misses", 0)
+            false_alarms = row.get("false_alarms", 0)
+            correct_rejections = row.get("correct_rejections", 0)
 
             hit_rate = hits / (hits + misses) if (hits + misses) > 0 else 0
-            false_alarm_rate = false_alarms / (false_alarms + correct_rejections) if (false_alarms + correct_rejections) > 0 else 0
+            false_alarm_rate = (
+                false_alarms / (false_alarms + correct_rejections)
+                if (false_alarms + correct_rejections) > 0
+                else 0
+            )
 
             # D-prime and beta calculation
             if hit_rate == 0:
@@ -168,15 +174,20 @@ class RealLabelManager:
             if false_alarm_rate == 0:
                 false_alarm_rate = 0.5 / (false_alarms + correct_rejections)
             elif false_alarm_rate == 1:
-                false_alarm_rate = (false_alarms + correct_rejections - 0.5) / (false_alarms + correct_rejections)
+                false_alarm_rate = (false_alarms + correct_rejections - 0.5) / (
+                    false_alarms + correct_rejections
+                )
 
             dprime = stats.norm.ppf(hit_rate) - stats.norm.ppf(false_alarm_rate)
-            beta = np.exp((stats.norm.ppf(false_alarm_rate)**2 - stats.norm.ppf(hit_rate)**2) / 2)
+            beta = np.exp(
+                (stats.norm.ppf(false_alarm_rate) ** 2 - stats.norm.ppf(hit_rate) ** 2)
+                / 2
+            )
 
             return CCDMetrics(
                 rt_mean=float(rt_mean),
                 rt_std=float(rt_std),
-                rt_median=float(row.get('rt_median', np.nan)),
+                rt_median=float(row.get("rt_median", np.nan)),
                 accuracy=float(accuracy),
                 commission_errors=int(false_alarms),
                 omission_errors=int(misses),
@@ -184,7 +195,7 @@ class RealLabelManager:
                 false_alarm_rate=float(false_alarm_rate),
                 dprime=float(dprime),
                 beta=float(beta),
-                variability=float(rt_std / rt_mean) if rt_mean > 0 else np.nan
+                variability=float(rt_std / rt_mean) if rt_mean > 0 else np.nan,
             )
 
         except Exception as e:
@@ -205,7 +216,7 @@ class RealLabelManager:
             return None
 
         # Find subject data
-        subject_data = self._cbcl_data[self._cbcl_data['subject_id'] == subject_id]
+        subject_data = self._cbcl_data[self._cbcl_data["subject_id"] == subject_id]
         if subject_data.empty:
             return None
 
@@ -213,17 +224,17 @@ class RealLabelManager:
 
         try:
             return CBCLFactors(
-                anxious_depressed=float(row.get('anxious_depressed_t', np.nan)),
-                withdrawn_depressed=float(row.get('withdrawn_depressed_t', np.nan)),
-                somatic_complaints=float(row.get('somatic_complaints_t', np.nan)),
-                social_problems=float(row.get('social_problems_t', np.nan)),
-                thought_problems=float(row.get('thought_problems_t', np.nan)),
-                attention_problems=float(row.get('attention_problems_t', np.nan)),
-                rule_breaking=float(row.get('rule_breaking_t', np.nan)),
-                aggressive_behavior=float(row.get('aggressive_behavior_t', np.nan)),
-                internalizing=float(row.get('internalizing_t', np.nan)),
-                externalizing=float(row.get('externalizing_t', np.nan)),
-                total_problems=float(row.get('total_problems_t', np.nan))
+                anxious_depressed=float(row.get("anxious_depressed_t", np.nan)),
+                withdrawn_depressed=float(row.get("withdrawn_depressed_t", np.nan)),
+                somatic_complaints=float(row.get("somatic_complaints_t", np.nan)),
+                social_problems=float(row.get("social_problems_t", np.nan)),
+                thought_problems=float(row.get("thought_problems_t", np.nan)),
+                attention_problems=float(row.get("attention_problems_t", np.nan)),
+                rule_breaking=float(row.get("rule_breaking_t", np.nan)),
+                aggressive_behavior=float(row.get("aggressive_behavior_t", np.nan)),
+                internalizing=float(row.get("internalizing_t", np.nan)),
+                externalizing=float(row.get("externalizing_t", np.nan)),
+                total_problems=float(row.get("total_problems_t", np.nan)),
             )
 
         except Exception as e:
@@ -243,19 +254,21 @@ class RealLabelManager:
         if self._demographics.empty:
             return None
 
-        subject_data = self._demographics[self._demographics['subject_id'] == subject_id]
+        subject_data = self._demographics[
+            self._demographics["subject_id"] == subject_id
+        ]
         if subject_data.empty:
             return None
 
         row = subject_data.iloc[0]
 
         return {
-            'age': float(row.get('age', np.nan)),
-            'sex': str(row.get('sex', 'Unknown')),
-            'handedness': str(row.get('handedness', 'Unknown')),
-            'site': str(row.get('site', 'Unknown')),
-            'diagnosis': str(row.get('diagnosis', 'Typical')),
-            'medication': str(row.get('medication', 'None'))
+            "age": float(row.get("age", np.nan)),
+            "sex": str(row.get("sex", "Unknown")),
+            "handedness": str(row.get("handedness", "Unknown")),
+            "site": str(row.get("site", "Unknown")),
+            "diagnosis": str(row.get("diagnosis", "Typical")),
+            "medication": str(row.get("medication", "None")),
         }
 
     def get_available_subjects(self, task: HBNTask) -> List[str]:
@@ -271,12 +284,12 @@ class RealLabelManager:
         subjects = set()
 
         if task == HBNTask.CCD and not self._ccd_data.empty:
-            subjects.update(self._ccd_data['subject_id'].tolist())
+            subjects.update(self._ccd_data["subject_id"].tolist())
 
         if task in [HBNTask.RS, HBNTask.SuS, HBNTask.MW, HBNTask.SL, HBNTask.SyS]:
             # For these tasks, use subjects with CBCL data
             if not self._cbcl_data.empty:
-                subjects.update(self._cbcl_data['subject_id'].tolist())
+                subjects.update(self._cbcl_data["subject_id"].tolist())
 
         return sorted(list(subjects))
 
@@ -284,10 +297,12 @@ class RealLabelManager:
 class StreamingEEGReader:
     """Streaming EEG data reader for efficient memory usage."""
 
-    def __init__(self,
-                 data_path: Union[str, Path],
-                 chunk_size: int = 1000,
-                 preload_chunks: int = 2):
+    def __init__(
+        self,
+        data_path: Union[str, Path],
+        chunk_size: int = 1000,
+        preload_chunks: int = 2,
+    ):
         """
         Initialize streaming EEG reader.
 
@@ -318,11 +333,11 @@ class StreamingEEGReader:
     def _open_file(self):
         """Open data file handle."""
         try:
-            if self.data_path.suffix == '.h5':
-                self.file_handle = h5py.File(self.data_path, 'r')
+            if self.data_path.suffix == ".h5":
+                self.file_handle = h5py.File(self.data_path, "r")
             else:
                 # Fallback for other formats
-                self.file_handle = np.load(self.data_path, mmap_mode='r')
+                self.file_handle = np.load(self.data_path, mmap_mode="r")
         except Exception as e:
             logger.error(f"Error opening {self.data_path}: {e}")
             raise
@@ -332,13 +347,13 @@ class StreamingEEGReader:
         try:
             if isinstance(self.file_handle, h5py.File):
                 # Assume EEG data is in 'data' dataset
-                data = self.file_handle['data']
+                data = self.file_handle["data"]
                 self.total_samples = data.shape[-1]
                 self.num_channels = data.shape[0] if len(data.shape) > 1 else 1
 
                 # Try to get sample rate
-                if 'sample_rate' in self.file_handle.attrs:
-                    self.sample_rate = self.file_handle.attrs['sample_rate']
+                if "sample_rate" in self.file_handle.attrs:
+                    self.sample_rate = self.file_handle.attrs["sample_rate"]
                 else:
                     self.sample_rate = 500  # Default
             else:
@@ -371,7 +386,7 @@ class StreamingEEGReader:
 
         try:
             if isinstance(self.file_handle, h5py.File):
-                data = self.file_handle['data']
+                data = self.file_handle["data"]
                 if len(data.shape) == 2:
                     chunk = data[:, start_idx:end_idx]
                 else:
@@ -388,7 +403,9 @@ class StreamingEEGReader:
             logger.error(f"Error reading chunk {chunk_idx}: {e}")
             # Return zeros as fallback
             if self.num_channels > 1:
-                return np.zeros((self.num_channels, min(self.chunk_size, end_idx - start_idx)))
+                return np.zeros(
+                    (self.num_channels, min(self.chunk_size, end_idx - start_idx))
+                )
             else:
                 return np.zeros(min(self.chunk_size, end_idx - start_idx))
 
@@ -396,14 +413,17 @@ class StreamingEEGReader:
         """Preload chunks for efficient access."""
         for i in range(self.preload_chunks):
             chunk_idx = start_chunk + i
-            if chunk_idx not in self.chunk_cache and chunk_idx * self.chunk_size < self.total_samples:
+            if (
+                chunk_idx not in self.chunk_cache
+                and chunk_idx * self.chunk_size < self.total_samples
+            ):
                 future = self.executor.submit(self.read_chunk, chunk_idx)
                 self.chunk_cache[chunk_idx] = future
 
     def get_chunk(self, chunk_idx: int) -> np.ndarray:
         """Get chunk (from cache or read)."""
         if chunk_idx in self.chunk_cache:
-            if hasattr(self.chunk_cache[chunk_idx], 'result'):
+            if hasattr(self.chunk_cache[chunk_idx], "result"):
                 # Future object
                 chunk = self.chunk_cache[chunk_idx].result()
                 self.chunk_cache[chunk_idx] = chunk  # Cache result
@@ -477,14 +497,16 @@ class StreamingEEGReader:
 class EnhancedHBNDataset(Dataset):
     """Enhanced HBN dataset with real labels and streaming data."""
 
-    def __init__(self,
-                 data_root: Union[str, Path],
-                 task: HBNTask,
-                 split: str = "train",
-                 sequence_length: int = 1000,
-                 label_manager: Optional[RealLabelManager] = None,
-                 use_streaming: bool = True,
-                 augmentations: Optional[List] = None):
+    def __init__(
+        self,
+        data_root: Union[str, Path],
+        task: HBNTask,
+        split: str = "train",
+        sequence_length: int = 1000,
+        label_manager: Optional[RealLabelManager] = None,
+        use_streaming: bool = True,
+        augmentations: Optional[List] = None,
+    ):
         """
         Initialize enhanced HBN dataset.
 
@@ -518,7 +540,7 @@ class EnhancedHBNDataset(Dataset):
         split_file = self.data_root / f"splits/{self.task.value}_{self.split}.json"
 
         if split_file.exists():
-            with open(split_file, 'r') as f:
+            with open(split_file, "r") as f:
                 file_list = json.load(f)
         else:
             # Fallback: scan directory
@@ -529,20 +551,23 @@ class EnhancedHBNDataset(Dataset):
             if data_dir.exists():
                 for file_path in data_dir.glob("*.h5"):
                     subject_id = file_path.stem
-                    file_list.append({
-                        "subject_id": subject_id,
-                        "file_path": str(file_path),
-                        "task": self.task.value
-                    })
+                    file_list.append(
+                        {
+                            "subject_id": subject_id,
+                            "file_path": str(file_path),
+                            "task": self.task.value,
+                        }
+                    )
 
         # Filter by available subjects with labels
         available_subjects = set(self.label_manager.get_available_subjects(self.task))
         filtered_list = [
-            item for item in file_list
-            if item["subject_id"] in available_subjects
+            item for item in file_list if item["subject_id"] in available_subjects
         ]
 
-        logger.info(f"Loaded {len(filtered_list)}/{len(file_list)} files with labels for {self.task.value} {self.split}")
+        logger.info(
+            f"Loaded {len(filtered_list)}/{len(file_list)} files with labels for {self.task.value} {self.split}"
+        )
         return filtered_list
 
     def _get_reader(self, file_path: str) -> StreamingEEGReader:
@@ -564,23 +589,31 @@ class EnhancedHBNDataset(Dataset):
         if self.use_streaming:
             reader = self._get_reader(file_path)
             # Read random segment
-            max_start_time = max(0, (reader.total_samples / reader.sample_rate) - (self.sequence_length / reader.sample_rate))
-            start_time = np.random.uniform(0, max_start_time) if max_start_time > 0 else 0
+            max_start_time = max(
+                0,
+                (reader.total_samples / reader.sample_rate)
+                - (self.sequence_length / reader.sample_rate),
+            )
+            start_time = (
+                np.random.uniform(0, max_start_time) if max_start_time > 0 else 0
+            )
             duration = self.sequence_length / reader.sample_rate
 
             eeg_data = reader.read_segment(start_time, duration)
         else:
             # Load full file (fallback)
-            if Path(file_path).suffix == '.h5':
-                with h5py.File(file_path, 'r') as f:
-                    eeg_data = f['data'][:]
+            if Path(file_path).suffix == ".h5":
+                with h5py.File(file_path, "r") as f:
+                    eeg_data = f["data"][:]
             else:
                 eeg_data = np.load(file_path)
 
             # Random crop
             if eeg_data.shape[-1] > self.sequence_length:
-                start_idx = np.random.randint(0, eeg_data.shape[-1] - self.sequence_length + 1)
-                eeg_data = eeg_data[..., start_idx:start_idx + self.sequence_length]
+                start_idx = np.random.randint(
+                    0, eeg_data.shape[-1] - self.sequence_length + 1
+                )
+                eeg_data = eeg_data[..., start_idx : start_idx + self.sequence_length]
 
         # Ensure correct shape
         if len(eeg_data.shape) == 1:
@@ -588,8 +621,10 @@ class EnhancedHBNDataset(Dataset):
 
         # Pad if too short
         if eeg_data.shape[-1] < self.sequence_length:
-            pad_width = [(0, 0)] * (len(eeg_data.shape) - 1) + [(0, self.sequence_length - eeg_data.shape[-1])]
-            eeg_data = np.pad(eeg_data, pad_width, mode='constant')
+            pad_width = [(0, 0)] * (len(eeg_data.shape) - 1) + [
+                (0, self.sequence_length - eeg_data.shape[-1])
+            ]
+            eeg_data = np.pad(eeg_data, pad_width, mode="constant")
 
         # Apply augmentations
         for aug in self.augmentations:
@@ -603,60 +638,104 @@ class EnhancedHBNDataset(Dataset):
             "eeg": eeg_tensor,
             "subject_id": subject_id,
             "task": self.task.value,
-            "task_id": self.task.value  # For task-aware models
+            "task_id": self.task.value,  # For task-aware models
         }
 
         # Add real labels based on task
         if self.task == HBNTask.CCD:
             ccd_metrics = self.label_manager.get_ccd_metrics(subject_id)
             if ccd_metrics:
-                output.update({
-                    "ccd_rt_mean": torch.tensor(ccd_metrics.rt_mean, dtype=torch.float32),
-                    "ccd_accuracy": torch.tensor(ccd_metrics.accuracy, dtype=torch.float32),
-                    "ccd_dprime": torch.tensor(ccd_metrics.dprime, dtype=torch.float32),
-                    "ccd_variability": torch.tensor(ccd_metrics.variability, dtype=torch.float32)
-                })
+                output.update(
+                    {
+                        "ccd_rt_mean": torch.tensor(
+                            ccd_metrics.rt_mean, dtype=torch.float32
+                        ),
+                        "ccd_accuracy": torch.tensor(
+                            ccd_metrics.accuracy, dtype=torch.float32
+                        ),
+                        "ccd_dprime": torch.tensor(
+                            ccd_metrics.dprime, dtype=torch.float32
+                        ),
+                        "ccd_variability": torch.tensor(
+                            ccd_metrics.variability, dtype=torch.float32
+                        ),
+                    }
+                )
             else:
                 # Use synthetic labels as fallback
-                output.update({
-                    "ccd_rt_mean": torch.tensor(np.random.normal(500, 100), dtype=torch.float32),
-                    "ccd_accuracy": torch.tensor(np.random.uniform(0.7, 0.95), dtype=torch.float32),
-                    "ccd_dprime": torch.tensor(np.random.normal(2.0, 0.5), dtype=torch.float32),
-                    "ccd_variability": torch.tensor(np.random.uniform(0.15, 0.35), dtype=torch.float32)
-                })
+                output.update(
+                    {
+                        "ccd_rt_mean": torch.tensor(
+                            np.random.normal(500, 100), dtype=torch.float32
+                        ),
+                        "ccd_accuracy": torch.tensor(
+                            np.random.uniform(0.7, 0.95), dtype=torch.float32
+                        ),
+                        "ccd_dprime": torch.tensor(
+                            np.random.normal(2.0, 0.5), dtype=torch.float32
+                        ),
+                        "ccd_variability": torch.tensor(
+                            np.random.uniform(0.15, 0.35), dtype=torch.float32
+                        ),
+                    }
+                )
 
         # Add CBCL factors for all tasks
         cbcl_factors = self.label_manager.get_cbcl_factors(subject_id)
         if cbcl_factors:
-            output.update({
-                "cbcl_internalizing": torch.tensor(cbcl_factors.internalizing, dtype=torch.float32),
-                "cbcl_externalizing": torch.tensor(cbcl_factors.externalizing, dtype=torch.float32),
-                "cbcl_attention": torch.tensor(cbcl_factors.attention_problems, dtype=torch.float32),
-                "cbcl_total": torch.tensor(cbcl_factors.total_problems, dtype=torch.float32)
-            })
+            output.update(
+                {
+                    "cbcl_internalizing": torch.tensor(
+                        cbcl_factors.internalizing, dtype=torch.float32
+                    ),
+                    "cbcl_externalizing": torch.tensor(
+                        cbcl_factors.externalizing, dtype=torch.float32
+                    ),
+                    "cbcl_attention": torch.tensor(
+                        cbcl_factors.attention_problems, dtype=torch.float32
+                    ),
+                    "cbcl_total": torch.tensor(
+                        cbcl_factors.total_problems, dtype=torch.float32
+                    ),
+                }
+            )
         else:
             # Use synthetic labels as fallback
-            output.update({
-                "cbcl_internalizing": torch.tensor(np.random.normal(50, 10), dtype=torch.float32),
-                "cbcl_externalizing": torch.tensor(np.random.normal(50, 10), dtype=torch.float32),
-                "cbcl_attention": torch.tensor(np.random.normal(50, 10), dtype=torch.float32),
-                "cbcl_total": torch.tensor(np.random.normal(50, 10), dtype=torch.float32)
-            })
+            output.update(
+                {
+                    "cbcl_internalizing": torch.tensor(
+                        np.random.normal(50, 10), dtype=torch.float32
+                    ),
+                    "cbcl_externalizing": torch.tensor(
+                        np.random.normal(50, 10), dtype=torch.float32
+                    ),
+                    "cbcl_attention": torch.tensor(
+                        np.random.normal(50, 10), dtype=torch.float32
+                    ),
+                    "cbcl_total": torch.tensor(
+                        np.random.normal(50, 10), dtype=torch.float32
+                    ),
+                }
+            )
 
         # Add demographics
         demographics = self.label_manager.get_demographics(subject_id)
         if demographics:
-            output.update({
-                "age": torch.tensor(demographics["age"], dtype=torch.float32),
-                "sex": demographics["sex"],
-                "site": demographics["site"]
-            })
+            output.update(
+                {
+                    "age": torch.tensor(demographics["age"], dtype=torch.float32),
+                    "sex": demographics["sex"],
+                    "site": demographics["site"],
+                }
+            )
         else:
-            output.update({
-                "age": torch.tensor(12.0, dtype=torch.float32),
-                "sex": "Unknown",
-                "site": "Unknown"
-            })
+            output.update(
+                {
+                    "age": torch.tensor(12.0, dtype=torch.float32),
+                    "sex": "Unknown",
+                    "site": "Unknown",
+                }
+            )
 
         return output
 
@@ -675,7 +754,7 @@ def create_enhanced_dataloader(
     sequence_length: int = 1000,
     num_workers: int = 4,
     label_manager: Optional[RealLabelManager] = None,
-    augmentations: Optional[List] = None
+    augmentations: Optional[List] = None,
 ) -> DataLoader:
     """
     Create enhanced dataloader with real labels.
@@ -699,7 +778,7 @@ def create_enhanced_dataloader(
         split=split,
         sequence_length=sequence_length,
         label_manager=label_manager,
-        augmentations=augmentations
+        augmentations=augmentations,
     )
 
     return DataLoader(
@@ -708,7 +787,7 @@ def create_enhanced_dataloader(
         shuffle=(split == "train"),
         num_workers=num_workers,
         pin_memory=True,
-        drop_last=(split == "train")
+        drop_last=(split == "train"),
     )
 
 
@@ -751,14 +830,14 @@ if __name__ == "__main__":
                 task=HBNTask.CCD,
                 split="train",
                 batch_size=4,
-                sequence_length=1000
+                sequence_length=1000,
             )
 
             # Test single batch
             for batch in dataloader:
                 print(f"\nBatch keys: {list(batch.keys())}")
                 print(f"EEG shape: {batch['eeg'].shape}")
-                if 'ccd_rt_mean' in batch:
+                if "ccd_rt_mean" in batch:
                     print(f"CCD RT: {batch['ccd_rt_mean'].mean():.2f}ms")
                 break
 

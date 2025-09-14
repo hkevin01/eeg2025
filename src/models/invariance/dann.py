@@ -10,22 +10,24 @@ Enhanced with multi-adversary training and advanced scheduling strategies.
 Reference: Ganin et al. "Domain-Adversarial Training of Neural Networks" (2016)
 """
 
+import math
+from enum import Enum
+from typing import Dict, List, Optional, Tuple, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Dict, List, Union, Tuple
-import math
-import numpy as np
-from enum import Enum
 
 
 class AdversaryType(Enum):
     """Types of adversarial discriminators."""
-    SITE = "site"           # Site/scanner domain
-    SUBJECT = "subject"     # Subject identity
-    SESSION = "session"     # Recording session
-    AGE_GROUP = "age_group" # Age group (pediatric/adult)
-    TASK = "task"          # Task type
+
+    SITE = "site"  # Site/scanner domain
+    SUBJECT = "subject"  # Subject identity
+    SESSION = "session"  # Recording session
+    AGE_GROUP = "age_group"  # Age group (pediatric/adult)
+    TASK = "task"  # Task type
 
 
 class GradientReversalFunction(torch.autograd.Function):
@@ -89,7 +91,7 @@ class DomainAdversarialHead(nn.Module):
         hidden_dims: Optional[List[int]] = None,
         dropout_rate: float = 0.3,
         activation: str = "relu",
-        use_batch_norm: bool = True
+        use_batch_norm: bool = True,
     ):
         """
         Initialize domain adversarial head.
@@ -191,7 +193,7 @@ class GRLScheduler:
         final_lambda: float = 0.2,
         warmup_steps: int = 1000,
         total_steps: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize GRL scheduler.
@@ -245,7 +247,9 @@ class GRLScheduler:
         if self.current_step < self.warmup_steps:
             # Linear warmup
             progress = self.current_step / self.warmup_steps
-            lambda_val = self.initial_lambda + progress * (self.final_lambda - self.initial_lambda)
+            lambda_val = self.initial_lambda + progress * (
+                self.final_lambda - self.initial_lambda
+            )
         else:
             # Stay at final value
             lambda_val = self.final_lambda
@@ -255,7 +259,9 @@ class GRLScheduler:
     def _exponential_schedule(self) -> float:
         """Exponential schedule."""
         progress = min(self.current_step / self.total_steps, 1.0)
-        lambda_val = self.initial_lambda + (self.final_lambda - self.initial_lambda) * (1 - math.exp(-5 * progress))
+        lambda_val = self.initial_lambda + (self.final_lambda - self.initial_lambda) * (
+            1 - math.exp(-5 * progress)
+        )
         return lambda_val
 
     def _cosine_schedule(self) -> float:
@@ -263,7 +269,9 @@ class GRLScheduler:
         if self.current_step < self.warmup_steps:
             # Linear warmup
             progress = self.current_step / self.warmup_steps
-            lambda_val = self.initial_lambda + progress * (self.final_lambda - self.initial_lambda)
+            lambda_val = self.initial_lambda + progress * (
+                self.final_lambda - self.initial_lambda
+            )
         else:
             # Cosine annealing
             remaining_steps = self.current_step - self.warmup_steps
@@ -284,7 +292,11 @@ class GRLScheduler:
 
             # If domain classifier is too good, increase lambda
             # If domain classifier is too bad, decrease lambda
-            recent_acc = np.mean(self.domain_acc_history[-10:]) if len(self.domain_acc_history) >= 10 else domain_accuracy
+            recent_acc = (
+                np.mean(self.domain_acc_history[-10:])
+                if len(self.domain_acc_history) >= 10
+                else domain_accuracy
+            )
 
             if recent_acc > 0.8:  # Domain classifier too good
                 adjustment = self.adaptation_rate
@@ -311,12 +323,14 @@ class MultiAdversaryDANN(nn.Module):
     with individual lambda scheduling for each adversary.
     """
 
-    def __init__(self,
-                 backbone: nn.Module,
-                 task_head: nn.Module,
-                 adversary_configs: Dict[AdversaryType, Dict],
-                 feature_dim: Optional[int] = None,
-                 shared_grl: bool = False):
+    def __init__(
+        self,
+        backbone: nn.Module,
+        task_head: nn.Module,
+        adversary_configs: Dict[AdversaryType, Dict],
+        feature_dim: Optional[int] = None,
+        shared_grl: bool = False,
+    ):
         """
         Initialize multi-adversary DANN.
 
@@ -350,10 +364,12 @@ class MultiAdversaryDANN(nn.Module):
             self.grl = GradientReversalLayer(lambda_val=0.0)
             self.grls = {adv_type: self.grl for adv_type in self.adversary_types}
         else:
-            self.grls = nn.ModuleDict({
-                adv_type.value: GradientReversalLayer(lambda_val=0.0)
-                for adv_type in self.adversary_types
-            })
+            self.grls = nn.ModuleDict(
+                {
+                    adv_type.value: GradientReversalLayer(lambda_val=0.0)
+                    for adv_type in self.adversary_types
+                }
+            )
 
         # Domain adversarial heads
         self.domain_heads = nn.ModuleDict()
@@ -361,25 +377,27 @@ class MultiAdversaryDANN(nn.Module):
 
         for adv_type, config in adversary_configs.items():
             # Create domain head
-            head_config = config.get('head_config', {})
-            head_config.setdefault('input_dim', feature_dim)
-            head_config.setdefault('num_domains', config['num_domains'])
+            head_config = config.get("head_config", {})
+            head_config.setdefault("input_dim", feature_dim)
+            head_config.setdefault("num_domains", config["num_domains"])
 
             self.domain_heads[adv_type.value] = DomainAdversarialHead(**head_config)
 
             # Create scheduler
-            scheduler_config = config.get('scheduler_config', {})
-            scheduler_config.setdefault('strategy', 'linear_warmup')
-            scheduler_config.setdefault('initial_lambda', 0.0)
-            scheduler_config.setdefault('final_lambda', 0.2)
-            scheduler_config.setdefault('warmup_steps', 1000)
+            scheduler_config = config.get("scheduler_config", {})
+            scheduler_config.setdefault("strategy", "linear_warmup")
+            scheduler_config.setdefault("initial_lambda", 0.0)
+            scheduler_config.setdefault("final_lambda", 0.2)
+            scheduler_config.setdefault("warmup_steps", 1000)
 
             self.schedulers[adv_type] = GRLScheduler(**scheduler_config)
 
-    def forward(self,
-                x: torch.Tensor,
-                domain_labels: Optional[Dict[AdversaryType, torch.Tensor]] = None,
-                return_features: bool = False) -> Dict[str, torch.Tensor]:
+    def forward(
+        self,
+        x: torch.Tensor,
+        domain_labels: Optional[Dict[AdversaryType, torch.Tensor]] = None,
+        return_features: bool = False,
+    ) -> Dict[str, torch.Tensor]:
         """
         Forward pass with multi-adversary training.
 
@@ -413,17 +431,16 @@ class MultiAdversaryDANN(nn.Module):
             domain_preds[adv_type.value] = domain_pred
 
         # Prepare output
-        output = {
-            'task_pred': task_pred,
-            'domain_preds': domain_preds
-        }
+        output = {"task_pred": task_pred, "domain_preds": domain_preds}
 
         if return_features:
-            output['features'] = features
+            output["features"] = features
 
         return output
 
-    def update_lambda_values(self, domain_accuracies: Optional[Dict[AdversaryType, float]] = None):
+    def update_lambda_values(
+        self, domain_accuracies: Optional[Dict[AdversaryType, float]] = None
+    ):
         """
         Update lambda values for all adversaries.
 
@@ -439,7 +456,9 @@ class MultiAdversaryDANN(nn.Module):
             if self.shared_grl:
                 # For shared GRL, use maximum lambda across all adversaries
                 current_lambda = max(
-                    self.schedulers[at].current_step / self.schedulers[at].warmup_steps * self.schedulers[at].final_lambda
+                    self.schedulers[at].current_step
+                    / self.schedulers[at].warmup_steps
+                    * self.schedulers[at].final_lambda
                     for at in self.adversary_types
                 )
                 self.grl.set_lambda(current_lambda)
@@ -449,17 +468,19 @@ class MultiAdversaryDANN(nn.Module):
     def get_lambda_values(self) -> Dict[str, float]:
         """Get current lambda values for all adversaries."""
         if self.shared_grl:
-            return {'shared': self.grl.lambda_val}
+            return {"shared": self.grl.lambda_val}
         else:
             return {
                 adv_type.value: self.grls[adv_type.value].lambda_val
                 for adv_type in self.adversary_types
             }
 
-    def compute_adversarial_loss(self,
-                                domain_preds: Dict[str, torch.Tensor],
-                                domain_labels: Dict[AdversaryType, torch.Tensor],
-                                weights: Optional[Dict[AdversaryType, float]] = None) -> torch.Tensor:
+    def compute_adversarial_loss(
+        self,
+        domain_preds: Dict[str, torch.Tensor],
+        domain_labels: Dict[AdversaryType, torch.Tensor],
+        weights: Optional[Dict[AdversaryType, float]] = None,
+    ) -> torch.Tensor:
         """
         Compute weighted adversarial loss across all adversaries.
 
@@ -484,7 +505,7 @@ class MultiAdversaryDANN(nn.Module):
                 weight = weights.get(adv_type, 1.0)
 
                 # Compute cross-entropy loss
-                loss = F.cross_entropy(pred, target, reduction='mean')
+                loss = F.cross_entropy(pred, target, reduction="mean")
                 total_loss += weight * loss
                 total_weight += weight
 
@@ -509,7 +530,7 @@ class DANNModel(nn.Module):
         num_domains: int,
         feature_dim: Optional[int] = None,
         domain_head_config: Optional[Dict] = None,
-        lambda_scheduler: Optional[GRLScheduler] = None
+        lambda_scheduler: Optional[GRLScheduler] = None,
     ):
         """
         Initialize DANN model.
@@ -545,9 +566,7 @@ class DANNModel(nn.Module):
         # Domain adversarial head
         domain_head_config = domain_head_config or {}
         self.domain_head = DomainAdversarialHead(
-            input_dim=feature_dim,
-            num_domains=num_domains,
-            **domain_head_config
+            input_dim=feature_dim, num_domains=num_domains, **domain_head_config
         )
 
         # Lambda scheduler
@@ -558,7 +577,7 @@ class DANNModel(nn.Module):
         x: torch.Tensor,
         return_features: bool = False,
         update_lambda: bool = True,
-        domain_accuracy: Optional[float] = None
+        domain_accuracy: Optional[float] = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass with task and domain predictions.
@@ -598,7 +617,7 @@ class DANNModel(nn.Module):
         outputs = {
             "task_output": task_output,
             "domain_output": domain_output,
-            "lambda": self.grl.lambda_val
+            "lambda": self.grl.lambda_val,
         }
 
         if return_features:
@@ -640,7 +659,7 @@ class IRMPenalty:
         features: torch.Tensor,
         targets: torch.Tensor,
         domain_ids: torch.Tensor,
-        classifier: nn.Module
+        classifier: nn.Module,
     ) -> torch.Tensor:
         """
         Compute IRM penalty.
@@ -658,7 +677,7 @@ class IRMPenalty:
         penalty = 0.0
 
         for domain in unique_domains:
-            domain_mask = (domain_ids == domain)
+            domain_mask = domain_ids == domain
             if domain_mask.sum() < 2:  # Need at least 2 samples
                 continue
 
@@ -666,14 +685,18 @@ class IRMPenalty:
             domain_targets = targets[domain_mask]
 
             # Create dummy classifier with gradient computation
-            dummy_classifier = torch.ones_like(domain_features[:, :1], requires_grad=True)
+            dummy_classifier = torch.ones_like(
+                domain_features[:, :1], requires_grad=True
+            )
             domain_predictions = (domain_features * dummy_classifier).sum(dim=1)
 
             # Compute loss for this domain
             domain_loss = F.mse_loss(domain_predictions, domain_targets)
 
             # Compute gradient of loss w.r.t. dummy classifier
-            grad = torch.autograd.grad(domain_loss, dummy_classifier, create_graph=True)[0]
+            grad = torch.autograd.grad(
+                domain_loss, dummy_classifier, create_graph=True
+            )[0]
 
             # IRM penalty is the norm of the gradient
             penalty += grad.pow(2).sum()
@@ -686,7 +709,7 @@ def create_dann_model(
     task_head: nn.Module,
     num_domains: int,
     lambda_schedule_config: Optional[Dict] = None,
-    domain_head_config: Optional[Dict] = None
+    domain_head_config: Optional[Dict] = None,
 ) -> DANNModel:
     """
     Factory function to create DANN model with default configurations.
@@ -707,7 +730,7 @@ def create_dann_model(
             "strategy": "linear_warmup",
             "initial_lambda": 0.0,
             "final_lambda": 0.2,
-            "warmup_steps": 1000
+            "warmup_steps": 1000,
         }
 
     # Create lambda scheduler
@@ -719,7 +742,7 @@ def create_dann_model(
         task_head=task_head,
         num_domains=num_domains,
         domain_head_config=domain_head_config,
-        lambda_scheduler=lambda_scheduler
+        lambda_scheduler=lambda_scheduler,
     )
 
     return model

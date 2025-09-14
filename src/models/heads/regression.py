@@ -5,11 +5,12 @@ Enhanced Regression Heads for Challenge 1
 Specialized regression heads with temporal modeling for response time prediction.
 """
 
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Dict, List, Optional, Tuple
 
 
 class TemporalAttention(nn.Module):
@@ -18,10 +19,7 @@ class TemporalAttention(nn.Module):
     def __init__(self, hidden_dim: int, num_heads: int = 8):
         super().__init__()
         self.attention = nn.MultiheadAttention(
-            embed_dim=hidden_dim,
-            num_heads=num_heads,
-            dropout=0.1,
-            batch_first=True
+            embed_dim=hidden_dim, num_heads=num_heads, dropout=0.1, batch_first=True
         )
         self.layer_norm = nn.LayerNorm(hidden_dim)
 
@@ -63,7 +61,7 @@ class TemporalRegressionHead(nn.Module):
         use_temporal_attention: bool = True,
         temporal_window: int = 5,
         use_uncertainty: bool = True,
-        use_calibration: bool = True
+        use_calibration: bool = True,
     ):
         super().__init__()
 
@@ -81,12 +79,14 @@ class TemporalRegressionHead(nn.Module):
         in_dim = input_dim
 
         for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(in_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                nn.ReLU(inplace=True),
-                nn.Dropout(dropout)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(in_dim, hidden_dim),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.ReLU(inplace=True),
+                    nn.Dropout(dropout),
+                ]
+            )
             in_dim = hidden_dim
 
         self.feature_layers = nn.Sequential(*layers)
@@ -96,8 +96,7 @@ class TemporalRegressionHead(nn.Module):
             # Predict both mean and variance
             self.mean_head = nn.Linear(in_dim, 1)
             self.var_head = nn.Sequential(
-                nn.Linear(in_dim, 1),
-                nn.Softplus()  # Ensure positive variance
+                nn.Linear(in_dim, 1), nn.Softplus()  # Ensure positive variance
             )
         else:
             self.pred_head = nn.Linear(in_dim, 1)
@@ -111,9 +110,7 @@ class TemporalRegressionHead(nn.Module):
         self.scale_weights = nn.Parameter(torch.ones(len(hidden_dims)))
 
     def forward(
-        self,
-        x: torch.Tensor,
-        subject_ids: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, subject_ids: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Forward pass for RT prediction.
@@ -136,7 +133,9 @@ class TemporalRegressionHead(nn.Module):
         for i, layer in enumerate(self.feature_layers):
             if isinstance(layer, nn.Linear):
                 features = layer(features)
-                if i // 4 < len(self.scale_weights):  # Every 4 layers (Linear + BN + ReLU + Dropout)
+                if i // 4 < len(
+                    self.scale_weights
+                ):  # Every 4 layers (Linear + BN + ReLU + Dropout)
                     scale_features.append(features * self.scale_weights[i // 4])
             else:
                 features = layer(features)
@@ -158,9 +157,13 @@ class TemporalRegressionHead(nn.Module):
         # Subject-specific calibration
         if self.use_calibration:
             if self.use_uncertainty:
-                predictions[:, 0:1] = predictions[:, 0:1] * self.calibration_scale + self.calibration_bias
+                predictions[:, 0:1] = (
+                    predictions[:, 0:1] * self.calibration_scale + self.calibration_bias
+                )
             else:
-                predictions = predictions * self.calibration_scale + self.calibration_bias
+                predictions = (
+                    predictions * self.calibration_scale + self.calibration_bias
+                )
 
         return predictions
 
@@ -168,7 +171,7 @@ class TemporalRegressionHead(nn.Module):
         self,
         predictions: torch.Tensor,
         targets: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Compute regression loss with uncertainty.
@@ -209,7 +212,7 @@ class AdaptivePooling(nn.Module):
             nn.Linear(input_dim, input_dim // 4),
             nn.ReLU(),
             nn.Linear(input_dim // 4, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -238,7 +241,7 @@ class MultiTaskRegressionHead(nn.Module):
         num_tasks: int = 3,  # mean_rt, rt_var, rt_components
         shared_dim: int = 256,
         task_specific_dim: int = 128,
-        dropout: float = 0.3
+        dropout: float = 0.3,
     ):
         super().__init__()
 
@@ -249,19 +252,21 @@ class MultiTaskRegressionHead(nn.Module):
             nn.Linear(input_dim, shared_dim),
             nn.BatchNorm1d(shared_dim),
             nn.ReLU(),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
         # Task-specific heads
-        self.task_heads = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(shared_dim, task_specific_dim),
-                nn.ReLU(),
-                nn.Dropout(dropout),
-                nn.Linear(task_specific_dim, 1)
-            )
-            for _ in range(num_tasks)
-        ])
+        self.task_heads = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(shared_dim, task_specific_dim),
+                    nn.ReLU(),
+                    nn.Dropout(dropout),
+                    nn.Linear(task_specific_dim, 1),
+                )
+                for _ in range(num_tasks)
+            ]
+        )
 
         # Task weights for adaptive combination
         self.task_weights = nn.Parameter(torch.ones(num_tasks))
@@ -279,7 +284,9 @@ class MultiTaskRegressionHead(nn.Module):
             predictions[f"task_{i}"] = task_pred
 
         # Weighted combination for primary prediction
-        all_preds = torch.stack([predictions[f"task_{i}"] for i in range(self.num_tasks)], dim=-1)
+        all_preds = torch.stack(
+            [predictions[f"task_{i}"] for i in range(self.num_tasks)], dim=-1
+        )
         weights = F.softmax(self.task_weights, dim=0)
         combined_pred = (all_preds * weights).sum(dim=-1, keepdim=True)
 
@@ -301,7 +308,7 @@ class CovariateAwareRegressionHead(nn.Module):
         eeg_input_dim: int,
         covariate_dim: int = 5,  # age, gender, handedness, etc.
         hidden_dim: int = 256,
-        dropout: float = 0.3
+        dropout: float = 0.3,
     ):
         super().__init__()
 
@@ -310,14 +317,12 @@ class CovariateAwareRegressionHead(nn.Module):
             nn.Linear(eeg_input_dim, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
         # Covariate processing
         self.covariate_processor = nn.Sequential(
-            nn.Linear(covariate_dim, hidden_dim // 4),
-            nn.ReLU(),
-            nn.Dropout(dropout)
+            nn.Linear(covariate_dim, hidden_dim // 4), nn.ReLU(), nn.Dropout(dropout)
         )
 
         # Fusion layer
@@ -325,13 +330,11 @@ class CovariateAwareRegressionHead(nn.Module):
             nn.Linear(hidden_dim + hidden_dim // 4, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, 1)
+            nn.Linear(hidden_dim, 1),
         )
 
     def forward(
-        self,
-        eeg_features: torch.Tensor,
-        covariates: torch.Tensor
+        self, eeg_features: torch.Tensor, covariates: torch.Tensor
     ) -> torch.Tensor:
         """Forward pass with covariates."""
 

@@ -5,26 +5,28 @@ This module provides mixed precision training, model compilation, memory profili
 and performance benchmarking capabilities for maximum GPU utilization.
 """
 
-import torch
-import torch.nn as nn
-from torch.cuda.amp import autocast, GradScaler
-import time
-import psutil
-import GPUtil
-from typing import Dict, List, Optional, Tuple, Any, Callable
-import numpy as np
-import json
-from dataclasses import dataclass, asdict
-from pathlib import Path
+import functools
 import gc
+import json
+import time
 import warnings
 from contextlib import contextmanager
-import functools
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import GPUtil
+import numpy as np
+import psutil
+import torch
+import torch.nn as nn
+from torch.cuda.amp import GradScaler, autocast
 
 
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for model benchmarking."""
+
     avg_inference_time_ms: float
     p50_inference_time_ms: float
     p95_inference_time_ms: float
@@ -91,7 +93,7 @@ class MemoryProfiler:
             "avg_memory_mb": np.mean(self.memory_history),
             "peak_memory_mb": self.peak_memory,
             "min_memory_mb": np.min(self.memory_history),
-            "max_memory_mb": np.max(self.memory_history)
+            "max_memory_mb": np.max(self.memory_history),
         }
 
 
@@ -130,11 +132,13 @@ class LatencyProfiler:
         latency_ms = (end_time - start_time) * 1000
         self.latencies.append(latency_ms)
 
-    def benchmark_model(self,
-                       model: nn.Module,
-                       input_shape: Tuple[int, ...],
-                       device: str = "cuda",
-                       use_amp: bool = False) -> Dict[str, float]:
+    def benchmark_model(
+        self,
+        model: nn.Module,
+        input_shape: Tuple[int, ...],
+        device: str = "cuda",
+        use_amp: bool = False,
+    ) -> Dict[str, float]:
         """
         Benchmark model inference latency.
 
@@ -183,7 +187,7 @@ class LatencyProfiler:
             "min_inference_time_ms": np.min(latencies),
             "max_inference_time_ms": np.max(latencies),
             "std_inference_time_ms": np.std(latencies),
-            "throughput_samples_per_sec": input_shape[0] / (np.mean(latencies) / 1000)
+            "throughput_samples_per_sec": input_shape[0] / (np.mean(latencies) / 1000),
         }
 
 
@@ -192,11 +196,13 @@ class OptimizedModel(nn.Module):
     Wrapper for model optimization with AMP and compilation.
     """
 
-    def __init__(self,
-                 model: nn.Module,
-                 use_amp: bool = True,
-                 compile_mode: Optional[str] = "max-autotune",
-                 device: str = "auto"):
+    def __init__(
+        self,
+        model: nn.Module,
+        use_amp: bool = True,
+        compile_mode: Optional[str] = "max-autotune",
+        device: str = "auto",
+    ):
         """
         Initialize optimized model wrapper.
 
@@ -224,7 +230,7 @@ class OptimizedModel(nn.Module):
             self.scaler = None
 
         # Compile model if requested and available
-        if compile_mode and hasattr(torch, 'compile'):
+        if compile_mode and hasattr(torch, "compile"):
             try:
                 print(f"Compiling model with mode: {compile_mode}")
                 self.model = torch.compile(self.base_model, mode=compile_mode)
@@ -245,10 +251,9 @@ class OptimizedModel(nn.Module):
         else:
             return self.model(*args, **kwargs)
 
-    def training_step(self,
-                     loss_fn: Callable,
-                     optimizer: torch.optim.Optimizer,
-                     *args, **kwargs) -> torch.Tensor:
+    def training_step(
+        self, loss_fn: Callable, optimizer: torch.optim.Optimizer, *args, **kwargs
+    ) -> torch.Tensor:
         """
         Perform optimized training step with AMP.
 
@@ -283,7 +288,7 @@ class OptimizedModel(nn.Module):
             "compile_mode": self.compile_mode,
             "is_compiled": self.is_compiled,
             "device": str(self.device),
-            "scaler_enabled": self.scaler is not None
+            "scaler_enabled": self.scaler is not None,
         }
 
 
@@ -305,11 +310,13 @@ class ModelBenchmarker:
         self.memory_profiler = MemoryProfiler(self.device)
         self.latency_profiler = LatencyProfiler()
 
-    def benchmark_comprehensive(self,
-                              model: nn.Module,
-                              input_shapes: List[Tuple[int, ...]],
-                              optimization_configs: List[Dict[str, Any]] = None,
-                              save_path: Optional[str] = None) -> List[PerformanceMetrics]:
+    def benchmark_comprehensive(
+        self,
+        model: nn.Module,
+        input_shapes: List[Tuple[int, ...]],
+        optimization_configs: List[Dict[str, Any]] = None,
+        save_path: Optional[str] = None,
+    ) -> List[PerformanceMetrics]:
         """
         Run comprehensive benchmark across multiple configurations.
 
@@ -327,7 +334,7 @@ class ModelBenchmarker:
                 {"use_amp": False, "compile_mode": None},
                 {"use_amp": True, "compile_mode": None},
                 {"use_amp": True, "compile_mode": "reduce-overhead"},
-                {"use_amp": True, "compile_mode": "max-autotune"}
+                {"use_amp": True, "compile_mode": "max-autotune"},
             ]
 
         results = []
@@ -339,14 +346,15 @@ class ModelBenchmarker:
                 try:
                     # Create optimized model
                     opt_model = OptimizedModel(
-                        model=model,
-                        device=self.device,
-                        **config
+                        model=model, device=self.device, **config
                     )
 
                     # Benchmark latency
                     latency_stats = self.latency_profiler.benchmark_model(
-                        opt_model, input_shape, self.device, config.get("use_amp", False)
+                        opt_model,
+                        input_shape,
+                        self.device,
+                        config.get("use_amp", False),
                     )
 
                     # Memory profiling
@@ -384,14 +392,16 @@ class ModelBenchmarker:
                         p50_inference_time_ms=latency_stats["p50_inference_time_ms"],
                         p95_inference_time_ms=latency_stats["p95_inference_time_ms"],
                         p99_inference_time_ms=latency_stats["p99_inference_time_ms"],
-                        throughput_samples_per_sec=latency_stats["throughput_samples_per_sec"],
+                        throughput_samples_per_sec=latency_stats[
+                            "throughput_samples_per_sec"
+                        ],
                         peak_memory_mb=memory_stats["peak_memory_mb"],
                         avg_memory_mb=memory_stats["avg_memory_mb"],
                         gpu_utilization_pct=gpu_util,
                         batch_size=input_shape[0],
                         sequence_length=input_shape[-1] if len(input_shape) > 2 else 0,
                         device=self.device,
-                        model_params=model_params
+                        model_params=model_params,
                     )
 
                     # Add optimization info
@@ -402,7 +412,9 @@ class ModelBenchmarker:
                     results.append(metrics_dict)
 
                     print(f"  Latency: {latency_stats['avg_inference_time_ms']:.2f}ms")
-                    print(f"  Throughput: {latency_stats['throughput_samples_per_sec']:.1f} samples/sec")
+                    print(
+                        f"  Throughput: {latency_stats['throughput_samples_per_sec']:.1f} samples/sec"
+                    )
                     print(f"  Memory: {memory_stats['peak_memory_mb']:.1f}MB")
 
                 except Exception as e:
@@ -421,7 +433,7 @@ class ModelBenchmarker:
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(save_path, 'w') as f:
+            with open(save_path, "w") as f:
                 json.dump(results, f, indent=2)
 
             print(f"Benchmark results saved to {save_path}")
@@ -430,36 +442,45 @@ class ModelBenchmarker:
 
     def print_summary(self, results: List[Dict[str, Any]]):
         """Print benchmark summary table."""
-        print("\n" + "="*100)
+        print("\n" + "=" * 100)
         print("BENCHMARK SUMMARY")
-        print("="*100)
+        print("=" * 100)
 
         # Headers
         headers = [
-            "Config", "Batch", "Latency (ms)", "Throughput", "Memory (MB)",
-            "P95 Latency", "GPU Util %"
+            "Config",
+            "Batch",
+            "Latency (ms)",
+            "Throughput",
+            "Memory (MB)",
+            "P95 Latency",
+            "GPU Util %",
         ]
 
         # Print header
-        print(f"{'Config':<20} {'Batch':<8} {'Latency':<12} {'Throughput':<12} "
-              f"{'Memory':<12} {'P95':<12} {'GPU %':<8}")
+        print(
+            f"{'Config':<20} {'Batch':<8} {'Latency':<12} {'Throughput':<12} "
+            f"{'Memory':<12} {'P95':<12} {'GPU %':<8}"
+        )
         print("-" * 100)
 
         # Print results
         for result in results:
             config_str = f"AMP:{result.get('use_amp', False)} "
-            compile_mode = result.get('compile_mode', 'None')
+            compile_mode = result.get("compile_mode", "None")
             if compile_mode:
                 config_str += f"Compile:{compile_mode[:8]}"
             else:
                 config_str += "Compile:None"
 
-            print(f"{config_str:<20} {result['batch_size']:<8} "
-                  f"{result['avg_inference_time_ms']:<12.2f} "
-                  f"{result['throughput_samples_per_sec']:<12.1f} "
-                  f"{result['peak_memory_mb']:<12.1f} "
-                  f"{result['p95_inference_time_ms']:<12.2f} "
-                  f"{result['gpu_utilization_pct']:<8.1f}")
+            print(
+                f"{config_str:<20} {result['batch_size']:<8} "
+                f"{result['avg_inference_time_ms']:<12.2f} "
+                f"{result['throughput_samples_per_sec']:<12.1f} "
+                f"{result['peak_memory_mb']:<12.1f} "
+                f"{result['p95_inference_time_ms']:<12.2f} "
+                f"{result['gpu_utilization_pct']:<8.1f}"
+            )
 
 
 def create_fused_layernorm(dim: int, eps: float = 1e-5) -> nn.Module:
@@ -476,15 +497,16 @@ def create_fused_layernorm(dim: int, eps: float = 1e-5) -> nn.Module:
     try:
         # Try to use Apex FusedLayerNorm
         from apex.normalization import FusedLayerNorm
+
         return FusedLayerNorm(dim, eps=eps)
     except ImportError:
         # Fallback to PyTorch native
         return nn.LayerNorm(dim, eps=eps)
 
 
-def optimize_for_inference(model: nn.Module,
-                          example_input: torch.Tensor,
-                          device: str = "cuda") -> nn.Module:
+def optimize_for_inference(
+    model: nn.Module, example_input: torch.Tensor, device: str = "cuda"
+) -> nn.Module:
     """
     Optimize model for inference with various techniques.
 
@@ -513,7 +535,7 @@ def optimize_for_inference(model: nn.Module,
         print(f"❌ TorchScript optimization failed: {e}")
 
     # 2. Try PyTorch 2.0 compilation
-    if hasattr(torch, 'compile'):
+    if hasattr(torch, "compile"):
         try:
             compiled_model = torch.compile(optimized_model, mode="max-autotune")
             optimized_model = compiled_model
@@ -533,8 +555,8 @@ if __name__ == "__main__":
 
     # Benchmark configurations
     input_shapes = [
-        (1, 19, 1000),   # Single sample
-        (8, 19, 1000),   # Small batch
+        (1, 19, 1000),  # Single sample
+        (8, 19, 1000),  # Small batch
         (32, 19, 1000),  # Medium batch
     ]
 

@@ -15,12 +15,14 @@ CUPY_AVAILABLE = False
 
 try:
     import triton
+
     TRITON_AVAILABLE = True
 except ImportError:
     pass
 
 try:
     import cupy
+
     CUPY_AVAILABLE = True
 except ImportError:
     pass
@@ -38,16 +40,15 @@ if CUPY_AVAILABLE:
     except ImportError:
         CUPY_AVAILABLE = False
 
-__all__ = [
-    'TRITON_AVAILABLE',
-    'CUPY_AVAILABLE'
-]
+__all__ = ["TRITON_AVAILABLE", "CUPY_AVAILABLE"]
 
 # Add exports from submodules if available
 if TRITON_AVAILABLE:
     from .triton import __all__ as triton_exports
+
     __all__.extend(triton_exports)
 
 if CUPY_AVAILABLE:
     from .cupy import __all__ as cupy_exports
+
     __all__.extend(cupy_exports)

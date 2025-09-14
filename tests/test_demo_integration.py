@@ -6,11 +6,13 @@ Demo Integration Test
 Tests the interactive GPU demo setup and validates all components.
 """
 import os
+import subprocess
 import sys
 import time
-import requests
-import subprocess
 from pathlib import Path
+
+import requests
+
 
 def test_file_structure():
     """Test that all demo files are in place."""
@@ -24,7 +26,7 @@ def test_file_structure():
         "scripts/launch_demo.py",
         "docker/docker-compose.demo.yml",
         "docker/Dockerfile.demo",
-        "docker/nginx.conf"
+        "docker/nginx.conf",
     ]
 
     missing_files = []
@@ -42,6 +44,7 @@ def test_file_structure():
     print("✅ All demo files present")
     return True
 
+
 def test_backend_imports():
     """Test that backend can import required modules."""
     print("🔍 Testing backend imports...")
@@ -57,18 +60,21 @@ def test_backend_imports():
         print(f"❌ Backend import failed: {e}")
         return False
 
+
 def test_gpu_detection():
     """Test GPU component detection."""
     print("🔍 Testing GPU detection...")
 
     try:
         import torch
+
         cuda_available = torch.cuda.is_available()
         print(f"  CUDA: {'✅' if cuda_available else '❌'}")
 
         # Test Triton
         try:
             import triton
+
             print("  Triton: ✅")
         except ImportError:
             print("  Triton: ❌ (optional)")
@@ -76,6 +82,7 @@ def test_gpu_detection():
         # Test CuPy
         try:
             import cupy
+
             print("  CuPy: ✅")
         except ImportError:
             print("  CuPy: ❌ (optional)")
@@ -85,6 +92,7 @@ def test_gpu_detection():
         print(f"❌ PyTorch not available: {e}")
         return False
 
+
 def test_demo_server_start():
     """Test that demo server can start."""
     print("🔍 Testing demo server startup...")
@@ -93,13 +101,23 @@ def test_demo_server_start():
 
     try:
         # Start server in background
-        proc = subprocess.Popen([
-            sys.executable, "-m", "uvicorn",
-            "backend.demo_server:app",
-            "--host", "127.0.0.1",
-            "--port", "8001",  # Use different port to avoid conflicts
-            "--log-level", "error"
-        ], cwd=project_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "backend.demo_server:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8001",  # Use different port to avoid conflicts
+                "--log-level",
+                "error",
+            ],
+            cwd=project_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
         # Wait for startup
         time.sleep(3)
@@ -131,6 +149,7 @@ def test_demo_server_start():
         print(f"❌ Failed to start server: {e}")
         return False
 
+
 def test_inference_endpoint():
     """Test inference endpoint functionality."""
     print("🔍 Testing inference endpoint...")
@@ -139,13 +158,23 @@ def test_inference_endpoint():
 
     try:
         # Start server
-        proc = subprocess.Popen([
-            sys.executable, "-m", "uvicorn",
-            "backend.demo_server:app",
-            "--host", "127.0.0.1",
-            "--port", "8002",
-            "--log-level", "error"
-        ], cwd=project_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "backend.demo_server:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8002",
+                "--log-level",
+                "error",
+            ],
+            cwd=project_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
         time.sleep(3)
 
@@ -159,14 +188,12 @@ def test_inference_endpoint():
             "notch": 60.0,
             "use_rmsnorm": True,
             "use_perceptual_quant": False,
-            "simulate": True
+            "simulate": True,
         }
 
         try:
             response = requests.post(
-                "http://127.0.0.1:8002/infer_once",
-                json=payload,
-                timeout=10
+                "http://127.0.0.1:8002/infer_once", json=payload, timeout=10
             )
 
             if response.status_code == 200:
@@ -196,6 +223,7 @@ def test_inference_endpoint():
         print(f"❌ Inference test failed: {e}")
         return False
 
+
 def test_html_content():
     """Test that HTML demo contains required elements."""
     print("🔍 Testing HTML demo content...")
@@ -203,16 +231,16 @@ def test_html_content():
     html_path = Path(__file__).parent.parent / "web" / "demo.html"
 
     try:
-        with open(html_path, 'r') as f:
+        with open(html_path, "r") as f:
             content = f.read()
 
         required_elements = [
             'id="use_fused"',  # GPU controls
-            'id="run"',        # Run button
-            'id="ts"',         # Time series canvas
-            'id="spec"',       # Spectrum canvas
-            '/health',         # Health check
-            '/infer_once',     # Inference endpoint
+            'id="run"',  # Run button
+            'id="ts"',  # Time series canvas
+            'id="spec"',  # Spectrum canvas
+            "/health",  # Health check
+            "/infer_once",  # Inference endpoint
         ]
 
         missing_elements = []
@@ -230,6 +258,7 @@ def test_html_content():
     except Exception as e:
         print(f"❌ HTML validation failed: {e}")
         return False
+
 
 def main():
     """Run all demo tests."""
@@ -271,6 +300,7 @@ def main():
     else:
         print("⚠️  Some tests failed. Check the output above.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

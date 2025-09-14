@@ -5,14 +5,15 @@ This module provides utilities for creating and validating competition submissio
 according to the official format requirements.
 """
 
-import logging
-import json
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Union, Any
-import zipfile
 import hashlib
+import json
+import logging
+import zipfile
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +34,13 @@ class SubmissionFormatter:
         self.team_name = team_name
         self.submission_name = submission_name
         self.required_columns = {
-            'cross_task': ['subject_id', 'session_id', 'task_name', 'prediction'],
-            'psychopathology': ['subject_id', 'session_id', 'prediction_binary', 'prediction_score']
+            "cross_task": ["subject_id", "session_id", "task_name", "prediction"],
+            "psychopathology": [
+                "subject_id",
+                "session_id",
+                "prediction_binary",
+                "prediction_score",
+            ],
         }
 
     def format_cross_task_predictions(
@@ -43,7 +49,7 @@ class SubmissionFormatter:
         subject_ids: List[str],
         session_ids: List[str],
         task_names: List[str],
-        output_path: Union[str, Path]
+        output_path: Union[str, Path],
     ) -> pd.DataFrame:
         """
         Format cross-task predictions for submission.
@@ -63,15 +69,17 @@ class SubmissionFormatter:
             predictions = np.argmax(predictions, axis=1)
 
         # Create submission DataFrame
-        submission_df = pd.DataFrame({
-            'subject_id': subject_ids,
-            'session_id': session_ids,
-            'task_name': task_names,
-            'prediction': predictions
-        })
+        submission_df = pd.DataFrame(
+            {
+                "subject_id": subject_ids,
+                "session_id": session_ids,
+                "task_name": task_names,
+                "prediction": predictions,
+            }
+        )
 
         # Validate format
-        self._validate_submission(submission_df, 'cross_task')
+        self._validate_submission(submission_df, "cross_task")
 
         # Save to CSV
         submission_df.to_csv(output_path, index=False)
@@ -85,7 +93,7 @@ class SubmissionFormatter:
         prediction_scores: np.ndarray,
         subject_ids: List[str],
         session_ids: List[str],
-        output_path: Union[str, Path]
+        output_path: Union[str, Path],
     ) -> pd.DataFrame:
         """
         Format psychopathology predictions for submission.
@@ -101,15 +109,17 @@ class SubmissionFormatter:
             Formatted DataFrame
         """
         # Create submission DataFrame
-        submission_df = pd.DataFrame({
-            'subject_id': subject_ids,
-            'session_id': session_ids,
-            'prediction_binary': binary_predictions.astype(int),
-            'prediction_score': prediction_scores
-        })
+        submission_df = pd.DataFrame(
+            {
+                "subject_id": subject_ids,
+                "session_id": session_ids,
+                "prediction_binary": binary_predictions.astype(int),
+                "prediction_score": prediction_scores,
+            }
+        )
 
         # Validate format
-        self._validate_submission(submission_df, 'psychopathology')
+        self._validate_submission(submission_df, "psychopathology")
 
         # Save to CSV
         submission_df.to_csv(output_path, index=False)
@@ -130,7 +140,9 @@ class SubmissionFormatter:
         # Check required columns
         missing_cols = set(required_cols) - set(df.columns)
         if missing_cols:
-            raise ValueError(f"Missing required columns for {task_type}: {missing_cols}")
+            raise ValueError(
+                f"Missing required columns for {task_type}: {missing_cols}"
+            )
 
         # Check for missing values
         for col in required_cols:
@@ -138,22 +150,22 @@ class SubmissionFormatter:
                 raise ValueError(f"Column {col} contains missing values")
 
         # Task-specific validations
-        if task_type == 'cross_task':
+        if task_type == "cross_task":
             # Check prediction values are valid integers
-            if not df['prediction'].dtype.kind in 'ui':
+            if not df["prediction"].dtype.kind in "ui":
                 logger.warning("Cross-task predictions should be integers")
 
             # Check prediction range (assuming 0-10 tasks)
-            if df['prediction'].min() < 0 or df['prediction'].max() > 10:
+            if df["prediction"].min() < 0 or df["prediction"].max() > 10:
                 logger.warning("Cross-task predictions outside expected range [0, 10]")
 
-        elif task_type == 'psychopathology':
+        elif task_type == "psychopathology":
             # Check binary predictions are 0 or 1
-            if not set(df['prediction_binary'].unique()).issubset({0, 1}):
+            if not set(df["prediction_binary"].unique()).issubset({0, 1}):
                 raise ValueError("Binary predictions must be 0 or 1")
 
             # Check scores are in reasonable range
-            if df['prediction_score'].min() < 0 or df['prediction_score'].max() > 1:
+            if df["prediction_score"].min() < 0 or df["prediction_score"].max() > 1:
                 logger.warning("Prediction scores outside [0, 1] range")
 
         logger.info(f"Submission validation passed for {task_type}")
@@ -164,7 +176,7 @@ class SubmissionFormatter:
         model_description: str,
         output_dir: Union[str, Path],
         include_code: bool = False,
-        code_dir: Optional[Path] = None
+        code_dir: Optional[Path] = None,
     ) -> Path:
         """
         Create a complete submission package.
@@ -184,42 +196,46 @@ class SubmissionFormatter:
 
         # Create submission metadata
         metadata = {
-            'team_name': self.team_name,
-            'submission_name': self.submission_name,
-            'model_description': model_description,
-            'predictions_files': {k: str(v) for k, v in predictions_files.items()},
-            'submission_time': pd.Timestamp.now().isoformat()
+            "team_name": self.team_name,
+            "submission_name": self.submission_name,
+            "model_description": model_description,
+            "predictions_files": {k: str(v) for k, v in predictions_files.items()},
+            "submission_time": pd.Timestamp.now().isoformat(),
         }
 
         # Save metadata
-        metadata_file = output_dir / 'submission_metadata.json'
-        with open(metadata_file, 'w') as f:
+        metadata_file = output_dir / "submission_metadata.json"
+        with open(metadata_file, "w") as f:
             json.dump(metadata, f, indent=2)
 
         # Create submission ZIP
         submission_zip = output_dir / f"{self.team_name}_{self.submission_name}.zip"
 
-        with zipfile.ZipFile(submission_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        with zipfile.ZipFile(submission_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
             # Add metadata
-            zipf.write(metadata_file, 'submission_metadata.json')
+            zipf.write(metadata_file, "submission_metadata.json")
 
             # Add prediction files
             for task_name, pred_file in predictions_files.items():
-                zipf.write(pred_file, f'predictions_{task_name}.csv')
+                zipf.write(pred_file, f"predictions_{task_name}.csv")
 
             # Add code if requested
             if include_code and code_dir is not None:
                 code_dir = Path(code_dir)
-                for code_file in code_dir.rglob('*.py'):
+                for code_file in code_dir.rglob("*.py"):
                     # Skip __pycache__ and .git directories
-                    if '__pycache__' not in str(code_file) and '.git' not in str(code_file):
+                    if "__pycache__" not in str(code_file) and ".git" not in str(
+                        code_file
+                    ):
                         arcname = f"code/{code_file.relative_to(code_dir)}"
                         zipf.write(code_file, arcname)
 
         logger.info(f"Created submission package: {submission_zip}")
         return submission_zip
 
-    def validate_submission_package(self, submission_path: Union[str, Path]) -> Dict[str, Any]:
+    def validate_submission_package(
+        self, submission_path: Union[str, Path]
+    ) -> Dict[str, Any]:
         """
         Validate a submission package.
 
@@ -235,26 +251,30 @@ class SubmissionFormatter:
             raise FileNotFoundError(f"Submission file not found: {submission_path}")
 
         validation_results = {
-            'valid': True,
-            'errors': [],
-            'warnings': [],
-            'file_checksums': {}
+            "valid": True,
+            "errors": [],
+            "warnings": [],
+            "file_checksums": {},
         }
 
         try:
-            with zipfile.ZipFile(submission_path, 'r') as zipf:
+            with zipfile.ZipFile(submission_path, "r") as zipf:
                 file_list = zipf.namelist()
 
                 # Check for required files
-                if 'submission_metadata.json' not in file_list:
-                    validation_results['errors'].append("Missing submission_metadata.json")
-                    validation_results['valid'] = False
+                if "submission_metadata.json" not in file_list:
+                    validation_results["errors"].append(
+                        "Missing submission_metadata.json"
+                    )
+                    validation_results["valid"] = False
 
                 # Check for prediction files
-                prediction_files = [f for f in file_list if f.startswith('predictions_')]
+                prediction_files = [
+                    f for f in file_list if f.startswith("predictions_")
+                ]
                 if not prediction_files:
-                    validation_results['errors'].append("No prediction files found")
-                    validation_results['valid'] = False
+                    validation_results["errors"].append("No prediction files found")
+                    validation_results["valid"] = False
 
                 # Validate each prediction file
                 for pred_file in prediction_files:
@@ -263,27 +283,35 @@ class SubmissionFormatter:
                             df = pd.read_csv(f)
 
                             # Extract task type from filename
-                            task_type = pred_file.replace('predictions_', '').replace('.csv', '')
+                            task_type = pred_file.replace("predictions_", "").replace(
+                                ".csv", ""
+                            )
 
                             if task_type in self.required_columns:
                                 self._validate_submission(df, task_type)
                             else:
-                                validation_results['warnings'].append(f"Unknown task type: {task_type}")
+                                validation_results["warnings"].append(
+                                    f"Unknown task type: {task_type}"
+                                )
 
                     except Exception as e:
-                        validation_results['errors'].append(f"Error validating {pred_file}: {str(e)}")
-                        validation_results['valid'] = False
+                        validation_results["errors"].append(
+                            f"Error validating {pred_file}: {str(e)}"
+                        )
+                        validation_results["valid"] = False
 
                 # Compute file checksums
                 for file_name in file_list:
                     with zipf.open(file_name) as f:
                         content = f.read()
                         checksum = hashlib.md5(content).hexdigest()
-                        validation_results['file_checksums'][file_name] = checksum
+                        validation_results["file_checksums"][file_name] = checksum
 
         except Exception as e:
-            validation_results['errors'].append(f"Error reading submission package: {str(e)}")
-            validation_results['valid'] = False
+            validation_results["errors"].append(
+                f"Error reading submission package: {str(e)}"
+            )
+            validation_results["valid"] = False
 
         return validation_results
 
@@ -293,7 +321,7 @@ class PredictionAggregator:
     Utility for aggregating predictions from multiple models or folds.
     """
 
-    def __init__(self, aggregation_method: str = 'mean'):
+    def __init__(self, aggregation_method: str = "mean"):
         """
         Initialize prediction aggregator.
 
@@ -303,9 +331,7 @@ class PredictionAggregator:
         self.aggregation_method = aggregation_method
 
     def aggregate_predictions(
-        self,
-        predictions_list: List[np.ndarray],
-        weights: Optional[List[float]] = None
+        self, predictions_list: List[np.ndarray], weights: Optional[List[float]] = None
     ) -> np.ndarray:
         """
         Aggregate predictions from multiple models.
@@ -329,17 +355,19 @@ class PredictionAggregator:
             predictions_array = predictions_array * weights[:, np.newaxis]
 
         # Aggregate based on method
-        if self.aggregation_method == 'mean':
+        if self.aggregation_method == "mean":
             aggregated = np.mean(predictions_array, axis=0)
-        elif self.aggregation_method == 'median':
+        elif self.aggregation_method == "median":
             aggregated = np.median(predictions_array, axis=0)
-        elif self.aggregation_method == 'vote':
+        elif self.aggregation_method == "vote":
             # For classification: majority vote
             if predictions_array.ndim == 2:  # [n_models, n_samples]
-                aggregated = np.array([
-                    np.bincount(predictions_array[:, i]).argmax()
-                    for i in range(predictions_array.shape[1])
-                ])
+                aggregated = np.array(
+                    [
+                        np.bincount(predictions_array[:, i]).argmax()
+                        for i in range(predictions_array.shape[1])
+                    ]
+                )
             else:  # [n_models, n_samples, n_classes]
                 # Average probabilities then take argmax
                 mean_probs = np.mean(predictions_array, axis=0)
@@ -350,9 +378,7 @@ class PredictionAggregator:
         return aggregated
 
     def aggregate_cross_validation_predictions(
-        self,
-        cv_predictions: Dict[int, np.ndarray],
-        cv_indices: Dict[int, np.ndarray]
+        self, cv_predictions: Dict[int, np.ndarray], cv_indices: Dict[int, np.ndarray]
     ) -> np.ndarray:
         """
         Aggregate cross-validation predictions.
@@ -387,7 +413,7 @@ def create_starter_kit_submission(
     metadata: Dict[str, List],
     output_dir: Union[str, Path],
     team_name: str = "baseline_team",
-    submission_name: str = "starter_kit_submission"
+    submission_name: str = "starter_kit_submission",
 ) -> Path:
     """
     Create a submission using the starter kit format.
@@ -409,36 +435,37 @@ def create_starter_kit_submission(
     prediction_files = {}
 
     # Create cross-task submission
-    if 'cross_task' in model_predictions:
-        cross_task_file = output_dir / 'cross_task_predictions.csv'
+    if "cross_task" in model_predictions:
+        cross_task_file = output_dir / "cross_task_predictions.csv"
         formatter.format_cross_task_predictions(
-            predictions=model_predictions['cross_task'],
-            subject_ids=metadata['subject_ids'],
-            session_ids=metadata['session_ids'],
-            task_names=metadata['task_names'],
-            output_path=cross_task_file
+            predictions=model_predictions["cross_task"],
+            subject_ids=metadata["subject_ids"],
+            session_ids=metadata["session_ids"],
+            task_names=metadata["task_names"],
+            output_path=cross_task_file,
         )
-        prediction_files['cross_task'] = cross_task_file
+        prediction_files["cross_task"] = cross_task_file
 
     # Create psychopathology submission
-    if 'psychopathology_binary' in model_predictions:
-        psych_file = output_dir / 'psychopathology_predictions.csv'
+    if "psychopathology_binary" in model_predictions:
+        psych_file = output_dir / "psychopathology_predictions.csv"
         formatter.format_psychopathology_predictions(
-            binary_predictions=model_predictions['psychopathology_binary'],
-            prediction_scores=model_predictions.get('psychopathology_scores',
-                                                   model_predictions['psychopathology_binary']),
-            subject_ids=metadata['subject_ids'],
-            session_ids=metadata['session_ids'],
-            output_path=psych_file
+            binary_predictions=model_predictions["psychopathology_binary"],
+            prediction_scores=model_predictions.get(
+                "psychopathology_scores", model_predictions["psychopathology_binary"]
+            ),
+            subject_ids=metadata["subject_ids"],
+            session_ids=metadata["session_ids"],
+            output_path=psych_file,
         )
-        prediction_files['psychopathology'] = psych_file
+        prediction_files["psychopathology"] = psych_file
 
     # Create submission package
     submission_package = formatter.create_submission_package(
         predictions_files=prediction_files,
         model_description="Baseline submission using temporal CNN architecture",
         output_dir=output_dir,
-        include_code=False
+        include_code=False,
     )
 
     return submission_package

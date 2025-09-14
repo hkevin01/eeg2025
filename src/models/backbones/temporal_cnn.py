@@ -5,9 +5,10 @@ This module implements an efficient temporal convolutional neural network
 optimized for EEG signal processing with depthwise separable convolutions.
 """
 
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
-from typing import Optional, Tuple
 
 
 class DepthwiseSeparableConv1d(nn.Module):
@@ -106,8 +107,10 @@ class TemporalBlock(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # Residual connection
-        self.residual = nn.Identity() if in_channels == out_channels else nn.Conv1d(
-            in_channels, out_channels, kernel_size=1, bias=False
+        self.residual = (
+            nn.Identity()
+            if in_channels == out_channels
+            else nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -216,7 +219,9 @@ class TemporalCNN(nn.Module):
         """Initialize model weights."""
         for module in self.modules():
             if isinstance(module, nn.Conv1d):
-                nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+                nn.init.kaiming_normal_(
+                    module.weight, mode="fan_out", nonlinearity="relu"
+                )
             elif isinstance(module, nn.BatchNorm1d):
                 nn.init.constant_(module.weight, 1)
                 nn.init.constant_(module.bias, 0)
@@ -269,16 +274,16 @@ class TemporalCNN(nn.Module):
         # Process through temporal layers
         for i, layer in enumerate(self.temporal_layers):
             x = layer(x)
-            if i == layer_idx or (layer_idx == -1 and i == len(self.temporal_layers) - 1):
+            if i == layer_idx or (
+                layer_idx == -1 and i == len(self.temporal_layers) - 1
+            ):
                 break
 
         return x
 
 
 def create_temporal_cnn(
-    n_channels: int = 64,
-    model_size: str = "small",
-    **kwargs
+    n_channels: int = 64, model_size: str = "small", **kwargs
 ) -> TemporalCNN:
     """
     Factory function to create TemporalCNN with predefined configurations.

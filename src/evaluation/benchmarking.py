@@ -5,35 +5,37 @@ This module provides comprehensive benchmarking tools to systematically evaluate
 and compare different model configurations, training strategies, and ablation studies.
 """
 
+import json
 import os
 import time
-import json
+import warnings
+from collections import defaultdict
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import GPUtil
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import psutil
+import seaborn as sns
 import torch
 import torch.nn as nn
-from typing import Dict, List, Optional, Tuple, Any, Callable
-from dataclasses import dataclass, asdict
-from pathlib import Path
-import matplotlib.pyplot as plt
-import seaborn as sns
-from collections import defaultdict
-import psutil
-import GPUtil
-from datetime import datetime
-import warnings
 
+from ..data.loaders import EEGDataLoader
 from ..models.backbone import TemporalCNN
 from ..models.invariance.dann import DANNModel
-from ..training.train_ssl import SSLTrainer
 from ..training.train_psych import PsychTrainer, UncertaintyWeightedLoss
-from ..utils.reproducibility import SeedManager, EnvironmentCapture
-from ..data.loaders import EEGDataLoader
+from ..training.train_ssl import SSLTrainer
+from ..utils.reproducibility import EnvironmentCapture, SeedManager
 
 
 @dataclass
 class BenchmarkConfig:
     """Configuration for benchmark experiments."""
+
     name: str
     description: str
     model_config: Dict[str, Any]
@@ -51,6 +53,7 @@ class BenchmarkConfig:
 @dataclass
 class BenchmarkResult:
     """Results from a single benchmark run."""
+
     config_name: str
     seed: int
     cross_task_correlation: float
@@ -121,9 +124,7 @@ class PerformanceProfiler:
 class ModelBenchmarker:
     """Comprehensive model benchmarking framework."""
 
-    def __init__(self,
-                 results_dir: str = "benchmark_results",
-                 device: str = "auto"):
+    def __init__(self, results_dir: str = "benchmark_results", device: str = "auto"):
         """
         Initialize benchmarker.
 
@@ -167,22 +168,18 @@ class ModelBenchmarker:
                 "temporal_kernel_size": 25,
                 "num_layers": 4,
                 "hidden_channels": [32, 64, 128, 256],
-                "dropout": 0.3
+                "dropout": 0.3,
             },
             training_config={
                 "batch_size": 32,
                 "learning_rate": 1e-3,
                 "weight_decay": 1e-4,
-                "optimizer": "adamw"
+                "optimizer": "adamw",
             },
-            data_config={
-                "sequence_length": 1000,
-                "overlap": 0.5,
-                "augmentation": True
-            },
+            data_config={"sequence_length": 1000, "overlap": 0.5, "augmentation": True},
             ssl_enabled=False,
             dann_enabled=False,
-            irm_enabled=False
+            irm_enabled=False,
         )
 
         # SSL-only configuration
@@ -195,23 +192,19 @@ class ModelBenchmarker:
                 "temporal_kernel_size": 25,
                 "num_layers": 4,
                 "hidden_channels": [32, 64, 128, 256],
-                "dropout": 0.3
+                "dropout": 0.3,
             },
             training_config={
                 "batch_size": 32,
                 "learning_rate": 1e-3,
                 "weight_decay": 1e-4,
                 "optimizer": "adamw",
-                "ssl_epochs": 50
+                "ssl_epochs": 50,
             },
-            data_config={
-                "sequence_length": 1000,
-                "overlap": 0.5,
-                "augmentation": True
-            },
+            data_config={"sequence_length": 1000, "overlap": 0.5, "augmentation": True},
             ssl_enabled=True,
             dann_enabled=False,
-            irm_enabled=False
+            irm_enabled=False,
         )
 
         # DANN-only configuration
@@ -224,7 +217,7 @@ class ModelBenchmarker:
                 "temporal_kernel_size": 25,
                 "num_layers": 4,
                 "hidden_channels": [32, 64, 128, 256],
-                "dropout": 0.3
+                "dropout": 0.3,
             },
             training_config={
                 "batch_size": 32,
@@ -232,16 +225,12 @@ class ModelBenchmarker:
                 "weight_decay": 1e-4,
                 "optimizer": "adamw",
                 "dann_lambda_max": 0.2,
-                "dann_schedule": "linear_warmup"
+                "dann_schedule": "linear_warmup",
             },
-            data_config={
-                "sequence_length": 1000,
-                "overlap": 0.5,
-                "augmentation": True
-            },
+            data_config={"sequence_length": 1000, "overlap": 0.5, "augmentation": True},
             ssl_enabled=False,
             dann_enabled=True,
-            irm_enabled=False
+            irm_enabled=False,
         )
 
         # Full pipeline configuration
@@ -254,7 +243,7 @@ class ModelBenchmarker:
                 "temporal_kernel_size": 25,
                 "num_layers": 5,  # Slightly deeper for best performance
                 "hidden_channels": [32, 64, 128, 256, 512],
-                "dropout": 0.3
+                "dropout": 0.3,
             },
             training_config={
                 "batch_size": 32,
@@ -264,16 +253,12 @@ class ModelBenchmarker:
                 "ssl_epochs": 50,
                 "dann_lambda_max": 0.2,
                 "dann_schedule": "linear_warmup",
-                "uncertainty_weighting": True
+                "uncertainty_weighting": True,
             },
-            data_config={
-                "sequence_length": 1000,
-                "overlap": 0.5,
-                "augmentation": True
-            },
+            data_config={"sequence_length": 1000, "overlap": 0.5, "augmentation": True},
             ssl_enabled=True,
             dann_enabled=True,
-            irm_enabled=False
+            irm_enabled=False,
         )
 
         # IRM comparison configuration
@@ -286,7 +271,7 @@ class ModelBenchmarker:
                 "temporal_kernel_size": 25,
                 "num_layers": 5,
                 "hidden_channels": [32, 64, 128, 256, 512],
-                "dropout": 0.3
+                "dropout": 0.3,
             },
             training_config={
                 "batch_size": 32,
@@ -295,16 +280,12 @@ class ModelBenchmarker:
                 "optimizer": "adamw",
                 "ssl_epochs": 50,
                 "irm_penalty": 1e-3,
-                "uncertainty_weighting": True
+                "uncertainty_weighting": True,
             },
-            data_config={
-                "sequence_length": 1000,
-                "overlap": 0.5,
-                "augmentation": True
-            },
+            data_config={"sequence_length": 1000, "overlap": 0.5, "augmentation": True},
             ssl_enabled=True,
             dann_enabled=False,
-            irm_enabled=True
+            irm_enabled=True,
         )
 
         # Combined DANN+IRM configuration
@@ -317,7 +298,7 @@ class ModelBenchmarker:
                 "temporal_kernel_size": 25,
                 "num_layers": 5,
                 "hidden_channels": [32, 64, 128, 256, 512],
-                "dropout": 0.3
+                "dropout": 0.3,
             },
             training_config={
                 "batch_size": 32,
@@ -328,22 +309,22 @@ class ModelBenchmarker:
                 "dann_lambda_max": 0.2,
                 "dann_schedule": "linear_warmup",
                 "irm_penalty": 1e-3,
-                "uncertainty_weighting": True
+                "uncertainty_weighting": True,
             },
-            data_config={
-                "sequence_length": 1000,
-                "overlap": 0.5,
-                "augmentation": True
-            },
+            data_config={"sequence_length": 1000, "overlap": 0.5, "augmentation": True},
             ssl_enabled=True,
             dann_enabled=True,
-            irm_enabled=True
+            irm_enabled=True,
         )
 
         # Register all configurations
         configs = [
-            baseline_config, ssl_only_config, dann_only_config,
-            full_pipeline_config, irm_config, combined_config
+            baseline_config,
+            ssl_only_config,
+            dann_only_config,
+            full_pipeline_config,
+            irm_config,
+            combined_config,
         ]
 
         for config in configs:
@@ -351,10 +332,9 @@ class ModelBenchmarker:
 
         print(f"Registered {len(configs)} default benchmark configurations")
 
-    def run_single_benchmark(self,
-                           config: BenchmarkConfig,
-                           seed: int,
-                           data_loader: EEGDataLoader) -> BenchmarkResult:
+    def run_single_benchmark(
+        self, config: BenchmarkConfig, seed: int, data_loader: EEGDataLoader
+    ) -> BenchmarkResult:
         """
         Run a single benchmark experiment.
 
@@ -383,22 +363,20 @@ class ModelBenchmarker:
                 temporal_kernel_size=config.model_config["temporal_kernel_size"],
                 num_layers=config.model_config["num_layers"],
                 hidden_channels=config.model_config["hidden_channels"],
-                dropout=config.model_config["dropout"]
+                dropout=config.model_config["dropout"],
             )
 
             # SSL pretraining if enabled
             if config.ssl_enabled:
                 print("  Starting SSL pretraining...")
                 ssl_trainer = SSLTrainer(
-                    model=backbone,
-                    device=self.device,
-                    **config.training_config
+                    model=backbone, device=self.device, **config.training_config
                 )
 
                 ssl_trainer.train(
                     data_loader=data_loader,
                     num_epochs=config.training_config.get("ssl_epochs", 50),
-                    save_checkpoints=False
+                    save_checkpoints=False,
                 )
 
                 profiler.update()
@@ -412,7 +390,9 @@ class ModelBenchmarker:
                     num_classes=config.model_config["num_classes"],
                     num_domains=3,  # Assume 3 sites
                     dann_lambda_max=config.training_config.get("dann_lambda_max", 0.2),
-                    schedule_strategy=config.training_config.get("dann_schedule", "linear_warmup")
+                    schedule_strategy=config.training_config.get(
+                        "dann_schedule", "linear_warmup"
+                    ),
                 )
             else:
                 # Use regular backbone with classification head
@@ -420,7 +400,9 @@ class ModelBenchmarker:
                     backbone,
                     nn.AdaptiveAvgPool1d(1),
                     nn.Flatten(),
-                    nn.Linear(backbone.get_output_dim(), config.model_config["num_classes"])
+                    nn.Linear(
+                        backbone.get_output_dim(), config.model_config["num_classes"]
+                    ),
                 )
 
             model = model.to(self.device)
@@ -435,9 +417,23 @@ class ModelBenchmarker:
                 model=model,
                 criterion=criterion,
                 device=self.device,
-                irm_penalty=config.training_config.get("irm_penalty", 0.0) if config.irm_enabled else 0.0,
-                **{k: v for k, v in config.training_config.items()
-                   if k not in ["ssl_epochs", "dann_lambda_max", "dann_schedule", "irm_penalty", "uncertainty_weighting"]}
+                irm_penalty=(
+                    config.training_config.get("irm_penalty", 0.0)
+                    if config.irm_enabled
+                    else 0.0
+                ),
+                **{
+                    k: v
+                    for k, v in config.training_config.items()
+                    if k
+                    not in [
+                        "ssl_epochs",
+                        "dann_lambda_max",
+                        "dann_schedule",
+                        "irm_penalty",
+                        "uncertainty_weighting",
+                    ]
+                },
             )
 
             # Train psychopathology model
@@ -447,7 +443,7 @@ class ModelBenchmarker:
                 val_loader=data_loader.get_val_loader(),
                 num_epochs=config.max_epochs,
                 early_stopping_patience=config.early_stopping_patience,
-                save_checkpoints=False
+                save_checkpoints=False,
             )
 
             profiler.update()
@@ -461,36 +457,44 @@ class ModelBenchmarker:
             time_hours, peak_memory = profiler.get_results()
 
             # Find convergence epoch (best validation performance)
-            val_losses = [epoch['val_loss'] for epoch in training_history]
+            val_losses = [epoch["val_loss"] for epoch in training_history]
             convergence_epoch = np.argmin(val_losses) + 1
             final_loss = val_losses[-1]
 
             # Domain accuracy for DANN models
             domain_accuracy = None
-            if config.dann_enabled and hasattr(trainer, 'last_domain_accuracy'):
+            if config.dann_enabled and hasattr(trainer, "last_domain_accuracy"):
                 domain_accuracy = trainer.last_domain_accuracy
 
             # Create result
             result = BenchmarkResult(
                 config_name=config.name,
                 seed=seed,
-                cross_task_correlation=eval_results.get('cross_task_correlation', 0.0),
-                psychopathology_correlation=eval_results.get('psychopathology_correlation', 0.0),
-                p_factor_correlation=eval_results.get('p_factor_correlation', 0.0),
-                internalizing_correlation=eval_results.get('internalizing_correlation', 0.0),
-                externalizing_correlation=eval_results.get('externalizing_correlation', 0.0),
-                attention_correlation=eval_results.get('attention_correlation', 0.0),
+                cross_task_correlation=eval_results.get("cross_task_correlation", 0.0),
+                psychopathology_correlation=eval_results.get(
+                    "psychopathology_correlation", 0.0
+                ),
+                p_factor_correlation=eval_results.get("p_factor_correlation", 0.0),
+                internalizing_correlation=eval_results.get(
+                    "internalizing_correlation", 0.0
+                ),
+                externalizing_correlation=eval_results.get(
+                    "externalizing_correlation", 0.0
+                ),
+                attention_correlation=eval_results.get("attention_correlation", 0.0),
                 training_time_hours=time_hours,
                 peak_memory_gb=peak_memory,
                 convergence_epoch=convergence_epoch,
                 final_loss=final_loss,
                 domain_accuracy=domain_accuracy,
-                config_dict=asdict(config)
+                config_dict=asdict(config),
             )
 
-            print(f"  Results: Psych r={result.psychopathology_correlation:.3f}, "
-                  f"Time={result.training_time_hours:.1f}h, "
-                  f"Memory={result.peak_memory_gb:.1f}GB")
+            print(
+                f"  Results: Psych r={result.psychopathology_correlation:.3f}, "
+                f"Time={result.training_time_hours:.1f}h, "
+                f"Memory={result.peak_memory_gb:.1f}GB"
+            )
 
             return result
 
@@ -510,13 +514,15 @@ class ModelBenchmarker:
                 training_time_hours=time_hours,
                 peak_memory_gb=peak_memory,
                 convergence_epoch=0,
-                final_loss=float('inf'),
-                config_dict=asdict(config)
+                final_loss=float("inf"),
+                config_dict=asdict(config),
             )
 
-    def run_benchmark_suite(self,
-                          config_names: Optional[List[str]] = None,
-                          data_loader: Optional[EEGDataLoader] = None) -> pd.DataFrame:
+    def run_benchmark_suite(
+        self,
+        config_names: Optional[List[str]] = None,
+        data_loader: Optional[EEGDataLoader] = None,
+    ) -> pd.DataFrame:
         """
         Run a complete benchmark suite.
 
@@ -540,8 +546,11 @@ class ModelBenchmarker:
 
         # Save environment info
         env_info = self.env_capture.capture_environment()
-        env_path = self.results_dir / f"environment_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(env_path, 'w') as f:
+        env_path = (
+            self.results_dir
+            / f"environment_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+        with open(env_path, "w") as f:
             json.dump(env_info, f, indent=2)
 
         # Run benchmarks
@@ -564,7 +573,9 @@ class ModelBenchmarker:
                 if config.compute_budget_hours is not None:
                     estimated_time = self._estimate_runtime(config)
                     if estimated_time > config.compute_budget_hours:
-                        print(f"  Skipping {config_name} seed {seed}: exceeds compute budget")
+                        print(
+                            f"  Skipping {config_name} seed {seed}: exceeds compute budget"
+                        )
                         continue
 
                 result = self.run_single_benchmark(config, seed, data_loader)
@@ -575,7 +586,7 @@ class ModelBenchmarker:
         results_df = pd.DataFrame([asdict(r) for r in all_results])
 
         # Save results
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         results_path = self.results_dir / f"benchmark_results_{timestamp}.csv"
         results_df.to_csv(results_path, index=False)
 
@@ -605,10 +616,12 @@ class ModelBenchmarker:
 
             def _create_mock_loader(self, num_batches):
                 for _ in range(num_batches):
-                    x = torch.randn(self.batch_size, self.num_channels, self.sequence_length)
+                    x = torch.randn(
+                        self.batch_size, self.num_channels, self.sequence_length
+                    )
                     y = torch.randn(self.batch_size, 4)  # CBCL factors
                     domain = torch.randint(0, 3, (self.batch_size,))  # 3 domains
-                    yield {'eeg': x, 'cbcl': y, 'domain': domain}
+                    yield {"eeg": x, "cbcl": y, "domain": domain}
 
         return MockDataLoader()
 
@@ -623,7 +636,7 @@ class ModelBenchmarker:
 
         # Adjust for model complexity
         num_layers = config.model_config.get("num_layers", 4)
-        base_time *= (num_layers / 4.0)
+        base_time *= num_layers / 4.0
 
         # Adjust for DANN
         if config.dann_enabled:
@@ -646,75 +659,114 @@ class ModelBenchmarker:
         report.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
         # Aggregate results by configuration
-        summary_stats = results_df.groupby('config_name').agg({
-            'psychopathology_correlation': ['mean', 'std', 'max'],
-            'cross_task_correlation': ['mean', 'std', 'max'],
-            'training_time_hours': ['mean', 'std'],
-            'peak_memory_gb': ['mean', 'std'],
-            'convergence_epoch': ['mean', 'std']
-        }).round(3)
+        summary_stats = (
+            results_df.groupby("config_name")
+            .agg(
+                {
+                    "psychopathology_correlation": ["mean", "std", "max"],
+                    "cross_task_correlation": ["mean", "std", "max"],
+                    "training_time_hours": ["mean", "std"],
+                    "peak_memory_gb": ["mean", "std"],
+                    "convergence_epoch": ["mean", "std"],
+                }
+            )
+            .round(3)
+        )
 
         report.append("## Performance Summary\n")
-        report.append("| Configuration | Psych r (mean±std) | Cross-task r (mean±std) | Time (h) | Memory (GB) | Convergence |")
-        report.append("|---------------|-------------------|-------------------------|----------|-------------|-------------|")
+        report.append(
+            "| Configuration | Psych r (mean±std) | Cross-task r (mean±std) | Time (h) | Memory (GB) | Convergence |"
+        )
+        report.append(
+            "|---------------|-------------------|-------------------------|----------|-------------|-------------|"
+        )
 
         for config_name in summary_stats.index:
-            psych_mean = summary_stats.loc[config_name, ('psychopathology_correlation', 'mean')]
-            psych_std = summary_stats.loc[config_name, ('psychopathology_correlation', 'std')]
-            cross_mean = summary_stats.loc[config_name, ('cross_task_correlation', 'mean')]
-            cross_std = summary_stats.loc[config_name, ('cross_task_correlation', 'std')]
-            time_mean = summary_stats.loc[config_name, ('training_time_hours', 'mean')]
-            memory_mean = summary_stats.loc[config_name, ('peak_memory_gb', 'mean')]
-            conv_mean = summary_stats.loc[config_name, ('convergence_epoch', 'mean')]
+            psych_mean = summary_stats.loc[
+                config_name, ("psychopathology_correlation", "mean")
+            ]
+            psych_std = summary_stats.loc[
+                config_name, ("psychopathology_correlation", "std")
+            ]
+            cross_mean = summary_stats.loc[
+                config_name, ("cross_task_correlation", "mean")
+            ]
+            cross_std = summary_stats.loc[
+                config_name, ("cross_task_correlation", "std")
+            ]
+            time_mean = summary_stats.loc[config_name, ("training_time_hours", "mean")]
+            memory_mean = summary_stats.loc[config_name, ("peak_memory_gb", "mean")]
+            conv_mean = summary_stats.loc[config_name, ("convergence_epoch", "mean")]
 
-            report.append(f"| {config_name} | {psych_mean:.3f}±{psych_std:.3f} | "
-                         f"{cross_mean:.3f}±{cross_std:.3f} | {time_mean:.1f} | "
-                         f"{memory_mean:.1f} | {conv_mean:.0f} |")
+            report.append(
+                f"| {config_name} | {psych_mean:.3f}±{psych_std:.3f} | "
+                f"{cross_mean:.3f}±{cross_std:.3f} | {time_mean:.1f} | "
+                f"{memory_mean:.1f} | {conv_mean:.0f} |"
+            )
 
         # Best performing configurations
         report.append("\n## Top Performing Configurations\n")
 
-        best_psych = results_df.loc[results_df['psychopathology_correlation'].idxmax()]
-        best_cross = results_df.loc[results_df['cross_task_correlation'].idxmax()]
+        best_psych = results_df.loc[results_df["psychopathology_correlation"].idxmax()]
+        best_cross = results_df.loc[results_df["cross_task_correlation"].idxmax()]
 
-        report.append(f"**Best Psychopathology Performance:** {best_psych['config_name']} "
-                     f"(r={best_psych['psychopathology_correlation']:.3f})")
-        report.append(f"**Best Cross-Task Performance:** {best_cross['config_name']} "
-                     f"(r={best_cross['cross_task_correlation']:.3f})")
+        report.append(
+            f"**Best Psychopathology Performance:** {best_psych['config_name']} "
+            f"(r={best_psych['psychopathology_correlation']:.3f})"
+        )
+        report.append(
+            f"**Best Cross-Task Performance:** {best_cross['config_name']} "
+            f"(r={best_cross['cross_task_correlation']:.3f})"
+        )
 
         # Efficiency analysis
         report.append("\n## Efficiency Analysis\n")
 
         # Performance per hour
-        results_df['psych_per_hour'] = results_df['psychopathology_correlation'] / results_df['training_time_hours']
-        most_efficient = results_df.loc[results_df['psych_per_hour'].idxmax()]
+        results_df["psych_per_hour"] = (
+            results_df["psychopathology_correlation"]
+            / results_df["training_time_hours"]
+        )
+        most_efficient = results_df.loc[results_df["psych_per_hour"].idxmax()]
 
-        report.append(f"**Most Efficient Configuration:** {most_efficient['config_name']} "
-                     f"({most_efficient['psych_per_hour']:.3f} correlation/hour)")
+        report.append(
+            f"**Most Efficient Configuration:** {most_efficient['config_name']} "
+            f"({most_efficient['psych_per_hour']:.3f} correlation/hour)"
+        )
 
         # Statistical significance tests
         report.append("\n## Statistical Analysis\n")
 
-        configs = results_df['config_name'].unique()
+        configs = results_df["config_name"].unique()
         if len(configs) > 1:
             from scipy import stats
 
-            baseline_results = results_df[results_df['config_name'] == 'baseline_cnn']['psychopathology_correlation']
+            baseline_results = results_df[results_df["config_name"] == "baseline_cnn"][
+                "psychopathology_correlation"
+            ]
 
             report.append("**Significance tests vs baseline (p-values):**")
             for config in configs:
-                if config == 'baseline_cnn':
+                if config == "baseline_cnn":
                     continue
 
-                config_results = results_df[results_df['config_name'] == config]['psychopathology_correlation']
+                config_results = results_df[results_df["config_name"] == config][
+                    "psychopathology_correlation"
+                ]
                 if len(config_results) > 1 and len(baseline_results) > 1:
                     _, p_value = stats.ttest_ind(config_results, baseline_results)
-                    significance = "***" if p_value < 0.001 else "**" if p_value < 0.01 else "*" if p_value < 0.05 else ""
+                    significance = (
+                        "***"
+                        if p_value < 0.001
+                        else "**" if p_value < 0.01 else "*" if p_value < 0.05 else ""
+                    )
                     report.append(f"- {config}: p={p_value:.4f} {significance}")
 
         return "\n".join(report)
 
-    def create_performance_plots(self, results_df: pd.DataFrame, save_dir: Optional[str] = None):
+    def create_performance_plots(
+        self, results_df: pd.DataFrame, save_dir: Optional[str] = None
+    ):
         """
         Create comprehensive performance visualization plots.
 
@@ -729,69 +781,90 @@ class ModelBenchmarker:
             save_dir.mkdir(exist_ok=True)
 
         # Set style
-        plt.style.use('seaborn-v0_8')
+        plt.style.use("seaborn-v0_8")
         sns.set_palette("husl")
 
         # 1. Performance comparison plot
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
 
         # Psychopathology correlation
-        sns.boxplot(data=results_df, x='config_name', y='psychopathology_correlation', ax=axes[0,0])
-        axes[0,0].set_title('Psychopathology Correlation by Configuration')
-        axes[0,0].tick_params(axis='x', rotation=45)
+        sns.boxplot(
+            data=results_df,
+            x="config_name",
+            y="psychopathology_correlation",
+            ax=axes[0, 0],
+        )
+        axes[0, 0].set_title("Psychopathology Correlation by Configuration")
+        axes[0, 0].tick_params(axis="x", rotation=45)
 
         # Cross-task correlation
-        sns.boxplot(data=results_df, x='config_name', y='cross_task_correlation', ax=axes[0,1])
-        axes[0,1].set_title('Cross-Task Correlation by Configuration')
-        axes[0,1].tick_params(axis='x', rotation=45)
+        sns.boxplot(
+            data=results_df, x="config_name", y="cross_task_correlation", ax=axes[0, 1]
+        )
+        axes[0, 1].set_title("Cross-Task Correlation by Configuration")
+        axes[0, 1].tick_params(axis="x", rotation=45)
 
         # Training time
-        sns.boxplot(data=results_df, x='config_name', y='training_time_hours', ax=axes[1,0])
-        axes[1,0].set_title('Training Time by Configuration')
-        axes[1,0].tick_params(axis='x', rotation=45)
+        sns.boxplot(
+            data=results_df, x="config_name", y="training_time_hours", ax=axes[1, 0]
+        )
+        axes[1, 0].set_title("Training Time by Configuration")
+        axes[1, 0].tick_params(axis="x", rotation=45)
 
         # Memory usage
-        sns.boxplot(data=results_df, x='config_name', y='peak_memory_gb', ax=axes[1,1])
-        axes[1,1].set_title('Peak Memory Usage by Configuration')
-        axes[1,1].tick_params(axis='x', rotation=45)
+        sns.boxplot(data=results_df, x="config_name", y="peak_memory_gb", ax=axes[1, 1])
+        axes[1, 1].set_title("Peak Memory Usage by Configuration")
+        axes[1, 1].tick_params(axis="x", rotation=45)
 
         plt.tight_layout()
-        plt.savefig(save_dir / 'performance_comparison.png', dpi=300, bbox_inches='tight')
+        plt.savefig(
+            save_dir / "performance_comparison.png", dpi=300, bbox_inches="tight"
+        )
         plt.close()
 
         # 2. Performance vs efficiency scatter plot
         fig, ax = plt.subplots(figsize=(12, 8))
 
-        for config in results_df['config_name'].unique():
-            config_data = results_df[results_df['config_name'] == config]
-            ax.scatter(config_data['training_time_hours'],
-                      config_data['psychopathology_correlation'],
-                      label=config, s=100, alpha=0.7)
+        for config in results_df["config_name"].unique():
+            config_data = results_df[results_df["config_name"] == config]
+            ax.scatter(
+                config_data["training_time_hours"],
+                config_data["psychopathology_correlation"],
+                label=config,
+                s=100,
+                alpha=0.7,
+            )
 
-        ax.set_xlabel('Training Time (hours)')
-        ax.set_ylabel('Psychopathology Correlation')
-        ax.set_title('Performance vs Training Time Trade-off')
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.set_xlabel("Training Time (hours)")
+        ax.set_ylabel("Psychopathology Correlation")
+        ax.set_title("Performance vs Training Time Trade-off")
+        ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         ax.grid(True, alpha=0.3)
 
         plt.tight_layout()
-        plt.savefig(save_dir / 'performance_vs_time.png', dpi=300, bbox_inches='tight')
+        plt.savefig(save_dir / "performance_vs_time.png", dpi=300, bbox_inches="tight")
         plt.close()
 
         # 3. Detailed factor correlation heatmap
-        factor_cols = ['p_factor_correlation', 'internalizing_correlation',
-                      'externalizing_correlation', 'attention_correlation']
+        factor_cols = [
+            "p_factor_correlation",
+            "internalizing_correlation",
+            "externalizing_correlation",
+            "attention_correlation",
+        ]
 
         # Aggregate by configuration
-        factor_means = results_df.groupby('config_name')[factor_cols].mean()
+        factor_means = results_df.groupby("config_name")[factor_cols].mean()
 
         fig, ax = plt.subplots(figsize=(10, 8))
-        sns.heatmap(factor_means.T, annot=True, cmap='viridis', ax=ax, fmt='.3f')
-        ax.set_title('CBCL Factor Correlations by Configuration')
-        ax.set_ylabel('CBCL Factors')
+        sns.heatmap(factor_means.T, annot=True, cmap="viridis", ax=ax, fmt=".3f")
+        ax.set_title("CBCL Factor Correlations by Configuration")
+        ax.set_ylabel("CBCL Factors")
 
         plt.tight_layout()
-        plt.savefig(save_dir / 'factor_correlations_heatmap.png', dpi=300, bbox_inches='tight')
+        plt.savefig(
+            save_dir / "factor_correlations_heatmap.png", dpi=300, bbox_inches="tight"
+        )
         plt.close()
 
         print(f"Performance plots saved to {save_dir}")
@@ -815,7 +888,7 @@ def run_comprehensive_benchmark():
 
     # Save report
     report_path = benchmarker.results_dir / "benchmark_summary.md"
-    with open(report_path, 'w') as f:
+    with open(report_path, "w") as f:
         f.write(report)
 
     # Create performance plots
@@ -832,13 +905,19 @@ if __name__ == "__main__":
     results_df, benchmarker = run_comprehensive_benchmark()
 
     # Print summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("BENCHMARK SUMMARY")
-    print("="*80)
+    print("=" * 80)
 
-    summary_stats = results_df.groupby('config_name').agg({
-        'psychopathology_correlation': ['mean', 'std'],
-        'training_time_hours': 'mean'
-    }).round(3)
+    summary_stats = (
+        results_df.groupby("config_name")
+        .agg(
+            {
+                "psychopathology_correlation": ["mean", "std"],
+                "training_time_hours": "mean",
+            }
+        )
+        .round(3)
+    )
 
     print(summary_stats)

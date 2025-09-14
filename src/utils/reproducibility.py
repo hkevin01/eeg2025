@@ -9,19 +9,19 @@ This module provides:
 5. Configuration snapshot management
 """
 
-import os
-import sys
-import json
 import hashlib
-import pickle
+import json
 import logging
+import os
+import pickle
 import platform
 import subprocess
+import sys
+import warnings
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union, Tuple
-from dataclasses import dataclass, asdict
-import warnings
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -29,6 +29,7 @@ import yaml
 
 try:
     import git
+
     GIT_AVAILABLE = True
 except ImportError:
     GIT_AVAILABLE = False
@@ -40,6 +41,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EnvironmentInfo:
     """Environment information for reproducibility."""
+
     python_version: str
     pytorch_version: str
     cuda_version: Optional[str]
@@ -60,6 +62,7 @@ class EnvironmentInfo:
 @dataclass
 class RunManifest:
     """Manifest for a training/evaluation run."""
+
     run_id: str
     timestamp: str
     experiment_name: str
@@ -100,37 +103,37 @@ class SeedManager:
         rng = np.random.RandomState(self.base_seed)
 
         self.seeds = {
-            'python': self.base_seed,
-            'numpy': rng.randint(0, 2**31),
-            'torch': rng.randint(0, 2**31),
-            'torch_cuda': rng.randint(0, 2**31),
-            'data_loader': rng.randint(0, 2**31),
-            'model_init': rng.randint(0, 2**31),
-            'training': rng.randint(0, 2**31),
-            'evaluation': rng.randint(0, 2**31),
-            'cross_validation': rng.randint(0, 2**31)
+            "python": self.base_seed,
+            "numpy": rng.randint(0, 2**31),
+            "torch": rng.randint(0, 2**31),
+            "torch_cuda": rng.randint(0, 2**31),
+            "data_loader": rng.randint(0, 2**31),
+            "model_init": rng.randint(0, 2**31),
+            "training": rng.randint(0, 2**31),
+            "evaluation": rng.randint(0, 2**31),
+            "cross_validation": rng.randint(0, 2**31),
         }
 
     def set_all_seeds(self):
         """Set all seeds for reproducibility."""
         # Python hash seed (needs to be set before Python starts)
-        os.environ['PYTHONHASHSEED'] = str(self.seeds['python'])
+        os.environ["PYTHONHASHSEED"] = str(self.seeds["python"])
 
         # NumPy seed
-        np.random.seed(self.seeds['numpy'])
+        np.random.seed(self.seeds["numpy"])
 
         # PyTorch seeds
-        torch.manual_seed(self.seeds['torch'])
+        torch.manual_seed(self.seeds["torch"])
         if torch.cuda.is_available():
-            torch.cuda.manual_seed(self.seeds['torch_cuda'])
-            torch.cuda.manual_seed_all(self.seeds['torch_cuda'])
+            torch.cuda.manual_seed(self.seeds["torch_cuda"])
+            torch.cuda.manual_seed_all(self.seeds["torch_cuda"])
 
         # Additional PyTorch deterministic settings
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
         # Enable deterministic algorithms (may impact performance)
-        if hasattr(torch, 'use_deterministic_algorithms'):
+        if hasattr(torch, "use_deterministic_algorithms"):
             torch.use_deterministic_algorithms(True)
 
         logger.info("All seeds set for reproducibility")
@@ -138,7 +141,9 @@ class SeedManager:
     def get_seed(self, component: str) -> int:
         """Get seed for specific component."""
         if component not in self.seeds:
-            raise ValueError(f"Unknown component: {component}. Available: {list(self.seeds.keys())}")
+            raise ValueError(
+                f"Unknown component: {component}. Available: {list(self.seeds.keys())}"
+            )
         return self.seeds[component]
 
     def create_generator(self, component: str) -> torch.Generator:
@@ -172,7 +177,11 @@ class EnvironmentCapture:
         cudnn_version = None
         if torch.cuda.is_available():
             cuda_version = torch.version.cuda
-            cudnn_version = str(torch.backends.cudnn.version()) if torch.backends.cudnn.is_available() else None
+            cudnn_version = (
+                str(torch.backends.cudnn.version())
+                if torch.backends.cudnn.is_available()
+                else None
+            )
 
         # Platform information
         platform_info = platform.platform()
@@ -182,6 +191,7 @@ class EnvironmentCapture:
         # Memory information (approximate)
         try:
             import psutil
+
             memory_gb = psutil.virtual_memory().total / (1024**3)
         except ImportError:
             memory_gb = 0.0
@@ -191,12 +201,14 @@ class EnvironmentCapture:
         if torch.cuda.is_available():
             for i in range(torch.cuda.device_count()):
                 gpu_props = torch.cuda.get_device_properties(i)
-                gpu_info.append({
-                    'id': i,
-                    'name': gpu_props.name,
-                    'memory_gb': gpu_props.total_memory / (1024**3),
-                    'compute_capability': f"{gpu_props.major}.{gpu_props.minor}"
-                })
+                gpu_info.append(
+                    {
+                        "id": i,
+                        "name": gpu_props.name,
+                        "memory_gb": gpu_props.total_memory / (1024**3),
+                        "compute_capability": f"{gpu_props.major}.{gpu_props.minor}",
+                    }
+                )
 
         # Package versions
         pip_packages = self._get_package_versions()
@@ -215,7 +227,7 @@ class EnvironmentCapture:
             memory_gb=memory_gb,
             gpu_info=gpu_info,
             pip_packages=pip_packages,
-            git_info=git_info
+            git_info=git_info,
         )
 
         logger.info("Environment captured successfully")
@@ -227,27 +239,43 @@ class EnvironmentCapture:
 
         # Core packages
         core_packages = [
-            'torch', 'numpy', 'pandas', 'scipy', 'scikit-learn',
-            'matplotlib', 'seaborn', 'mne', 'h5py', 'tqdm'
+            "torch",
+            "numpy",
+            "pandas",
+            "scipy",
+            "scikit-learn",
+            "matplotlib",
+            "seaborn",
+            "mne",
+            "h5py",
+            "tqdm",
         ]
 
         for package in core_packages:
             try:
                 module = __import__(package)
-                version = getattr(module, '__version__', 'unknown')
+                version = getattr(module, "__version__", "unknown")
                 packages[package] = version
             except ImportError:
-                packages[package] = 'not_installed'
+                packages[package] = "not_installed"
 
         # Try to get pip list output
         try:
-            result = subprocess.run(['pip', 'list', '--format=json'],
-                                  capture_output=True, text=True, timeout=30)
+            result = subprocess.run(
+                ["pip", "list", "--format=json"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
             if result.returncode == 0:
                 pip_list = json.loads(result.stdout)
                 for package_info in pip_list:
-                    packages[package_info['name']] = package_info['version']
-        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, json.JSONDecodeError):
+                    packages[package_info["name"]] = package_info["version"]
+        except (
+            subprocess.TimeoutExpired,
+            subprocess.CalledProcessError,
+            json.JSONDecodeError,
+        ):
             logger.warning("Could not get complete pip list")
 
         return packages
@@ -258,7 +286,7 @@ class EnvironmentCapture:
             # Find git repository
             repo_path = Path.cwd()
             while repo_path != repo_path.parent:
-                if (repo_path / '.git').exists():
+                if (repo_path / ".git").exists():
                     break
                 repo_path = repo_path.parent
             else:
@@ -270,21 +298,25 @@ class EnvironmentCapture:
             commit = repo.head.commit
 
             git_info = {
-                'repository_path': str(repo_path),
-                'commit_hash': commit.hexsha,
-                'commit_hash_short': commit.hexsha[:8],
-                'branch': repo.active_branch.name if not repo.head.is_detached else 'detached',
-                'commit_message': commit.message.strip(),
-                'commit_author': str(commit.author),
-                'commit_date': commit.committed_datetime.isoformat(),
-                'is_dirty': repo.is_dirty(),
-                'untracked_files': repo.untracked_files,
-                'remote_url': next(iter(repo.remotes.origin.urls), None) if repo.remotes else None
+                "repository_path": str(repo_path),
+                "commit_hash": commit.hexsha,
+                "commit_hash_short": commit.hexsha[:8],
+                "branch": (
+                    repo.active_branch.name if not repo.head.is_detached else "detached"
+                ),
+                "commit_message": commit.message.strip(),
+                "commit_author": str(commit.author),
+                "commit_date": commit.committed_datetime.isoformat(),
+                "is_dirty": repo.is_dirty(),
+                "untracked_files": repo.untracked_files,
+                "remote_url": (
+                    next(iter(repo.remotes.origin.urls), None) if repo.remotes else None
+                ),
             }
 
             # Get diff if repository is dirty
             if repo.is_dirty():
-                git_info['diff'] = repo.git.diff()
+                git_info["diff"] = repo.git.diff()
 
             return git_info
 
@@ -296,7 +328,12 @@ class EnvironmentCapture:
 class RunTracker:
     """Tracks experiment runs for reproducibility."""
 
-    def __init__(self, experiment_name: str, output_dir: Path, seed_manager: Optional[SeedManager] = None):
+    def __init__(
+        self,
+        experiment_name: str,
+        output_dir: Path,
+        seed_manager: Optional[SeedManager] = None,
+    ):
         """Initialize run tracker."""
         self.experiment_name = experiment_name
         self.output_dir = Path(output_dir)
@@ -312,9 +349,13 @@ class RunTracker:
         self.manifest = None
         self.start_time = None
 
-        logger.info(f"Initialized run tracker for {experiment_name}, run ID: {self.run_id}")
+        logger.info(
+            f"Initialized run tracker for {experiment_name}, run ID: {self.run_id}"
+        )
 
-    def start_run(self, config: Dict[str, Any], command_line: Optional[List[str]] = None) -> str:
+    def start_run(
+        self, config: Dict[str, Any], command_line: Optional[List[str]] = None
+    ) -> str:
         """Start tracking a new run."""
         logger.info(f"Starting run: {self.run_id}")
 
@@ -338,7 +379,7 @@ class RunTracker:
             working_directory=str(Path.cwd()),
             model_checkpoints=[],
             output_files=[],
-            metrics={}
+            metrics={},
         )
 
         # Save initial manifest
@@ -401,7 +442,7 @@ class RunTracker:
         snapshot = json.loads(json.dumps(config, default=str))
 
         # Add timestamp
-        snapshot['_snapshot_timestamp'] = datetime.now(timezone.utc).isoformat()
+        snapshot["_snapshot_timestamp"] = datetime.now(timezone.utc).isoformat()
 
         return snapshot
 
@@ -409,7 +450,7 @@ class RunTracker:
         """Save manifest to file."""
         manifest_path = self.output_dir / f"{self.run_id}_manifest.json"
 
-        with open(manifest_path, 'w') as f:
+        with open(manifest_path, "w") as f:
             json.dump(self.manifest.to_dict(), f, indent=2, default=str)
 
         logger.debug(f"Manifest saved to {manifest_path}")
@@ -434,10 +475,12 @@ class DataHasher:
         return sha256_hash.hexdigest()
 
     @staticmethod
-    def hash_directory(dir_path: Path, include_patterns: Optional[List[str]] = None) -> str:
+    def hash_directory(
+        dir_path: Path, include_patterns: Optional[List[str]] = None
+    ) -> str:
         """Compute hash of directory contents."""
         if include_patterns is None:
-            include_patterns = ['*.csv', '*.json', '*.yaml', '*.yml']
+            include_patterns = ["*.csv", "*.json", "*.yaml", "*.yml"]
 
         file_hashes = []
 
@@ -452,15 +495,15 @@ class DataHasher:
         file_hashes.sort()
 
         # Hash the concatenated file hashes
-        combined = '\n'.join(file_hashes)
+        combined = "\n".join(file_hashes)
         return hashlib.sha256(combined.encode()).hexdigest()
 
     @staticmethod
     def hash_array(array: np.ndarray) -> str:
         """Compute hash of numpy array."""
         # Ensure consistent byte order
-        if array.dtype.byteorder not in ('=', '|'):
-            array = array.astype(array.dtype.newbyteorder('='))
+        if array.dtype.byteorder not in ("=", "|"):
+            array = array.astype(array.dtype.newbyteorder("="))
 
         return hashlib.sha256(array.tobytes()).hexdigest()
 
@@ -488,7 +531,9 @@ class ReproducibilityManager:
 
         logger.info(f"Initialized reproducibility manager for {experiment_name}")
 
-    def start_experiment(self, config: Dict[str, Any], data_dir: Optional[Path] = None) -> str:
+    def start_experiment(
+        self, config: Dict[str, Any], data_dir: Optional[Path] = None
+    ) -> str:
         """Start a reproducible experiment."""
         logger.info("Starting reproducible experiment...")
 
@@ -507,7 +552,7 @@ class ReproducibilityManager:
 
         # Save configuration separately
         config_path = self.output_dir / f"{run_id}_config.yaml"
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
 
         self.run_tracker.add_output_file(str(config_path))
@@ -519,17 +564,24 @@ class ReproducibilityManager:
         """Log experiment metrics."""
         self.run_tracker.update_metrics(metrics)
 
-    def save_checkpoint(self, model: torch.nn.Module, checkpoint_path: Path,
-                       metrics: Optional[Dict[str, Any]] = None):
+    def save_checkpoint(
+        self,
+        model: torch.nn.Module,
+        checkpoint_path: Path,
+        metrics: Optional[Dict[str, Any]] = None,
+    ):
         """Save model checkpoint with tracking."""
         # Save model
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'run_id': self.run_tracker.run_id,
-            'seed_info': self.seed_manager.get_all_seeds(),
-            'metrics': metrics or {},
-            'timestamp': datetime.now(timezone.utc).isoformat()
-        }, checkpoint_path)
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "run_id": self.run_tracker.run_id,
+                "seed_info": self.seed_manager.get_all_seeds(),
+                "metrics": metrics or {},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            checkpoint_path,
+        )
 
         # Track checkpoint
         self.run_tracker.add_checkpoint(str(checkpoint_path))
@@ -539,7 +591,9 @@ class ReproducibilityManager:
 
         logger.info(f"Checkpoint saved: {checkpoint_path}")
 
-    def end_experiment(self, status: str = "completed", error_message: Optional[str] = None):
+    def end_experiment(
+        self, status: str = "completed", error_message: Optional[str] = None
+    ):
         """End the experiment."""
         self.run_tracker.end_run(status, error_message)
 
@@ -593,13 +647,15 @@ class ReproducibilityManager:
 ```
 """
 
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             f.write(report)
 
         logger.info(f"Summary report saved: {report_path}")
 
 
-def create_reproducible_dataloader(dataset, batch_size: int, seed: int, **kwargs) -> torch.utils.data.DataLoader:
+def create_reproducible_dataloader(
+    dataset, batch_size: int, seed: int, **kwargs
+) -> torch.utils.data.DataLoader:
     """Create a reproducible DataLoader."""
     # Create generator with specific seed
     generator = torch.Generator()
@@ -614,7 +670,7 @@ def create_reproducible_dataloader(dataset, batch_size: int, seed: int, **kwargs
         batch_size=batch_size,
         generator=generator,
         worker_init_fn=worker_init_fn,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -626,25 +682,14 @@ if __name__ == "__main__":
     manager = ReproducibilityManager(
         experiment_name="test_experiment",
         output_dir=Path("test_reproducibility"),
-        base_seed=42
+        base_seed=42,
     )
 
     # Example configuration
     config = {
-        'model': {
-            'type': 'cnn',
-            'layers': 3,
-            'filters': [64, 128, 256]
-        },
-        'training': {
-            'epochs': 10,
-            'lr': 0.001,
-            'batch_size': 32
-        },
-        'dann_schedule': {
-            'strategy': 'linear_warmup',
-            'warmup_steps': 1000
-        }
+        "model": {"type": "cnn", "layers": 3, "filters": [64, 128, 256]},
+        "training": {"epochs": 10, "lr": 0.001, "batch_size": 32},
+        "dann_schedule": {"strategy": "linear_warmup", "warmup_steps": 1000},
     }
 
     # Start experiment
@@ -653,11 +698,11 @@ if __name__ == "__main__":
     # Simulate training with metrics
     for epoch in range(3):
         metrics = {
-            f'epoch_{epoch}': {
-                'train_loss': np.random.random(),
-                'val_loss': np.random.random(),
-                'train_acc': np.random.random(),
-                'val_acc': np.random.random()
+            f"epoch_{epoch}": {
+                "train_loss": np.random.random(),
+                "val_loss": np.random.random(),
+                "train_acc": np.random.random(),
+                "val_acc": np.random.random(),
             }
         }
         manager.log_metrics(metrics)

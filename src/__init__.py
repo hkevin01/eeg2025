@@ -51,14 +51,14 @@ __email__ = "team@eeg2025.org"
 try:
     # Original components
     from src.dataio.bids_loader import HBNDataLoader
-    from src.models.backbones.temporal_cnn import TemporalCNN
-    from src.models.backbones.transformer_tiny import TransformerTiny
+    from src.models.adapters.task_aware import TaskAwareAdapter
 
     # New foundation model components
     from src.models.backbone.eeg_transformer import EEGTransformer
-    from src.models.adapters.task_aware import TaskAwareAdapter
-    from src.models.heads.temporal_regression import TemporalRegressionHead
+    from src.models.backbones.temporal_cnn import TemporalCNN
+    from src.models.backbones.transformer_tiny import TransformerTiny
     from src.models.compression_ssl.augmentation import CompressionAugmentation
+    from src.models.heads.temporal_regression import TemporalRegressionHead
     from src.training.trainers.ssl_trainer import SSLTrainer
 
     __all__ = [
@@ -76,5 +76,6 @@ try:
 except ImportError as e:
     # Graceful fallback for missing dependencies
     import warnings
+
     warnings.warn(f"Some components could not be imported: {e}", ImportWarning)
     __all__ = []

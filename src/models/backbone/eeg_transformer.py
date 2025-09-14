@@ -6,10 +6,11 @@ Main transformer architecture for EEG processing with channel-aware attention.
 """
 
 import math
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
 
 
 class PositionalEncoding(nn.Module):
@@ -20,17 +21,18 @@ class PositionalEncoding(nn.Module):
 
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() *
-                           (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+        )
 
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
 
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
-        return x + self.pe[:x.size(0), :]
+        return x + self.pe[: x.size(0), :]
 
 
 class EEGTransformerLayer(nn.Module):
@@ -51,7 +53,7 @@ class EEGTransformerLayer(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(4 * d_model, d_model),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
         self.dropout = nn.Dropout(dropout)
@@ -91,7 +93,7 @@ class EEGTransformer(nn.Module):
         n_layers: int = 12,
         n_heads: int = 12,
         dropout: float = 0.1,
-        max_seq_len: int = 2048
+        max_seq_len: int = 2048,
     ):
         super().__init__()
 
@@ -105,10 +107,9 @@ class EEGTransformer(nn.Module):
         self.pos_encoding = PositionalEncoding(d_model, max_seq_len)
 
         # Transformer layers
-        self.layers = nn.ModuleList([
-            EEGTransformerLayer(d_model, n_heads, dropout)
-            for _ in range(n_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [EEGTransformerLayer(d_model, n_heads, dropout) for _ in range(n_layers)]
+        )
 
         self.norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
@@ -127,9 +128,7 @@ class EEGTransformer(nn.Module):
             nn.init.zeros_(module.bias)
 
     def forward(
-        self,
-        x: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Forward pass through EEG transformer.
@@ -163,9 +162,7 @@ class EEGTransformer(nn.Module):
         return x
 
     def get_attention_weights(
-        self,
-        x: torch.Tensor,
-        layer_idx: int = -1
+        self, x: torch.Tensor, layer_idx: int = -1
     ) -> torch.Tensor:
         """
         Extract attention weights from a specific layer.
@@ -206,11 +203,7 @@ class EEGPatchEmbedding(nn.Module):
     """
 
     def __init__(
-        self,
-        n_channels: int,
-        patch_size: int,
-        d_model: int,
-        overlap: float = 0.5
+        self, n_channels: int, patch_size: int, d_model: int, overlap: float = 0.5
     ):
         super().__init__()
 
@@ -241,12 +234,14 @@ class EEGPatchEmbedding(nn.Module):
         # Create patches with overlap
         patches = []
         for i in range(0, seq_len - self.patch_size + 1, self.stride):
-            patch = x[:, :, i:i+self.patch_size]  # [batch, channels, patch_size]
+            patch = x[:, :, i : i + self.patch_size]  # [batch, channels, patch_size]
             patch = patch.flatten(1)  # [batch, channels * patch_size]
             patches.append(patch)
 
         if patches:
-            patches = torch.stack(patches, dim=1)  # [batch, n_patches, channels * patch_size]
+            patches = torch.stack(
+                patches, dim=1
+            )  # [batch, n_patches, channels * patch_size]
             n_patches = patches.shape[1]
         else:
             # Handle case where sequence is too short
@@ -254,7 +249,9 @@ class EEGPatchEmbedding(nn.Module):
             n_patches = 1
             # Adjust embedding size if needed
             if patches.shape[-1] != self.n_channels * self.patch_size:
-                patches = F.pad(patches, (0, self.n_channels * self.patch_size - patches.shape[-1]))
+                patches = F.pad(
+                    patches, (0, self.n_channels * self.patch_size - patches.shape[-1])
+                )
 
         # Embed patches
         embeddings = self.patch_embed(patches)  # [batch, n_patches, d_model]
@@ -277,10 +274,10 @@ def create_eeg_transformer(config: dict) -> EEGTransformer:
         EEG transformer model
     """
     return EEGTransformer(
-        n_channels=config.get('n_channels', 128),
-        d_model=config.get('d_model', 768),
-        n_layers=config.get('n_layers', 12),
-        n_heads=config.get('n_heads', 12),
-        dropout=config.get('dropout', 0.1),
-        max_seq_len=config.get('max_sequence_length', 2048)
+        n_channels=config.get("n_channels", 128),
+        d_model=config.get("d_model", 768),
+        n_layers=config.get("n_layers", 12),
+        n_heads=config.get("n_heads", 12),
+        dropout=config.get("dropout", 0.1),
+        max_seq_len=config.get("max_sequence_length", 2048),
     )

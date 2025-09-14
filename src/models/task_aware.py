@@ -5,22 +5,24 @@ This module implements task tokens, FiLM adapters, and LoRA adapters to enable
 efficient task-conditioned feature modulation while preserving a single foundation backbone.
 """
 
+import math
+from enum import Enum
+from typing import Dict, List, Optional, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, Optional, List, Union
-from enum import Enum
-import math
 
 
 class HBNTask(Enum):
     """HBN-EEG task enumeration."""
-    RS = "resting_state"      # Resting state
+
+    RS = "resting_state"  # Resting state
     SUS = "sustained_attention"  # Sustained attention
-    MW = "mind_wandering"     # Mind wandering
+    MW = "mind_wandering"  # Mind wandering
     CCD = "cognitive_control"  # Cognitive control
-    SL = "social_learning"    # Social learning
-    SYS = "systems"          # Systems task
+    SL = "social_learning"  # Social learning
+    SYS = "systems"  # Systems task
 
 
 class TaskTokenEmbedding(nn.Module):
@@ -31,10 +33,9 @@ class TaskTokenEmbedding(nn.Module):
     or used to condition adapter layers.
     """
 
-    def __init__(self,
-                 embed_dim: int,
-                 tasks: List[HBNTask] = None,
-                 dropout: float = 0.1):
+    def __init__(
+        self, embed_dim: int, tasks: List[HBNTask] = None, dropout: float = 0.1
+    ):
         """
         Initialize task token embeddings.
 
@@ -59,9 +60,11 @@ class TaskTokenEmbedding(nn.Module):
         # Initialize with small random values
         nn.init.normal_(self.task_embeddings.weight, std=0.02)
 
-    def forward(self,
-                task_ids: Union[torch.Tensor, List[HBNTask], List[str]],
-                batch_size: Optional[int] = None) -> torch.Tensor:
+    def forward(
+        self,
+        task_ids: Union[torch.Tensor, List[HBNTask], List[str]],
+        batch_size: Optional[int] = None,
+    ) -> torch.Tensor:
         """
         Get task token embeddings.
 
@@ -80,9 +83,13 @@ class TaskTokenEmbedding(nn.Module):
             if isinstance(task_ids[0], HBNTask):
                 # Convert HBNTask to indices
                 indices = [self.task_to_idx[task] for task in task_ids]
-                task_indices = torch.tensor(indices, device=self.task_embeddings.weight.device)
+                task_indices = torch.tensor(
+                    indices, device=self.task_embeddings.weight.device
+                )
             else:
-                task_indices = torch.tensor(task_ids, device=self.task_embeddings.weight.device)
+                task_indices = torch.tensor(
+                    task_ids, device=self.task_embeddings.weight.device
+                )
         else:
             task_indices = task_ids
 
@@ -110,11 +117,13 @@ class FiLMAdapter(nn.Module):
     from task embeddings.
     """
 
-    def __init__(self,
-                 feature_dim: int,
-                 task_embed_dim: int,
-                 hidden_dim: Optional[int] = None,
-                 activation: str = 'relu'):
+    def __init__(
+        self,
+        feature_dim: int,
+        task_embed_dim: int,
+        hidden_dim: Optional[int] = None,
+        activation: str = "relu",
+    ):
         """
         Initialize FiLM adapter.
 
@@ -134,8 +143,12 @@ class FiLMAdapter(nn.Module):
         # Task conditioning network
         self.task_net = nn.Sequential(
             nn.Linear(task_embed_dim, hidden_dim),
-            getattr(nn, activation.title())() if hasattr(nn, activation.title()) else nn.ReLU(),
-            nn.Linear(hidden_dim, 2 * feature_dim)  # γ and β
+            (
+                getattr(nn, activation.title())()
+                if hasattr(nn, activation.title())
+                else nn.ReLU()
+            ),
+            nn.Linear(hidden_dim, 2 * feature_dim),  # γ and β
         )
 
         # Initialize to identity transformation
@@ -177,12 +190,14 @@ class LoRAAdapter(nn.Module):
     where α is learned per task.
     """
 
-    def __init__(self,
-                 in_features: int,
-                 out_features: int,
-                 rank: int = 8,
-                 alpha: float = 1.0,
-                 dropout: float = 0.0):
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        rank: int = 8,
+        alpha: float = 1.0,
+        dropout: float = 0.0,
+    ):
         """
         Initialize LoRA adapter.
 
@@ -225,14 +240,16 @@ class TaskConditionedLinear(nn.Module):
     Linear layer with optional task-specific LoRA adapters.
     """
 
-    def __init__(self,
-                 in_features: int,
-                 out_features: int,
-                 bias: bool = True,
-                 num_tasks: int = 6,
-                 lora_rank: int = 8,
-                 lora_alpha: float = 1.0,
-                 use_lora: bool = False):
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        bias: bool = True,
+        num_tasks: int = 6,
+        lora_rank: int = 8,
+        lora_alpha: float = 1.0,
+        use_lora: bool = False,
+    ):
         """
         Initialize task-conditioned linear layer.
 
@@ -253,10 +270,12 @@ class TaskConditionedLinear(nn.Module):
 
         # Task-specific LoRA adapters
         if use_lora:
-            self.lora_adapters = nn.ModuleList([
-                LoRAAdapter(in_features, out_features, lora_rank, lora_alpha)
-                for _ in range(num_tasks)
-            ])
+            self.lora_adapters = nn.ModuleList(
+                [
+                    LoRAAdapter(in_features, out_features, lora_rank, lora_alpha)
+                    for _ in range(num_tasks)
+                ]
+            )
 
     def forward(self, x: torch.Tensor, task_id: Optional[int] = None) -> torch.Tensor:
         """
@@ -284,13 +303,15 @@ class TaskAwareBlock(nn.Module):
     Transformer-like block with task conditioning via FiLM.
     """
 
-    def __init__(self,
-                 dim: int,
-                 task_embed_dim: int,
-                 num_heads: int = 8,
-                 mlp_ratio: float = 4.0,
-                 dropout: float = 0.1,
-                 use_film: bool = True):
+    def __init__(
+        self,
+        dim: int,
+        task_embed_dim: int,
+        num_heads: int = 8,
+        mlp_ratio: float = 4.0,
+        dropout: float = 0.1,
+        use_film: bool = True,
+    ):
         """
         Initialize task-aware block.
 
@@ -309,7 +330,9 @@ class TaskAwareBlock(nn.Module):
 
         # Multi-head attention
         self.norm1 = nn.LayerNorm(dim)
-        self.attn = nn.MultiheadAttention(dim, num_heads, dropout=dropout, batch_first=True)
+        self.attn = nn.MultiheadAttention(
+            dim, num_heads, dropout=dropout, batch_first=True
+        )
 
         # MLP
         mlp_hidden_dim = int(dim * mlp_ratio)
@@ -319,7 +342,7 @@ class TaskAwareBlock(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(mlp_hidden_dim, dim),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
         # FiLM conditioning
@@ -327,10 +350,12 @@ class TaskAwareBlock(nn.Module):
             self.film1 = FiLMAdapter(dim, task_embed_dim)
             self.film2 = FiLMAdapter(dim, task_embed_dim)
 
-    def forward(self,
-                x: torch.Tensor,
-                task_embed: Optional[torch.Tensor] = None,
-                mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        task_embed: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """
         Forward pass with task conditioning.
 
@@ -366,16 +391,18 @@ class TaskAwareTemporalCNN(nn.Module):
     Enhanced TemporalCNN with task conditioning capabilities.
     """
 
-    def __init__(self,
-                 input_channels: int = 19,
-                 temporal_kernel_size: int = 25,
-                 num_layers: int = 5,
-                 hidden_channels: List[int] = None,
-                 dropout: float = 0.3,
-                 task_embed_dim: int = 64,
-                 use_film: bool = True,
-                 use_lora: bool = False,
-                 lora_rank: int = 8):
+    def __init__(
+        self,
+        input_channels: int = 19,
+        temporal_kernel_size: int = 25,
+        num_layers: int = 5,
+        hidden_channels: List[int] = None,
+        dropout: float = 0.3,
+        task_embed_dim: int = 64,
+        use_film: bool = True,
+        use_lora: bool = False,
+        lora_rank: int = 8,
+    ):
         """
         Initialize task-aware TemporalCNN.
 
@@ -410,12 +437,17 @@ class TaskAwareTemporalCNN(nn.Module):
         for i, out_channels in enumerate(hidden_channels):
             # Depthwise separable convolution
             layer = nn.Sequential(
-                nn.Conv1d(in_channels, in_channels, temporal_kernel_size,
-                         padding=temporal_kernel_size//2, groups=in_channels),
+                nn.Conv1d(
+                    in_channels,
+                    in_channels,
+                    temporal_kernel_size,
+                    padding=temporal_kernel_size // 2,
+                    groups=in_channels,
+                ),
                 nn.Conv1d(in_channels, out_channels, 1),
                 nn.BatchNorm1d(out_channels),
                 nn.GELU(),
-                nn.Dropout(dropout)
+                nn.Dropout(dropout),
             )
             self.layers.append(layer)
 
@@ -429,9 +461,9 @@ class TaskAwareTemporalCNN(nn.Module):
         self.global_pool = nn.AdaptiveAvgPool1d(1)
         self.output_dim = hidden_channels[-1]
 
-    def forward(self,
-                x: torch.Tensor,
-                task_id: Union[torch.Tensor, HBNTask, str, None] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, task_id: Union[torch.Tensor, HBNTask, str, None] = None
+    ) -> torch.Tensor:
         """
         Forward pass with task conditioning.
 
@@ -475,12 +507,14 @@ class MultiTaskHead(nn.Module):
     Multi-task prediction head with task-specific adapters.
     """
 
-    def __init__(self,
-                 input_dim: int,
-                 task_configs: Dict[str, Dict],
-                 task_embed_dim: int = 64,
-                 use_film: bool = True,
-                 shared_hidden_dim: int = 256):
+    def __init__(
+        self,
+        input_dim: int,
+        task_configs: Dict[str, Dict],
+        task_embed_dim: int = 64,
+        use_film: bool = True,
+        shared_hidden_dim: int = 256,
+    ):
         """
         Initialize multi-task head.
 
@@ -501,7 +535,7 @@ class MultiTaskHead(nn.Module):
             nn.Linear(input_dim, shared_hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(shared_hidden_dim, shared_hidden_dim)
+            nn.Linear(shared_hidden_dim, shared_hidden_dim),
         )
 
         # FiLM conditioning for shared features
@@ -511,27 +545,24 @@ class MultiTaskHead(nn.Module):
         # Task-specific heads
         self.task_heads = nn.ModuleDict()
         for task_name, config in task_configs.items():
-            output_dim = config['output_dim']
-            head_type = config.get('type', 'regression')
+            output_dim = config["output_dim"]
+            head_type = config.get("type", "regression")
 
-            if head_type == 'regression':
-                head = nn.Sequential(
-                    nn.Linear(shared_hidden_dim, output_dim)
-                )
-            elif head_type == 'classification':
+            if head_type == "regression":
+                head = nn.Sequential(nn.Linear(shared_hidden_dim, output_dim))
+            elif head_type == "classification":
                 head = nn.Sequential(
                     nn.Linear(shared_hidden_dim, output_dim),
-                    nn.Sigmoid() if output_dim == 1 else nn.Softmax(dim=-1)
+                    nn.Sigmoid() if output_dim == 1 else nn.Softmax(dim=-1),
                 )
             else:
                 raise ValueError(f"Unknown head type: {head_type}")
 
             self.task_heads[task_name] = head
 
-    def forward(self,
-                features: torch.Tensor,
-                task_embed: torch.Tensor,
-                task_name: str) -> torch.Tensor:
+    def forward(
+        self, features: torch.Tensor, task_embed: torch.Tensor, task_name: str
+    ) -> torch.Tensor:
         """
         Forward pass for specific task.
 
@@ -561,48 +592,48 @@ class MultiTaskHead(nn.Module):
 def create_hbn_task_configs():
     """Create standard HBN task configurations."""
     return {
-        'ccd_rt': {
-            'output_dim': 1,
-            'type': 'regression',
-            'loss': 'corr_mse',
-            'metrics': ['pearson_r', 'rmse']
+        "ccd_rt": {
+            "output_dim": 1,
+            "type": "regression",
+            "loss": "corr_mse",
+            "metrics": ["pearson_r", "rmse"],
         },
-        'ccd_success': {
-            'output_dim': 1,
-            'type': 'classification',
-            'loss': 'bce',
-            'metrics': ['auroc', 'auprc', 'balanced_accuracy']
+        "ccd_success": {
+            "output_dim": 1,
+            "type": "classification",
+            "loss": "bce",
+            "metrics": ["auroc", "auprc", "balanced_accuracy"],
         },
-        'cbcl_p_factor': {
-            'output_dim': 1,
-            'type': 'regression',
-            'loss': 'mse',
-            'metrics': ['pearson_r']
+        "cbcl_p_factor": {
+            "output_dim": 1,
+            "type": "regression",
+            "loss": "mse",
+            "metrics": ["pearson_r"],
         },
-        'cbcl_internalizing': {
-            'output_dim': 1,
-            'type': 'regression',
-            'loss': 'mse',
-            'metrics': ['pearson_r']
+        "cbcl_internalizing": {
+            "output_dim": 1,
+            "type": "regression",
+            "loss": "mse",
+            "metrics": ["pearson_r"],
         },
-        'cbcl_externalizing': {
-            'output_dim': 1,
-            'type': 'regression',
-            'loss': 'mse',
-            'metrics': ['pearson_r']
+        "cbcl_externalizing": {
+            "output_dim": 1,
+            "type": "regression",
+            "loss": "mse",
+            "metrics": ["pearson_r"],
         },
-        'cbcl_attention': {
-            'output_dim': 1,
-            'type': 'regression',
-            'loss': 'mse',
-            'metrics': ['pearson_r']
-        }
+        "cbcl_attention": {
+            "output_dim": 1,
+            "type": "regression",
+            "loss": "mse",
+            "metrics": ["pearson_r"],
+        },
     }
 
 
 if __name__ == "__main__":
     # Example usage and testing
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Test task token embedding
     task_embedder = TaskTokenEmbedding(embed_dim=64)
@@ -611,10 +642,7 @@ if __name__ == "__main__":
 
     # Test task-aware CNN
     model = TaskAwareTemporalCNN(
-        input_channels=19,
-        num_layers=4,
-        task_embed_dim=64,
-        use_film=True
+        input_channels=19, num_layers=4, task_embed_dim=64, use_film=True
     ).to(device)
 
     # Test forward pass
@@ -628,13 +656,11 @@ if __name__ == "__main__":
     # Test multi-task head
     task_configs = create_hbn_task_configs()
     head = MultiTaskHead(
-        input_dim=model.get_output_dim(),
-        task_configs=task_configs,
-        task_embed_dim=64
+        input_dim=model.get_output_dim(), task_configs=task_configs, task_embed_dim=64
     ).to(device)
 
     task_embed = task_embedder(task_ids)
-    ccd_rt_pred = head(features, task_embed, 'ccd_rt')
+    ccd_rt_pred = head(features, task_embed, "ccd_rt")
     print(f"CCD RT predictions shape: {ccd_rt_pred.shape}")
 
     print("✅ Task-aware architecture test completed successfully!")

@@ -5,11 +5,12 @@ Enhanced Classification Heads for Challenge 1
 Specialized classification heads with calibration and confidence estimation.
 """
 
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Dict, List, Optional, Tuple
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
 
@@ -33,6 +34,7 @@ class TemperatureScaling(nn.Module):
             logits: Model logits [batch_size, num_classes]
             labels: True labels [batch_size]
         """
+
         def nll_criterion(temperature):
             scaled_logits = logits / temperature
             loss = F.cross_entropy(scaled_logits, labels)
@@ -41,7 +43,7 @@ class TemperatureScaling(nn.Module):
         # Optimize temperature using grid search
         temperatures = torch.linspace(0.1, 10.0, 100)
         best_temp = 1.0
-        best_loss = float('inf')
+        best_loss = float("inf")
 
         for temp in temperatures:
             loss = nll_criterion(temp)
@@ -73,7 +75,7 @@ class CalibratedClassificationHead(nn.Module):
         calibration_bins: int = 15,
         use_confidence_estimation: bool = True,
         focal_alpha: float = 1.0,
-        focal_gamma: float = 2.0
+        focal_gamma: float = 2.0,
     ):
         super().__init__()
 
@@ -89,12 +91,14 @@ class CalibratedClassificationHead(nn.Module):
         in_dim = input_dim
 
         for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(in_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                nn.ReLU(inplace=True),
-                nn.Dropout(dropout)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(in_dim, hidden_dim),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.ReLU(inplace=True),
+                    nn.Dropout(dropout),
+                ]
+            )
             in_dim = hidden_dim
 
         self.feature_layers = nn.Sequential(*layers)
@@ -109,7 +113,7 @@ class CalibratedClassificationHead(nn.Module):
                 nn.ReLU(),
                 nn.Dropout(dropout),
                 nn.Linear(hidden_dims[-1] // 2, 1),
-                nn.Sigmoid()
+                nn.Sigmoid(),
             )
 
         # Temperature scaling for calibration
@@ -120,15 +124,17 @@ class CalibratedClassificationHead(nn.Module):
         self.decision_threshold = nn.Parameter(torch.tensor(0.5))
 
         # Track calibration statistics
-        self.register_buffer('bin_boundaries', torch.linspace(0, 1, calibration_bins + 1))
-        self.register_buffer('bin_lowers', self.bin_boundaries[:-1])
-        self.register_buffer('bin_uppers', self.bin_boundaries[1:])
+        self.register_buffer(
+            "bin_boundaries", torch.linspace(0, 1, calibration_bins + 1)
+        )
+        self.register_buffer("bin_lowers", self.bin_boundaries[:-1])
+        self.register_buffer("bin_uppers", self.bin_boundaries[1:])
 
     def forward(
         self,
         x: torch.Tensor,
         return_confidence: bool = False,
-        return_features: bool = False
+        return_features: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass for classification.
@@ -148,7 +154,7 @@ class CalibratedClassificationHead(nn.Module):
         logits = self.classifier(features)
 
         # Apply temperature scaling if calibrated
-        if self.use_calibration and hasattr(self.temperature_scaling, 'temperature'):
+        if self.use_calibration and hasattr(self.temperature_scaling, "temperature"):
             calibrated_logits = self.temperature_scaling(logits)
         else:
             calibrated_logits = logits
@@ -159,7 +165,7 @@ class CalibratedClassificationHead(nn.Module):
         outputs = {
             "logits": logits,
             "calibrated_logits": calibrated_logits,
-            "probabilities": probabilities
+            "probabilities": probabilities,
         }
 
         # Confidence estimation
@@ -177,7 +183,7 @@ class CalibratedClassificationHead(nn.Module):
         self,
         logits: torch.Tensor,
         targets: torch.Tensor,
-        alpha: Optional[torch.Tensor] = None
+        alpha: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Compute focal loss for handling class imbalance.
@@ -191,9 +197,11 @@ class CalibratedClassificationHead(nn.Module):
             Focal loss value
         """
         if alpha is None:
-            alpha = torch.ones(self.num_classes, device=logits.device) * self.focal_alpha
+            alpha = (
+                torch.ones(self.num_classes, device=logits.device) * self.focal_alpha
+            )
 
-        ce_loss = F.cross_entropy(logits, targets, reduction='none')
+        ce_loss = F.cross_entropy(logits, targets, reduction="none")
         pt = torch.exp(-ce_loss)
 
         # Apply class weights
@@ -207,9 +215,7 @@ class CalibratedClassificationHead(nn.Module):
         return focal_loss.mean()
 
     def calibrate_probabilities(
-        self,
-        val_logits: torch.Tensor,
-        val_labels: torch.Tensor
+        self, val_logits: torch.Tensor, val_labels: torch.Tensor
     ):
         """
         Calibrate probabilities using validation data.
@@ -222,9 +228,7 @@ class CalibratedClassificationHead(nn.Module):
             self.temperature_scaling.set_temperature(val_logits, val_labels)
 
     def optimize_threshold(
-        self,
-        val_probabilities: torch.Tensor,
-        val_labels: torch.Tensor
+        self, val_probabilities: torch.Tensor, val_labels: torch.Tensor
     ) -> float:
         """
         Optimize decision threshold for balanced accuracy.
@@ -270,10 +274,7 @@ class CalibratedClassificationHead(nn.Module):
 
         return best_threshold
 
-    def predict_with_threshold(
-        self,
-        probabilities: torch.Tensor
-    ) -> torch.Tensor:
+    def predict_with_threshold(self, probabilities: torch.Tensor) -> torch.Tensor:
         """
         Make predictions using optimized threshold.
 
@@ -292,9 +293,7 @@ class CalibratedClassificationHead(nn.Module):
         return predictions
 
     def compute_calibration_error(
-        self,
-        probabilities: torch.Tensor,
-        labels: torch.Tensor
+        self, probabilities: torch.Tensor, labels: torch.Tensor
     ) -> Dict[str, float]:
         """
         Compute Expected Calibration Error (ECE) and other calibration metrics.
@@ -326,7 +325,9 @@ class CalibratedClassificationHead(nn.Module):
 
         for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
             # Find samples in this bin
-            in_bin = (confidences > bin_lower.item()) & (confidences <= bin_upper.item())
+            in_bin = (confidences > bin_lower.item()) & (
+                confidences <= bin_upper.item()
+            )
             prop_in_bin = in_bin.sum() / len(confidences)
 
             if prop_in_bin > 0:
@@ -343,7 +344,7 @@ class CalibratedClassificationHead(nn.Module):
             "expected_calibration_error": ece,
             "maximum_calibration_error": mce,
             "average_confidence": np.mean(confidences),
-            "accuracy": np.mean(accuracies)
+            "accuracy": np.mean(accuracies),
         }
 
 
@@ -360,7 +361,7 @@ class EnsembleClassificationHead(nn.Module):
         num_classes: int = 2,
         num_heads: int = 3,
         head_configs: Optional[List[Dict]] = None,
-        ensemble_method: str = "voting"  # "voting", "weighted", "stacking"
+        ensemble_method: str = "voting",  # "voting", "weighted", "stacking"
     ):
         super().__init__()
 
@@ -373,19 +374,21 @@ class EnsembleClassificationHead(nn.Module):
             head_configs = [
                 {"hidden_dims": [512, 256], "dropout": 0.3},
                 {"hidden_dims": [768, 384, 192], "dropout": 0.2},
-                {"hidden_dims": [256, 128], "dropout": 0.4}
+                {"hidden_dims": [256, 128], "dropout": 0.4},
             ]
 
         # Create ensemble heads
-        self.heads = nn.ModuleList([
-            CalibratedClassificationHead(
-                input_dim=input_dim,
-                num_classes=num_classes,
-                use_calibration=True,
-                **config
-            )
-            for config in head_configs[:num_heads]
-        ])
+        self.heads = nn.ModuleList(
+            [
+                CalibratedClassificationHead(
+                    input_dim=input_dim,
+                    num_classes=num_classes,
+                    use_calibration=True,
+                    **config,
+                )
+                for config in head_configs[:num_heads]
+            ]
+        )
 
         # Ensemble weights
         if ensemble_method == "weighted":
@@ -394,9 +397,7 @@ class EnsembleClassificationHead(nn.Module):
             self.meta_classifier = nn.Linear(num_heads * num_classes, num_classes)
 
     def forward(
-        self,
-        x: torch.Tensor,
-        return_individual: bool = False
+        self, x: torch.Tensor, return_individual: bool = False
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass through ensemble.
@@ -425,9 +426,10 @@ class EnsembleClassificationHead(nn.Module):
         elif self.ensemble_method == "weighted":
             # Weighted averaging
             weights = F.softmax(self.ensemble_weights, dim=0)
-            weighted_probs = torch.stack([
-                weight * probs for weight, probs in zip(weights, head_probabilities)
-            ], dim=0)
+            weighted_probs = torch.stack(
+                [weight * probs for weight, probs in zip(weights, head_probabilities)],
+                dim=0,
+            )
             ensemble_probs = weighted_probs.sum(dim=0)
 
         elif self.ensemble_method == "stacking":
@@ -438,7 +440,7 @@ class EnsembleClassificationHead(nn.Module):
 
         outputs = {
             "probabilities": ensemble_probs,
-            "logits": torch.log(ensemble_probs + 1e-8)  # Convert back to logits
+            "logits": torch.log(ensemble_probs + 1e-8),  # Convert back to logits
         }
 
         if return_individual:
@@ -472,7 +474,7 @@ class EnsembleClassificationHead(nn.Module):
                 kl_div = F.kl_div(
                     torch.log(head_probabilities[i] + 1e-8),
                     head_probabilities[j],
-                    reduction='batchmean'
+                    reduction="batchmean",
                 )
                 diversity_loss += kl_div
                 num_pairs += 1

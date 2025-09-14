@@ -5,16 +5,16 @@ CuPy-based perceptual quantization for EEG compression augmentation.
 Implements frequency-domain compression with adaptive bit allocation.
 """
 from __future__ import annotations
+
+import warnings
+from typing import Optional, Tuple, Union
+
 import cupy as cp
 import numpy as np
-from typing import Tuple, Optional, Union
-import warnings
+
 
 def _stft_cupy(
-    x: cp.ndarray,
-    n_fft: int = 512,
-    hop: int = 256,
-    win: Optional[cp.ndarray] = None
+    x: cp.ndarray, n_fft: int = 512, hop: int = 256, win: Optional[cp.ndarray] = None
 ) -> cp.ndarray:
     """
     Short-time Fourier transform using CuPy.
@@ -55,7 +55,7 @@ def _stft_cupy(
             frame = cp.zeros((B, C, n_fft), dtype=cp.float32)
             valid_len = max(0, T - start)
             if valid_len > 0:
-                frame[:, :, :valid_len] = x[:, :, start:start+valid_len]
+                frame[:, :, :valid_len] = x[:, :, start : start + valid_len]
 
         # Apply window
         windowed = frame * win[None, None, :]
@@ -71,7 +71,7 @@ def _istft_cupy(
     n_fft: int = 512,
     hop: int = 256,
     win: Optional[cp.ndarray] = None,
-    T_out: Optional[int] = None
+    T_out: Optional[int] = None,
 ) -> cp.ndarray:
     """
     Inverse short-time Fourier transform using CuPy.
@@ -194,7 +194,7 @@ def perceptual_quantize(
         band_mag = magnitude[..., freq_start:freq_end]
 
         # Compute RMS energy per (B, C, frame) for this band
-        band_energy = cp.sqrt(cp.mean(band_mag ** 2, axis=-1, keepdims=True) + 1e-8)
+        band_energy = cp.sqrt(cp.mean(band_mag**2, axis=-1, keepdims=True) + 1e-8)
 
         # Adaptive quantization step based on energy and target SNR
         quant_step = noise_scale * band_energy
@@ -224,9 +224,9 @@ def perceptual_quantize(
 
 def adaptive_wavelet_compress(
     x: cp.ndarray,
-    wavelet: str = 'db4',
+    wavelet: str = "db4",
     compression_ratio: float = 0.75,
-    threshold_mode: str = 'soft',
+    threshold_mode: str = "soft",
     stochastic: bool = True,
 ) -> cp.ndarray:
     """
@@ -257,7 +257,7 @@ def adaptive_wavelet_compress(
             signal_cpu = cp.asnumpy(x[b, c, :])
 
             # Wavelet decomposition
-            coeffs = pywt.wavedec(signal_cpu, wavelet, mode='symmetric')
+            coeffs = pywt.wavedec(signal_cpu, wavelet, mode="symmetric")
 
             # Flatten all coefficients except approximation
             detail_coeffs = cp.asarray(np.concatenate(coeffs[1:]))
@@ -276,9 +276,9 @@ def adaptive_wavelet_compress(
 
             for i in range(1, len(coeffs)):
                 detail_len = len(coeffs[i])
-                detail_band = detail_coeffs[detail_start:detail_start + detail_len]
+                detail_band = detail_coeffs[detail_start : detail_start + detail_len]
 
-                if threshold_mode == 'soft':
+                if threshold_mode == "soft":
                     # Soft thresholding
                     detail_thresh = cp.sign(detail_band) * cp.maximum(
                         cp.abs(detail_band) - threshold, 0
@@ -291,7 +291,7 @@ def adaptive_wavelet_compress(
                 detail_start += detail_len
 
             # Wavelet reconstruction
-            reconstructed = pywt.waverec(coeffs_thresh, wavelet, mode='symmetric')
+            reconstructed = pywt.waverec(coeffs_thresh, wavelet, mode="symmetric")
 
             # Handle length mismatch
             if len(reconstructed) != T:
@@ -299,7 +299,7 @@ def adaptive_wavelet_compress(
                     reconstructed = reconstructed[:T]
                 else:
                     padded = np.zeros(T)
-                    padded[:len(reconstructed)] = reconstructed
+                    padded[: len(reconstructed)] = reconstructed
                     reconstructed = padded
 
             x_out[b, c, :] = cp.asarray(reconstructed)
@@ -347,7 +347,7 @@ def predictive_coding_residual(
             # Adaptive linear prediction using LMS
             for t in range(P, T):
                 # Prediction input (past samples)
-                x_vec = signal[t-P:t][::-1]  # Reverse for convolution
+                x_vec = signal[t - P : t][::-1]  # Reverse for convolution
 
                 # Prediction
                 prediction = cp.dot(coeffs, x_vec)
@@ -419,7 +419,7 @@ def perceptual_quantize_torch(
         hop=hop,
         band_edges=band_edges,
         stochastic=stochastic,
-        seed=seed
+        seed=seed,
     )
 
     # Convert CuPy -> PyTorch via DLPack (zero-copy)
@@ -449,19 +449,19 @@ def compression_augmentation_suite(
 
     if compression_config is None:
         compression_config = {
-            'perceptual_quant': {
-                'snr_db_range': (25, 35),
-                'stochastic': True,
+            "perceptual_quant": {
+                "snr_db_range": (25, 35),
+                "stochastic": True,
             },
-            'wavelet_compress': {
-                'compression_ratio_range': (0.5, 0.8),
-                'stochastic': True,
+            "wavelet_compress": {
+                "compression_ratio_range": (0.5, 0.8),
+                "stochastic": True,
             },
-            'predictive_coding': {
-                'predictor_order': 8,
-                'add_noise': True,
-                'noise_std': 0.01,
-            }
+            "predictive_coding": {
+                "predictor_order": 8,
+                "add_noise": True,
+                "noise_std": 0.01,
+            },
         }
 
     # Convert to CuPy
@@ -471,39 +471,41 @@ def compression_augmentation_suite(
     techniques = []
 
     # Perceptual quantization
-    if 'perceptual_quant' in compression_config and cp.random.rand() > 0.5:
-        pq_config = compression_config['perceptual_quant']
-        snr_range = pq_config.get('snr_db_range', (25, 35))
+    if "perceptual_quant" in compression_config and cp.random.rand() > 0.5:
+        pq_config = compression_config["perceptual_quant"]
+        snr_range = pq_config.get("snr_db_range", (25, 35))
         snr_db = float(cp.random.uniform(snr_range[0], snr_range[1]))
-        cp_x = perceptual_quantize(cp_x, snr_db=snr_db,
-                                 stochastic=pq_config.get('stochastic', True))
-        techniques.append(f'perceptual_quant(snr={snr_db:.1f}dB)')
+        cp_x = perceptual_quantize(
+            cp_x, snr_db=snr_db, stochastic=pq_config.get("stochastic", True)
+        )
+        techniques.append(f"perceptual_quant(snr={snr_db:.1f}dB)")
 
     # Wavelet compression
-    if 'wavelet_compress' in compression_config and cp.random.rand() > 0.5:
-        wc_config = compression_config['wavelet_compress']
-        ratio_range = wc_config.get('compression_ratio_range', (0.5, 0.8))
+    if "wavelet_compress" in compression_config and cp.random.rand() > 0.5:
+        wc_config = compression_config["wavelet_compress"]
+        ratio_range = wc_config.get("compression_ratio_range", (0.5, 0.8))
         ratio = float(cp.random.uniform(ratio_range[0], ratio_range[1]))
-        cp_x = adaptive_wavelet_compress(cp_x, compression_ratio=ratio,
-                                       stochastic=wc_config.get('stochastic', True))
-        techniques.append(f'wavelet_compress(ratio={ratio:.2f})')
+        cp_x = adaptive_wavelet_compress(
+            cp_x, compression_ratio=ratio, stochastic=wc_config.get("stochastic", True)
+        )
+        techniques.append(f"wavelet_compress(ratio={ratio:.2f})")
 
     # Predictive coding residual
-    if 'predictive_coding' in compression_config and cp.random.rand() > 0.3:
-        pc_config = compression_config['predictive_coding']
+    if "predictive_coding" in compression_config and cp.random.rand() > 0.3:
+        pc_config = compression_config["predictive_coding"]
         cp_x = predictive_coding_residual(
             cp_x,
-            predictor_order=pc_config.get('predictor_order', 8),
-            add_noise=pc_config.get('add_noise', True),
-            noise_std=pc_config.get('noise_std', 0.01)
+            predictor_order=pc_config.get("predictor_order", 8),
+            add_noise=pc_config.get("add_noise", True),
+            noise_std=pc_config.get("noise_std", 0.01),
         )
-        techniques.append('predictive_coding')
+        techniques.append("predictive_coding")
 
     # Convert back to PyTorch
     result = torch.utils.dlpack.from_dlpack(cp_x.toDlpack())
 
     # Store applied techniques as metadata (for debugging)
-    if hasattr(result, '_compression_techniques'):
+    if hasattr(result, "_compression_techniques"):
         result._compression_techniques = techniques
 
     return result
@@ -518,7 +520,7 @@ def perceptual_quantize_cpu_fallback(
 ) -> np.ndarray:
     """CPU fallback for perceptual quantization when CuPy unavailable."""
     try:
-        from scipy.signal import stft, istft
+        from scipy.signal import istft, stft
     except ImportError:
         warnings.warn("SciPy not available, returning original signal")
         return x
@@ -529,7 +531,7 @@ def perceptual_quantize_cpu_fallback(
     for b in range(B):
         for c in range(C):
             # STFT
-            f, t, X = stft(x[b, c, :], nperseg=n_fft, noverlap=n_fft-hop)
+            f, t, X = stft(x[b, c, :], nperseg=n_fft, noverlap=n_fft - hop)
 
             # Simple quantization (less sophisticated than CuPy version)
             magnitude = np.abs(X)
@@ -537,14 +539,14 @@ def perceptual_quantize_cpu_fallback(
 
             # Global quantization step
             noise_scale = 10 ** (-snr_db / 20.0)
-            rms = np.sqrt(np.mean(magnitude ** 2))
+            rms = np.sqrt(np.mean(magnitude**2))
             quant_step = noise_scale * rms
 
             quantized_mag = np.round(magnitude / quant_step) * quant_step
             quantized_X = quantized_mag * np.exp(1j * phase)
 
             # ISTFT
-            _, reconstructed = istft(quantized_X, nperseg=n_fft, noverlap=n_fft-hop)
+            _, reconstructed = istft(quantized_X, nperseg=n_fft, noverlap=n_fft - hop)
 
             # Handle length mismatch
             if len(reconstructed) != T:
@@ -552,7 +554,7 @@ def perceptual_quantize_cpu_fallback(
                     reconstructed = reconstructed[:T]
                 else:
                     padded = np.zeros(T)
-                    padded[:len(reconstructed)] = reconstructed
+                    padded[: len(reconstructed)] = reconstructed
                     reconstructed = padded
 
             result[b, c, :] = reconstructed

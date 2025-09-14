@@ -7,24 +7,25 @@ and view generation with various augmentation techniques for robust EEG represen
 
 import logging
 import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
 from ..models.backbones.temporal_cnn import TemporalCNN
 from ..models.losses.ssl_losses import (
-    MaskedReconstructionLoss,
     ContrastiveLoss,
-    PredictiveResidualLoss
+    MaskedReconstructionLoss,
+    PredictiveResidualLoss,
 )
-from ..utils.schedulers import ParameterScheduler
 from ..utils.augmentations import SSLViewPipeline
+from ..utils.schedulers import ParameterScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class MaskedTimeDecoder(nn.Module):
         d_model: int,
         n_channels: int,
         decoder_type: str = "linear",
-        hidden_dim: Optional[int] = None
+        hidden_dim: Optional[int] = None,
     ):
         super().__init__()
 
@@ -97,7 +98,7 @@ class MaskedTimeDecoder(nn.Module):
             self.decoder = nn.Sequential(
                 nn.Conv1d(d_model, hidden_dim, kernel_size=3, padding=1),
                 nn.ReLU(),
-                nn.Conv1d(hidden_dim, n_channels, kernel_size=1)
+                nn.Conv1d(hidden_dim, n_channels, kernel_size=1),
             )
         else:
             raise ValueError(f"Unknown decoder type: {decoder_type}")
@@ -130,12 +131,7 @@ class SSLModel(nn.Module):
     SSL model combining backbone with multiple SSL heads.
     """
 
-    def __init__(
-        self,
-        backbone: nn.Module,
-        config: SSLConfig,
-        n_channels: int = 64
-    ):
+    def __init__(self, backbone: nn.Module, config: SSLConfig, n_channels: int = 64):
         super().__init__()
 
         self.backbone = backbone
@@ -147,27 +143,25 @@ class SSLModel(nn.Module):
             self.masked_decoder = MaskedTimeDecoder(
                 d_model=config.d_model,
                 n_channels=n_channels,
-                decoder_type="linear"  # Start with linear, can be configured
+                decoder_type="linear",  # Start with linear, can be configured
             )
 
         if "contrastive" in config.objectives:
             self.projection_head = nn.Sequential(
                 nn.Linear(config.d_model, config.d_model),
                 nn.ReLU(),
-                nn.Linear(config.d_model, config.emb_dim)
+                nn.Linear(config.d_model, config.emb_dim),
             )
 
         if "predictive_residual" in config.objectives:
             self.predictor_head = nn.Sequential(
                 nn.Linear(config.d_model, config.d_model // 2),
                 nn.ReLU(),
-                nn.Linear(config.d_model // 2, config.d_model)
+                nn.Linear(config.d_model // 2, config.d_model),
             )
 
     def forward(
-        self,
-        x: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass with multiple SSL objectives.
@@ -185,12 +179,12 @@ class SSLModel(nn.Module):
         outputs = {"features": features}
 
         # Masked reconstruction
-        if "masked" in self.config.objectives and hasattr(self, 'masked_decoder'):
+        if "masked" in self.config.objectives and hasattr(self, "masked_decoder"):
             reconstructed = self.masked_decoder(features)
             outputs["reconstructed"] = reconstructed
 
         # Contrastive learning
-        if "contrastive" in self.config.objectives and hasattr(self, 'projection_head'):
+        if "contrastive" in self.config.objectives and hasattr(self, "projection_head"):
             # Global pooling for contrastive learning
             pooled_features = features.mean(dim=1)  # [batch_size, d_model]
             projections = self.projection_head(pooled_features)
@@ -198,7 +192,9 @@ class SSLModel(nn.Module):
             outputs["projections"] = projections
 
         # Predictive residual
-        if "predictive_residual" in self.config.objectives and hasattr(self, 'predictor_head'):
+        if "predictive_residual" in self.config.objectives and hasattr(
+            self, "predictor_head"
+        ):
             predicted = self.predictor_head(features)
             outputs["predicted"] = predicted
 
@@ -217,7 +213,7 @@ class SSLPretrainer:
         config: SSLConfig,
         model: SSLModel,
         view_pipeline: SSLViewPipeline,
-        device: torch.device
+        device: torch.device,
     ):
         self.config = config
         self.model = model.to(device)
@@ -229,9 +225,7 @@ class SSLPretrainer:
 
         # Initialize optimizer and scheduler
         self.optimizer = torch.optim.AdamW(
-            self.model.parameters(),
-            lr=config.lr,
-            weight_decay=config.weight_decay
+            self.model.parameters(), lr=config.lr, weight_decay=config.weight_decay
         )
 
         self.scheduler = self._init_scheduler()
@@ -245,7 +239,7 @@ class SSLPretrainer:
         # Training state
         self.current_epoch = 0
         self.global_step = 0
-        self.best_loss = float('inf')
+        self.best_loss = float("inf")
 
         logger.info(f"SSL Pretrainer initialized with objectives: {config.objectives}")
 
@@ -268,14 +262,11 @@ class SSLPretrainer:
         """Initialize learning rate scheduler."""
         if self.config.scheduler == "cosine":
             return torch.optim.lr_scheduler.CosineAnnealingLR(
-                self.optimizer,
-                T_max=self.config.epochs
+                self.optimizer, T_max=self.config.epochs
             )
         elif self.config.scheduler == "step":
             return torch.optim.lr_scheduler.StepLR(
-                self.optimizer,
-                step_size=self.config.epochs // 3,
-                gamma=0.1
+                self.optimizer, step_size=self.config.epochs // 3, gamma=0.1
             )
         else:
             return None
@@ -291,7 +282,7 @@ class SSLPretrainer:
             start_value=0.05,
             end_value=self.config.temperature,
             warmup_epochs=5,
-            total_epochs=self.config.epochs
+            total_epochs=self.config.epochs,
         )
 
         # Mask ratio scheduler (start low, increase)
@@ -300,7 +291,7 @@ class SSLPretrainer:
             schedule_type="linear",
             start_value=0.1,
             end_value=self.config.mask_ratio,
-            total_epochs=self.config.epochs
+            total_epochs=self.config.epochs,
         )
 
         # Distortion percentage scheduler
@@ -309,7 +300,7 @@ class SSLPretrainer:
             schedule_type="cosine",
             start_value=0.5,
             end_value=self.config.wavelet_distortion_pct,
-            total_epochs=self.config.epochs
+            total_epochs=self.config.epochs,
         )
 
         return schedulers
@@ -329,7 +320,7 @@ class SSLPretrainer:
                 wandb.init(
                     project="eeg2025_ssl_pretrain",
                     config=self.config.__dict__,
-                    dir=str(self.ckpt_dir)
+                    dir=str(self.ckpt_dir),
                 )
             self.use_wandb = True
         except Exception as e:
@@ -346,7 +337,9 @@ class SSLPretrainer:
         Returns:
             Boolean mask [batch_size, seq_len] where True = masked
         """
-        current_mask_ratio = self.param_schedulers["mask_ratio"].get_value(self.current_epoch)
+        current_mask_ratio = self.param_schedulers["mask_ratio"].get_value(
+            self.current_epoch
+        )
 
         masks = []
         for _ in range(batch_size):
@@ -355,7 +348,7 @@ class SSLPretrainer:
             start_idx = np.random.randint(0, seq_len - mask_len + 1)
 
             mask = torch.zeros(seq_len, dtype=torch.bool)
-            mask[start_idx:start_idx + mask_len] = True
+            mask[start_idx : start_idx + mask_len] = True
             masks.append(mask)
 
         return torch.stack(masks).to(self.device)
@@ -377,8 +370,12 @@ class SSLPretrainer:
         batch_size, n_channels, seq_len = x.shape
 
         # Update schedulable parameters
-        current_temp = self.param_schedulers["temperature"].get_value(self.current_epoch)
-        current_distortion = self.param_schedulers["distortion_pct"].get_value(self.current_epoch)
+        current_temp = self.param_schedulers["temperature"].get_value(
+            self.current_epoch
+        )
+        current_distortion = self.param_schedulers["distortion_pct"].get_value(
+            self.current_epoch
+        )
 
         # Update loss temperature if contrastive
         if "contrastive" in self.losses:
@@ -401,19 +398,14 @@ class SSLPretrainer:
 
         # Masked reconstruction loss
         if "masked" in self.config.objectives and "reconstructed" in outputs:
-            masked_loss = self.losses["masked"](
-                outputs["reconstructed"],
-                x,
-                mask
-            )
+            masked_loss = self.losses["masked"](outputs["reconstructed"], x, mask)
             losses["masked_loss"] = masked_loss.item()
             total_loss += masked_loss
 
         # Contrastive loss
         if "contrastive" in self.config.objectives and "projections" in outputs:
             contrastive_loss = self.losses["contrastive"](
-                outputs["projections"],
-                outputs2["projections"]
+                outputs["projections"], outputs2["projections"]
             )
             losses["contrastive_loss"] = contrastive_loss.item()
             total_loss += contrastive_loss
@@ -421,8 +413,7 @@ class SSLPretrainer:
         # Predictive residual loss
         if "predictive_residual" in self.config.objectives and "predicted" in outputs:
             residual_loss = self.losses["predictive_residual"](
-                outputs["predicted"],
-                outputs["features"]
+                outputs["predicted"], outputs["features"]
             )
             losses["predictive_residual_loss"] = residual_loss.item()
             total_loss += residual_loss
@@ -439,7 +430,9 @@ class SSLPretrainer:
         losses["total_loss"] = total_loss.item()
         losses["learning_rate"] = self.optimizer.param_groups[0]["lr"]
         losses["current_temperature"] = current_temp
-        losses["current_mask_ratio"] = self.param_schedulers["mask_ratio"].get_value(self.current_epoch)
+        losses["current_mask_ratio"] = self.param_schedulers["mask_ratio"].get_value(
+            self.current_epoch
+        )
         losses["current_distortion_pct"] = current_distortion
 
         return losses
@@ -485,7 +478,10 @@ class SSLPretrainer:
                 val_losses["val_contrastive_loss"] = contrastive_loss.item()
                 total_loss += contrastive_loss
 
-            if "predictive_residual" in self.config.objectives and "predicted" in outputs:
+            if (
+                "predictive_residual" in self.config.objectives
+                and "predicted" in outputs
+            ):
                 residual_loss = self.losses["predictive_residual"](
                     outputs["predicted"], outputs["features"]
                 )
@@ -521,9 +517,11 @@ class SSLPretrainer:
                 self.log_step(step_losses, batch_idx, len(train_loader))
 
             # Validation
-            if (val_loader is not None and
-                batch_idx % self.config.eval_every == 0 and
-                batch_idx > 0):
+            if (
+                val_loader is not None
+                and batch_idx % self.config.eval_every == 0
+                and batch_idx > 0
+            ):
                 val_losses = self.validate(val_loader)
                 self.log_validation(val_losses)
 
@@ -581,7 +579,9 @@ class SSLPretrainer:
 
         # W&B logging
         if self.use_wandb:
-            wandb.log({f"train/{k}": v for k, v in losses.items()}, step=self.global_step)
+            wandb.log(
+                {f"train/{k}": v for k, v in losses.items()}, step=self.global_step
+            )
 
     def log_validation(self, val_losses: Dict[str, float]):
         """Log validation metrics."""
@@ -598,7 +598,9 @@ class SSLPretrainer:
 
         # W&B logging
         if self.use_wandb:
-            wandb.log({f"val/{k}": v for k, v in val_losses.items()}, step=self.global_step)
+            wandb.log(
+                {f"val/{k}": v for k, v in val_losses.items()}, step=self.global_step
+            )
 
     def save_checkpoint(self, epoch: int, is_best: bool = False):
         """Save model checkpoint."""
@@ -606,7 +608,9 @@ class SSLPretrainer:
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
-            "scheduler_state_dict": self.scheduler.state_dict() if self.scheduler else None,
+            "scheduler_state_dict": (
+                self.scheduler.state_dict() if self.scheduler else None
+            ),
             "config": self.config,
             "global_step": self.global_step,
             "best_loss": self.best_loss,
@@ -656,7 +660,7 @@ class SSLPretrainer:
             # Validation
             if val_loader is not None:
                 val_metrics = self.validate(val_loader)
-                current_val_loss = val_metrics.get("val_total_loss", float('inf'))
+                current_val_loss = val_metrics.get("val_total_loss", float("inf"))
                 history["val_loss"].append(current_val_loss)
 
                 # Check for best model
@@ -673,7 +677,9 @@ class SSLPretrainer:
 
             # Epoch logging
             epoch_time = time.time() - start_time
-            log_str = f"Epoch {epoch}/{self.config.epochs} completed in {epoch_time:.2f}s"
+            log_str = (
+                f"Epoch {epoch}/{self.config.epochs} completed in {epoch_time:.2f}s"
+            )
             log_str += f" | Train Loss: {train_loss:.4f}"
             if current_val_loss is not None:
                 log_str += f" | Val Loss: {current_val_loss:.4f}"
@@ -708,16 +714,12 @@ def create_ssl_model(config: SSLConfig, n_channels: int = 64) -> SSLModel:
             n_channels=n_channels,
             n_filters=config.d_model,
             kernel_size=25,
-            n_blocks=config.n_layers
+            n_blocks=config.n_layers,
         )
     else:
         raise ValueError(f"Unknown backbone: {config.backbone}")
 
     # Create SSL model
-    model = SSLModel(
-        backbone=backbone,
-        config=config,
-        n_channels=n_channels
-    )
+    model = SSLModel(backbone=backbone, config=config, n_channels=n_channels)
 
     return model

@@ -28,7 +28,7 @@ class SqueezeExcitation1D(nn.Module):
             nn.Conv1d(channels, channels // reduction, 1),
             nn.ReLU(inplace=True),
             nn.Conv1d(channels // reduction, channels, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -48,15 +48,20 @@ class DepthwiseSeparableConv1d(nn.Module):
         dilation: int = 1,
         bias: bool = False,
         use_se: bool = True,
-        se_reduction: int = 16
+        se_reduction: int = 16,
     ):
         super().__init__()
 
         # Depthwise convolution
         self.depthwise = nn.Conv1d(
-            in_channels, in_channels, kernel_size,
-            stride=stride, padding=padding, dilation=dilation,
-            groups=in_channels, bias=bias
+            in_channels,
+            in_channels,
+            kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=in_channels,
+            bias=bias,
         )
 
         # Pointwise convolution
@@ -82,7 +87,7 @@ class RotaryPositionalEmbedding(nn.Module):
         super().__init__()
         self.dim = dim
         inv_freq = 1.0 / (10000 ** (torch.arange(0, dim, 2).float() / dim))
-        self.register_buffer('inv_freq', inv_freq)
+        self.register_buffer("inv_freq", inv_freq)
 
         # Cache for efficiency
         self.max_seq_len = max_seq_len
@@ -91,12 +96,14 @@ class RotaryPositionalEmbedding(nn.Module):
         self._cached_sin = None
 
     def _update_cache(self, seq_len: int, device: torch.device):
-        if (self._cached_freqs is None or
-            seq_len > self._cached_freqs.shape[0] or
-            self._cached_freqs.device != device):
+        if (
+            self._cached_freqs is None
+            or seq_len > self._cached_freqs.shape[0]
+            or self._cached_freqs.device != device
+        ):
 
             t = torch.arange(seq_len, device=device).type_as(self.inv_freq)
-            freqs = torch.einsum('i,j->ij', t, self.inv_freq)
+            freqs = torch.einsum("i,j->ij", t, self.inv_freq)
             freqs = torch.cat([freqs, freqs], dim=-1)
 
             self._cached_freqs = freqs
@@ -113,13 +120,12 @@ class RotaryPositionalEmbedding(nn.Module):
         return cos, sin
 
 
-def apply_rotary_pos_emb(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> torch.Tensor:
+def apply_rotary_pos_emb(
+    x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor
+) -> torch.Tensor:
     """Apply rotary positional embedding to input tensor."""
     x1, x2 = x[..., ::2], x[..., 1::2]
-    return torch.cat([
-        x1 * cos - x2 * sin,
-        x2 * cos + x1 * sin
-    ], dim=-1)
+    return torch.cat([x1 * cos - x2 * sin, x2 * cos + x1 * sin], dim=-1)
 
 
 class MultiHeadAttention(nn.Module):
@@ -130,7 +136,7 @@ class MultiHeadAttention(nn.Module):
         dim: int,
         num_heads: int = 8,
         dropout: float = 0.1,
-        use_rotary: bool = True
+        use_rotary: bool = True,
     ):
         super().__init__()
         assert dim % num_heads == 0
@@ -138,7 +144,7 @@ class MultiHeadAttention(nn.Module):
         self.dim = dim
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
 
         self.qkv = nn.Linear(dim, dim * 3, bias=False)
         self.proj = nn.Linear(dim, dim)
@@ -148,7 +154,9 @@ class MultiHeadAttention(nn.Module):
         if use_rotary:
             self.rotary = RotaryPositionalEmbedding(self.head_dim)
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         B, N, C = x.shape
 
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim)
@@ -186,7 +194,7 @@ class FeedForward(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -203,7 +211,7 @@ class ConformerBlock(nn.Module):
         ff_mult: int = 4,
         conv_kernel_size: int = 31,
         dropout: float = 0.1,
-        use_rotary: bool = True
+        use_rotary: bool = True,
     ):
         super().__init__()
 
@@ -218,15 +226,17 @@ class ConformerBlock(nn.Module):
         # Convolution module
         self.conv = nn.Sequential(
             nn.LayerNorm(dim),
-            Rearrange('b n c -> b c n'),
+            Rearrange("b n c -> b c n"),
             nn.Conv1d(dim, dim * 2, 1),
             nn.GLU(dim=1),
-            nn.Conv1d(dim, dim, conv_kernel_size, padding=conv_kernel_size // 2, groups=dim),
+            nn.Conv1d(
+                dim, dim, conv_kernel_size, padding=conv_kernel_size // 2, groups=dim
+            ),
             nn.BatchNorm1d(dim),
             nn.SiLU(),
             nn.Conv1d(dim, dim, 1),
             nn.Dropout(dropout),
-            Rearrange('b c n -> b n c')
+            Rearrange("b c n -> b n c"),
         )
 
         # Second feed-forward
@@ -236,7 +246,9 @@ class ConformerBlock(nn.Module):
         # Layer scale
         self.layer_scale = nn.Parameter(torch.ones(dim) * 1e-4)
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         # Half-step feed-forward
         x = x + 0.5 * self.ff1(self.norm1(x))
 
@@ -263,7 +275,7 @@ class ConformerTiny(nn.Module):
         num_heads: int = 8,
         conv_kernel_size: int = 31,
         dropout: float = 0.1,
-        max_seq_len: int = 1000
+        max_seq_len: int = 1000,
     ):
         super().__init__()
 
@@ -273,24 +285,28 @@ class ConformerTiny(nn.Module):
         self.channel_embed = nn.Linear(in_channels, dim)
 
         # Conformer blocks
-        self.blocks = nn.ModuleList([
-            ConformerBlock(
-                dim=dim,
-                num_heads=num_heads,
-                conv_kernel_size=conv_kernel_size,
-                dropout=dropout
-            )
-            for _ in range(depth)
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                ConformerBlock(
+                    dim=dim,
+                    num_heads=num_heads,
+                    conv_kernel_size=conv_kernel_size,
+                    dropout=dropout,
+                )
+                for _ in range(depth)
+            ]
+        )
 
         self.norm = nn.LayerNorm(dim)
 
         # Global pooling
         self.pool = nn.AdaptiveAvgPool1d(1)
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         # x: (batch, channels, time)
-        x = rearrange(x, 'b c t -> b t c')  # (batch, time, channels)
+        x = rearrange(x, "b c t -> b t c")  # (batch, time, channels)
 
         # Channel embedding
         x = self.channel_embed(x)  # (batch, time, dim)
@@ -302,7 +318,7 @@ class ConformerTiny(nn.Module):
         x = self.norm(x)
 
         # Global pooling
-        x = rearrange(x, 'b t c -> b c t')
+        x = rearrange(x, "b t c -> b c t")
         x = self.pool(x).squeeze(-1)  # (batch, dim)
 
         return x
@@ -329,7 +345,7 @@ class DomainAdversarialNetwork(nn.Module):
         feature_dim: int,
         num_domains: int,
         hidden_dim: int = 256,
-        dropout: float = 0.5
+        dropout: float = 0.5,
     ):
         super().__init__()
 
@@ -340,7 +356,7 @@ class DomainAdversarialNetwork(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, num_domains)
+            nn.Linear(hidden_dim, num_domains),
         )
 
     def forward(self, features: torch.Tensor, alpha: float = 1.0) -> torch.Tensor:
@@ -362,7 +378,7 @@ class EnhancedTemporalCNN(nn.Module):
         conformer_dim: int = 256,
         conformer_depth: int = 4,
         num_domains: int = 1000,
-        enable_domain_adaptation: bool = True
+        enable_domain_adaptation: bool = True,
     ):
         """
         Initialize Enhanced Temporal CNN.
@@ -393,16 +409,21 @@ class EnhancedTemporalCNN(nn.Module):
 
         for i, out_channels in enumerate(num_channels):
             # Depthwise separable convolution with SE
-            layers.extend([
-                DepthwiseSeparableConv1d(
-                    prev_channels, out_channels, kernel_size,
-                    padding=kernel_size // 2, use_se=use_se
-                ),
-                nn.BatchNorm1d(out_channels),
-                nn.ReLU(inplace=True),
-                nn.Dropout1d(dropout),
-                nn.MaxPool1d(2)
-            ])
+            layers.extend(
+                [
+                    DepthwiseSeparableConv1d(
+                        prev_channels,
+                        out_channels,
+                        kernel_size,
+                        padding=kernel_size // 2,
+                        use_se=use_se,
+                    ),
+                    nn.BatchNorm1d(out_channels),
+                    nn.ReLU(inplace=True),
+                    nn.Dropout1d(dropout),
+                    nn.MaxPool1d(2),
+                ]
+            )
             prev_channels = out_channels
 
         self.temporal_layers = nn.Sequential(*layers)
@@ -414,7 +435,7 @@ class EnhancedTemporalCNN(nn.Module):
                 in_channels=prev_channels,
                 dim=conformer_dim,
                 depth=conformer_depth,
-                dropout=dropout
+                dropout=dropout,
             )
             self.feature_dim = conformer_dim
         else:
@@ -428,10 +449,7 @@ class EnhancedTemporalCNN(nn.Module):
             )
 
     def forward(
-        self,
-        x: torch.Tensor,
-        alpha: float = 1.0,
-        return_domain_logits: bool = False
+        self, x: torch.Tensor, alpha: float = 1.0, return_domain_logits: bool = False
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass.
@@ -477,7 +495,7 @@ class ChannelAttention(nn.Module):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(num_channels // 4, num_channels),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -503,7 +521,7 @@ class RobustEEGBackbone(nn.Module):
         dropout: float = 0.3,
         channel_dropout: float = 0.1,
         use_channel_attention: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 
@@ -521,7 +539,7 @@ class RobustEEGBackbone(nn.Module):
             num_channels=num_channels,
             kernel_size=kernel_size,
             dropout=dropout,
-            **kwargs
+            **kwargs,
         )
 
     def _apply_channel_dropout(self, x: torch.Tensor) -> torch.Tensor:
@@ -530,7 +548,9 @@ class RobustEEGBackbone(nn.Module):
             # Random channel mask
             batch_size, channels, time = x.shape
             keep_prob = 1 - self.channel_dropout
-            mask = torch.bernoulli(torch.full((batch_size, channels, 1), keep_prob)).to(x.device)
+            mask = torch.bernoulli(torch.full((batch_size, channels, 1), keep_prob)).to(
+                x.device
+            )
             x = x * mask
 
         return x

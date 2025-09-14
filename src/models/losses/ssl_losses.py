@@ -5,10 +5,11 @@ This module implements various self-supervised learning objectives including
 masked reconstruction, contrastive learning, and predictive coding.
 """
 
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
 
 
 class MaskedReconstructionLoss(nn.Module):
@@ -34,10 +35,7 @@ class MaskedReconstructionLoss(nn.Module):
             raise ValueError(f"Unknown loss type: {loss_type}")
 
     def forward(
-        self,
-        reconstructed: torch.Tensor,
-        target: torch.Tensor,
-        mask: torch.Tensor
+        self, reconstructed: torch.Tensor, target: torch.Tensor, mask: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute masked reconstruction loss.
@@ -55,7 +53,9 @@ class MaskedReconstructionLoss(nn.Module):
 
         # Apply mask - only compute loss on masked timesteps
         # Expand mask to match loss dimensions
-        mask_expanded = mask.unsqueeze(1).expand_as(loss)  # [batch_size, n_channels, seq_len]
+        mask_expanded = mask.unsqueeze(1).expand_as(
+            loss
+        )  # [batch_size, n_channels, seq_len]
 
         # Apply mask
         masked_loss = loss * mask_expanded
@@ -85,11 +85,7 @@ class ContrastiveLoss(nn.Module):
         super().__init__()
         self.temperature = temperature
 
-    def forward(
-        self,
-        z1: torch.Tensor,
-        z2: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
         """
         Compute contrastive loss between two views.
 
@@ -111,7 +107,9 @@ class ContrastiveLoss(nn.Module):
         # Negative pairs: (z1[i], z2[j]) where i != j
 
         # Similarity between z1 and z2
-        sim_matrix = torch.matmul(z1, z2.T) / self.temperature  # [batch_size, batch_size]
+        sim_matrix = (
+            torch.matmul(z1, z2.T) / self.temperature
+        )  # [batch_size, batch_size]
 
         # Create labels - positive pairs are on the diagonal
         labels = torch.arange(batch_size, device=z1.device)
@@ -145,11 +143,7 @@ class PredictiveResidualLoss(nn.Module):
         else:
             raise ValueError(f"Unknown loss type: {loss_type}")
 
-    def forward(
-        self,
-        predicted: torch.Tensor,
-        target: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, predicted: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Compute predictive residual loss.
 
@@ -163,8 +157,8 @@ class PredictiveResidualLoss(nn.Module):
         # Shift targets by prediction_steps for future prediction
         if self.prediction_steps > 0:
             # Predict future: predicted[t] should match target[t + prediction_steps]
-            pred_truncated = predicted[:, :-self.prediction_steps, :]
-            target_shifted = target[:, self.prediction_steps:, :]
+            pred_truncated = predicted[:, : -self.prediction_steps, :]
+            target_shifted = target[:, self.prediction_steps :, :]
         else:
             # Autoregressive: predict current from past
             pred_truncated = predicted
@@ -222,21 +216,14 @@ class VICRegLoss(nn.Module):
     """
 
     def __init__(
-        self,
-        sim_coeff: float = 25.0,
-        std_coeff: float = 25.0,
-        cov_coeff: float = 1.0
+        self, sim_coeff: float = 25.0, std_coeff: float = 25.0, cov_coeff: float = 1.0
     ):
         super().__init__()
         self.sim_coeff = sim_coeff
         self.std_coeff = std_coeff
         self.cov_coeff = cov_coeff
 
-    def forward(
-        self,
-        z1: torch.Tensor,
-        z2: torch.Tensor
-    ) -> Tuple[torch.Tensor, dict]:
+    def forward(self, z1: torch.Tensor, z2: torch.Tensor) -> Tuple[torch.Tensor, dict]:
         """
         Compute VICReg loss.
 
@@ -266,21 +253,21 @@ class VICRegLoss(nn.Module):
 
         # Off-diagonal elements should be zero
         cov_loss = (
-            cov_z1.fill_diagonal_(0).pow_(2).sum() / dim +
-            cov_z2.fill_diagonal_(0).pow_(2).sum() / dim
+            cov_z1.fill_diagonal_(0).pow_(2).sum() / dim
+            + cov_z2.fill_diagonal_(0).pow_(2).sum() / dim
         )
 
         # Total loss
         total_loss = (
-            self.sim_coeff * sim_loss +
-            self.std_coeff * std_loss +
-            self.cov_coeff * cov_loss
+            self.sim_coeff * sim_loss
+            + self.std_coeff * std_loss
+            + self.cov_coeff * cov_loss
         )
 
         loss_dict = {
             "sim_loss": sim_loss.item(),
             "std_loss": std_loss.item(),
-            "cov_loss": cov_loss.item()
+            "cov_loss": cov_loss.item(),
         }
 
         return total_loss, loss_dict
@@ -297,7 +284,7 @@ class CombinedSSLLoss(nn.Module):
         self,
         objectives: list,
         weights: Optional[dict] = None,
-        learnable_weights: bool = False
+        learnable_weights: bool = False,
     ):
         super().__init__()
         self.objectives = objectives
@@ -321,12 +308,16 @@ class CombinedSSLLoss(nn.Module):
             weights = {obj: 1.0 for obj in objectives}
 
         if learnable_weights:
-            self.weights = nn.ParameterDict({
-                obj: nn.Parameter(torch.tensor(weights.get(obj, 1.0)))
-                for obj in objectives
-            })
+            self.weights = nn.ParameterDict(
+                {
+                    obj: nn.Parameter(torch.tensor(weights.get(obj, 1.0)))
+                    for obj in objectives
+                }
+            )
         else:
-            self.register_buffer("weights", torch.tensor([weights.get(obj, 1.0) for obj in objectives]))
+            self.register_buffer(
+                "weights", torch.tensor([weights.get(obj, 1.0) for obj in objectives])
+            )
             self.weight_dict = {obj: weights.get(obj, 1.0) for obj in objectives}
 
     def forward(self, outputs: dict, targets: dict) -> Tuple[torch.Tensor, dict]:
@@ -346,7 +337,7 @@ class CombinedSSLLoss(nn.Module):
         for obj in self.objectives:
             if obj in self.losses:
                 # Get weight
-                if hasattr(self, 'weight_dict'):
+                if hasattr(self, "weight_dict"):
                     weight = self.weight_dict[obj]
                 else:
                     weight = self.weights[obj]
@@ -354,27 +345,20 @@ class CombinedSSLLoss(nn.Module):
                 # Compute objective-specific loss
                 if obj == "masked":
                     loss = self.losses[obj](
-                        outputs["reconstructed"],
-                        targets["original"],
-                        targets["mask"]
+                        outputs["reconstructed"], targets["original"], targets["mask"]
                     )
                 elif obj in ["contrastive", "vicreg"]:
                     if obj == "vicreg":
                         loss, vicreg_dict = self.losses[obj](
-                            outputs["projections1"],
-                            outputs["projections2"]
+                            outputs["projections1"], outputs["projections2"]
                         )
                         loss_dict.update(vicreg_dict)
                     else:
                         loss = self.losses[obj](
-                            outputs["projections1"],
-                            outputs["projections2"]
+                            outputs["projections1"], outputs["projections2"]
                         )
                 elif obj == "predictive_residual":
-                    loss = self.losses[obj](
-                        outputs["predicted"],
-                        outputs["features"]
-                    )
+                    loss = self.losses[obj](outputs["predicted"], outputs["features"])
                 elif obj == "temporal_consistency":
                     loss = self.losses[obj](outputs["features"])
 

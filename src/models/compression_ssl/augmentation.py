@@ -5,14 +5,16 @@ Compression-Augmented SSL
 Self-supervised learning with compression-based data augmentation.
 """
 
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Optional, Tuple, List, Dict, Any
 
 try:
     import pywt
+
     PYWT_AVAILABLE = True
 except ImportError:
     PYWT_AVAILABLE = False
@@ -29,7 +31,7 @@ class CompressionAugmentation(nn.Module):
         compression_levels: List[float] = [0.1, 0.3, 0.5, 0.7],
         noise_std: float = 0.02,
         freq_mask_prob: float = 0.3,
-        time_mask_prob: float = 0.3
+        time_mask_prob: float = 0.3,
     ):
         super().__init__()
 
@@ -45,9 +47,7 @@ class CompressionAugmentation(nn.Module):
             print("Warning: PyWavelets not available, using alternative compression")
 
     def wavelet_compress(
-        self,
-        x: torch.Tensor,
-        compression_level: float
+        self, x: torch.Tensor, compression_level: float
     ) -> torch.Tensor:
         """
         Apply wavelet compression to EEG signals.
@@ -91,17 +91,15 @@ class CompressionAugmentation(nn.Module):
                         compressed_signal = compressed_signal[:seq_len]
                     else:
                         padding = seq_len - len(compressed_signal)
-                        compressed_signal = np.pad(compressed_signal, (0, padding), 'constant')
+                        compressed_signal = np.pad(
+                            compressed_signal, (0, padding), "constant"
+                        )
 
                 compressed[b, c] = torch.from_numpy(compressed_signal).to(x.device)
 
         return compressed
 
-    def _fft_compress(
-        self,
-        x: torch.Tensor,
-        compression_level: float
-    ) -> torch.Tensor:
+    def _fft_compress(self, x: torch.Tensor, compression_level: float) -> torch.Tensor:
         """
         Fallback compression using FFT.
 
@@ -148,7 +146,7 @@ class CompressionAugmentation(nn.Module):
         if torch.rand(1) < self.freq_mask_prob:
             freq_mask_width = int(0.1 * seq_len)  # Mask 10% of frequencies
             freq_start = torch.randint(0, seq_len - freq_mask_width, (1,))
-            X_magnitude[..., freq_start:freq_start + freq_mask_width] *= 0.1
+            X_magnitude[..., freq_start : freq_start + freq_mask_width] *= 0.1
 
         # Reconstruct and convert back to time domain
         X_distorted = X_magnitude * torch.exp(1j * X_phase)
@@ -158,7 +156,7 @@ class CompressionAugmentation(nn.Module):
         if torch.rand(1) < self.time_mask_prob:
             time_mask_width = int(0.05 * seq_len)  # Mask 5% of time
             time_start = torch.randint(0, seq_len - time_mask_width, (1,))
-            x_distorted[..., time_start:time_start + time_mask_width] *= 0.1
+            x_distorted[..., time_start : time_start + time_mask_width] *= 0.1
 
         return x_distorted
 
@@ -172,13 +170,13 @@ class CompressionAugmentation(nn.Module):
         Returns:
             Noisy signal
         """
-        noise = torch.randn_like(x) * self.noise_std * torch.std(x, dim=-1, keepdim=True)
+        noise = (
+            torch.randn_like(x) * self.noise_std * torch.std(x, dim=-1, keepdim=True)
+        )
         return x + noise
 
     def forward(
-        self,
-        x: torch.Tensor,
-        compression_level: Optional[float] = None
+        self, x: torch.Tensor, compression_level: Optional[float] = None
     ) -> Dict[str, torch.Tensor]:
         """
         Apply compression augmentation.
@@ -194,22 +192,22 @@ class CompressionAugmentation(nn.Module):
             compression_level = np.random.choice(self.compression_levels)
 
         # Create different augmented views
-        views = {'original': x}
+        views = {"original": x}
 
         # Wavelet compression
-        views['compressed'] = self.wavelet_compress(x, compression_level)
+        views["compressed"] = self.wavelet_compress(x, compression_level)
 
         # Spectral distortion
-        views['distorted'] = self.spectral_distortion(x)
+        views["distorted"] = self.spectral_distortion(x)
 
         # Noisy version
-        views['noisy'] = self.add_noise(x)
+        views["noisy"] = self.add_noise(x)
 
         # Combined augmentation
         x_combined = self.wavelet_compress(x, compression_level * 0.5)
         x_combined = self.spectral_distortion(x_combined)
         x_combined = self.add_noise(x_combined)
-        views['combined'] = x_combined
+        views["combined"] = x_combined
 
         return views
 
@@ -223,7 +221,7 @@ class CompressionSSLLoss(nn.Module):
         self,
         temperature: float = 0.1,
         consistency_weight: float = 1.0,
-        contrastive_weight: float = 0.5
+        contrastive_weight: float = 0.5,
     ):
         super().__init__()
 
@@ -232,9 +230,7 @@ class CompressionSSLLoss(nn.Module):
         self.contrastive_weight = contrastive_weight
 
     def consistency_loss(
-        self,
-        features_orig: torch.Tensor,
-        features_aug: torch.Tensor
+        self, features_orig: torch.Tensor, features_aug: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute consistency loss between original and augmented features.
@@ -249,9 +245,7 @@ class CompressionSSLLoss(nn.Module):
         return F.mse_loss(features_orig, features_aug)
 
     def contrastive_loss(
-        self,
-        features: torch.Tensor,
-        labels: Optional[torch.Tensor] = None
+        self, features: torch.Tensor, labels: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
         Compute contrastive loss.
@@ -299,7 +293,7 @@ class CompressionSSLLoss(nn.Module):
     def forward(
         self,
         features_dict: Dict[str, torch.Tensor],
-        labels: Optional[torch.Tensor] = None
+        labels: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Compute total SSL loss.
@@ -314,19 +308,19 @@ class CompressionSSLLoss(nn.Module):
         losses = {}
 
         # Consistency loss
-        features_orig = features_dict['original']
+        features_orig = features_dict["original"]
         consistency_losses = []
 
         for view_name, features_aug in features_dict.items():
-            if view_name != 'original':
+            if view_name != "original":
                 consistency_losses.append(
                     self.consistency_loss(features_orig, features_aug)
                 )
 
         if consistency_losses:
-            losses['consistency'] = torch.stack(consistency_losses).mean()
+            losses["consistency"] = torch.stack(consistency_losses).mean()
         else:
-            losses['consistency'] = torch.tensor(0.0, device=features_orig.device)
+            losses["consistency"] = torch.tensor(0.0, device=features_orig.device)
 
         # Contrastive loss
         # Concatenate all features for contrastive learning
@@ -336,15 +330,15 @@ class CompressionSSLLoss(nn.Module):
         else:
             all_labels = None
 
-        losses['contrastive'] = self.contrastive_loss(all_features, all_labels)
+        losses["contrastive"] = self.contrastive_loss(all_features, all_labels)
 
         # Total loss
         total_loss = (
-            self.consistency_weight * losses['consistency'] +
-            self.contrastive_weight * losses['contrastive']
+            self.consistency_weight * losses["consistency"]
+            + self.contrastive_weight * losses["contrastive"]
         )
 
-        losses['total'] = total_loss
+        losses["total"] = total_loss
 
         return total_loss, losses
 
@@ -360,7 +354,7 @@ class CompressionAugmentedTrainer(nn.Module):
         augmentation: CompressionAugmentation,
         ssl_loss: CompressionSSLLoss,
         use_curriculum: bool = True,
-        curriculum_epochs: int = 20
+        curriculum_epochs: int = 20,
     ):
         super().__init__()
 
@@ -387,9 +381,7 @@ class CompressionAugmentedTrainer(nn.Module):
         return progress * max_compression
 
     def forward(
-        self,
-        x: torch.Tensor,
-        labels: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, labels: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Forward pass with compression augmentation.
@@ -419,7 +411,7 @@ class CompressionAugmentedTrainer(nn.Module):
         total_loss, loss_components = self.ssl_loss(features_dict, labels)
 
         # Add compression level to loss components
-        loss_components['compression_level'] = compression_level
+        loss_components["compression_level"] = compression_level
 
         return total_loss, loss_components
 
@@ -434,22 +426,22 @@ def create_compression_ssl(config: Dict[str, Any]) -> CompressionAugmentedTraine
     Returns:
         CompressionAugmentedTrainer instance
     """
-    ssl_config = config.get('compression_ssl', {})
+    ssl_config = config.get("compression_ssl", {})
 
     # Create augmentation
     augmentation = CompressionAugmentation(
-        wavelet_family=ssl_config.get('wavelet_family', 'db4'),
-        compression_levels=ssl_config.get('compression_levels', [0.1, 0.3, 0.5, 0.7]),
-        noise_std=ssl_config.get('noise_std', 0.02),
-        freq_mask_prob=ssl_config.get('spectral', {}).get('freq_mask_prob', 0.3),
-        time_mask_prob=ssl_config.get('spectral', {}).get('time_mask_prob', 0.3)
+        wavelet_family=ssl_config.get("wavelet_family", "db4"),
+        compression_levels=ssl_config.get("compression_levels", [0.1, 0.3, 0.5, 0.7]),
+        noise_std=ssl_config.get("noise_std", 0.02),
+        freq_mask_prob=ssl_config.get("spectral", {}).get("freq_mask_prob", 0.3),
+        time_mask_prob=ssl_config.get("spectral", {}).get("time_mask_prob", 0.3),
     )
 
     # Create SSL loss
     ssl_loss = CompressionSSLLoss(
-        temperature=ssl_config.get('contrastive', {}).get('temperature', 0.1),
-        consistency_weight=ssl_config.get('loss_weights', {}).get('consistency', 1.0),
-        contrastive_weight=ssl_config.get('loss_weights', {}).get('contrastive', 0.5)
+        temperature=ssl_config.get("contrastive", {}).get("temperature", 0.1),
+        consistency_weight=ssl_config.get("loss_weights", {}).get("consistency", 1.0),
+        contrastive_weight=ssl_config.get("loss_weights", {}).get("contrastive", 0.5),
     )
 
     # Note: feature_extractor should be passed separately
@@ -459,8 +451,10 @@ def create_compression_ssl(config: Dict[str, Any]) -> CompressionAugmentedTraine
             feature_extractor=feature_extractor,
             augmentation=augmentation,
             ssl_loss=ssl_loss,
-            use_curriculum=ssl_config.get('curriculum', {}).get('enabled', True),
-            curriculum_epochs=ssl_config.get('curriculum', {}).get('progression_epochs', 20)
+            use_curriculum=ssl_config.get("curriculum", {}).get("enabled", True),
+            curriculum_epochs=ssl_config.get("curriculum", {}).get(
+                "progression_epochs", 20
+            ),
         )
 
     return create_trainer

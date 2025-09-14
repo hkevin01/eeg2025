@@ -6,14 +6,15 @@ including time masking, channel dropout, temporal jitter, compression distortion
 and schedulable parameters for curriculum learning.
 """
 
+import math
+import random
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import pywt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import pywt
-from typing import Optional, Union, List, Tuple, Dict, Any
-import random
-import math
 from scipy import signal
 
 
@@ -24,11 +25,13 @@ class SchedulableAugmentation(nn.Module):
     Enables dynamic adjustment of augmentation intensity during training.
     """
 
-    def __init__(self,
-                 initial_param: float,
-                 final_param: float,
-                 param_name: str,
-                 schedule_strategy: str = "linear"):
+    def __init__(
+        self,
+        initial_param: float,
+        final_param: float,
+        param_name: str,
+        schedule_strategy: str = "linear",
+    ):
         """
         Initialize schedulable augmentation.
 
@@ -57,13 +60,20 @@ class SchedulableAugmentation(nn.Module):
         progress = min(step / total_steps, 1.0)
 
         if self.schedule_strategy == "linear":
-            param_value = self.initial_param + progress * (self.final_param - self.initial_param)
+            param_value = self.initial_param + progress * (
+                self.final_param - self.initial_param
+            )
         elif self.schedule_strategy == "cosine":
-            param_value = self.initial_param + (self.final_param - self.initial_param) * \
-                         (1 - math.cos(math.pi * progress)) / 2
+            param_value = (
+                self.initial_param
+                + (self.final_param - self.initial_param)
+                * (1 - math.cos(math.pi * progress))
+                / 2
+            )
         elif self.schedule_strategy == "exponential":
-            param_value = self.initial_param + (self.final_param - self.initial_param) * \
-                         (1 - math.exp(-5 * progress))
+            param_value = self.initial_param + (
+                self.final_param - self.initial_param
+            ) * (1 - math.exp(-5 * progress))
         else:
             param_value = self.final_param
 
@@ -77,12 +87,16 @@ class TimeMasking(SchedulableAugmentation):
     Randomly masks contiguous time segments to encourage temporal robustness.
     """
 
-    def __init__(self,
-                 initial_mask_ratio: float = 0.1,
-                 final_mask_ratio: float = 0.3,
-                 mask_value: float = 0.0,
-                 schedule_strategy: str = "linear"):
-        super().__init__(initial_mask_ratio, final_mask_ratio, "mask_ratio", schedule_strategy)
+    def __init__(
+        self,
+        initial_mask_ratio: float = 0.1,
+        final_mask_ratio: float = 0.3,
+        mask_value: float = 0.0,
+        schedule_strategy: str = "linear",
+    ):
+        super().__init__(
+            initial_mask_ratio, final_mask_ratio, "mask_ratio", schedule_strategy
+        )
         self.mask_value = mask_value
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -111,8 +125,8 @@ class TimeMasking(SchedulableAugmentation):
                     start_idx = np.random.randint(0, seq_len - mask_len + 1)
 
                     # Apply mask
-                    x_masked[i, :, start_idx:start_idx + mask_len] = self.mask_value
-                    mask[i, :, start_idx:start_idx + mask_len] = False
+                    x_masked[i, :, start_idx : start_idx + mask_len] = self.mask_value
+                    mask[i, :, start_idx : start_idx + mask_len] = False
 
             return x_masked, mask
 
@@ -126,13 +140,15 @@ class CompressionDistortion(SchedulableAugmentation):
     Simulates realistic compression artifacts that models might encounter in deployment.
     """
 
-    def __init__(self,
-                 initial_distortion: float = 0.25,
-                 final_distortion: float = 1.5,
-                 wavelet: str = 'db4',
-                 quantization_levels: int = 256,
-                 snr_db_range: Tuple[float, float] = (25.0, 35.0),
-                 schedule_strategy: str = "cosine"):
+    def __init__(
+        self,
+        initial_distortion: float = 0.25,
+        final_distortion: float = 1.5,
+        wavelet: str = "db4",
+        quantization_levels: int = 256,
+        snr_db_range: Tuple[float, float] = (25.0, 35.0),
+        schedule_strategy: str = "cosine",
+    ):
         """
         Initialize compression distortion.
 
@@ -144,7 +160,9 @@ class CompressionDistortion(SchedulableAugmentation):
             snr_db_range: SNR range for perceptual quantization
             schedule_strategy: Parameter scheduling strategy
         """
-        super().__init__(initial_distortion, final_distortion, "distortion_pct", schedule_strategy)
+        super().__init__(
+            initial_distortion, final_distortion, "distortion_pct", schedule_strategy
+        )
         self.wavelet = wavelet
         self.quantization_levels = quantization_levels
         self.snr_db_range = snr_db_range
@@ -172,15 +190,19 @@ class CompressionDistortion(SchedulableAugmentation):
                 # Apply distortion with probability
                 if np.random.random() < 0.7:  # 70% chance of distortion
                     # Choose distortion type
-                    distortion_type = np.random.choice(['wavelet', 'quantization', 'both'], p=[0.4, 0.4, 0.2])
+                    distortion_type = np.random.choice(
+                        ["wavelet", "quantization", "both"], p=[0.4, 0.4, 0.2]
+                    )
 
-                    if distortion_type in ['wavelet', 'both']:
+                    if distortion_type in ["wavelet", "both"]:
                         signal_1d = self._apply_wavelet_compression(signal_1d)
 
-                    if distortion_type in ['quantization', 'both']:
+                    if distortion_type in ["quantization", "both"]:
                         signal_1d = self._apply_perceptual_quantization(signal_1d)
 
-                x_distorted[i, j] = torch.tensor(signal_1d, dtype=x.dtype, device=x.device)
+                x_distorted[i, j] = torch.tensor(
+                    signal_1d, dtype=x.dtype, device=x.device
+                )
 
         return x_distorted
 
@@ -191,20 +213,24 @@ class CompressionDistortion(SchedulableAugmentation):
             coeffs = pywt.wavedec(signal, self.wavelet, level=4)
 
             # Calculate threshold based on distortion percentage
-            all_coeffs = np.concatenate([c.flatten() for c in coeffs[1:]])  # Skip approximation
+            all_coeffs = np.concatenate(
+                [c.flatten() for c in coeffs[1:]]
+            )  # Skip approximation
             threshold = np.percentile(np.abs(all_coeffs), self.distortion_pct * 100)
 
             # Apply soft thresholding
             coeffs_thresh = [coeffs[0]]  # Keep approximation coefficients
             for detail_coeffs in coeffs[1:]:
-                coeffs_thresh.append(pywt.threshold(detail_coeffs, threshold, mode='soft'))
+                coeffs_thresh.append(
+                    pywt.threshold(detail_coeffs, threshold, mode="soft")
+                )
 
             # Reconstruct signal
             reconstructed = pywt.waverec(coeffs_thresh, self.wavelet)
 
             # Ensure same length as input
             if len(reconstructed) != len(signal):
-                reconstructed = reconstructed[:len(signal)]
+                reconstructed = reconstructed[: len(signal)]
 
             return reconstructed
 
@@ -215,7 +241,7 @@ class CompressionDistortion(SchedulableAugmentation):
     def _apply_perceptual_quantization(self, signal: np.ndarray) -> np.ndarray:
         """Apply perceptual quantization with controlled SNR."""
         # Calculate signal power
-        signal_power = np.mean(signal ** 2)
+        signal_power = np.mean(signal**2)
 
         # Target SNR (random within range)
         target_snr_db = np.random.uniform(*self.snr_db_range)
@@ -229,7 +255,9 @@ class CompressionDistortion(SchedulableAugmentation):
         quantized = np.round(signal / quantization_step) * quantization_step
 
         # Add small amount of dither to break limit cycles
-        dither = np.random.uniform(-quantization_step/2, quantization_step/2, size=signal.shape)
+        dither = np.random.uniform(
+            -quantization_step / 2, quantization_step / 2, size=signal.shape
+        )
         quantized += dither * 0.1
 
         return quantized
@@ -242,11 +270,15 @@ class ChannelDropout(SchedulableAugmentation):
     Randomly sets entire channels to zero to encourage channel-robust representations.
     """
 
-    def __init__(self,
-                 initial_dropout: float = 0.05,
-                 final_dropout: float = 0.2,
-                 schedule_strategy: str = "linear"):
-        super().__init__(initial_dropout, final_dropout, "dropout_prob", schedule_strategy)
+    def __init__(
+        self,
+        initial_dropout: float = 0.05,
+        final_dropout: float = 0.2,
+        schedule_strategy: str = "linear",
+    ):
+        super().__init__(
+            initial_dropout, final_dropout, "dropout_prob", schedule_strategy
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -338,7 +370,7 @@ class WaveletDistortion(nn.Module):
         self,
         wavelet: str = "db4",
         distortion_pct: float = 1.0,
-        compression_ratio: float = 0.1
+        compression_ratio: float = 0.1,
     ):
         super().__init__()
         self.wavelet = wavelet
@@ -383,7 +415,7 @@ class WaveletDistortion(nn.Module):
                             if j > 0:  # Keep approximation coefficients
                                 threshold = np.percentile(
                                     np.abs(coeffs[j]),
-                                    (1 - self.compression_ratio) * 100
+                                    (1 - self.compression_ratio) * 100,
                                 )
                                 coeffs[j] = coeffs[j] * (np.abs(coeffs[j]) >= threshold)
 
@@ -393,13 +425,17 @@ class WaveletDistortion(nn.Module):
                         # Handle length mismatch
                         if len(reconstructed) != len(signal):
                             if len(reconstructed) > len(signal):
-                                reconstructed = reconstructed[:len(signal)]
+                                reconstructed = reconstructed[: len(signal)]
                             else:
                                 # Pad with zeros
                                 pad_len = len(signal) - len(reconstructed)
-                                reconstructed = np.pad(reconstructed, (0, pad_len), 'constant')
+                                reconstructed = np.pad(
+                                    reconstructed, (0, pad_len), "constant"
+                                )
 
-                        x_distorted[i, ch, :] = torch.from_numpy(reconstructed).to(x.device)
+                        x_distorted[i, ch, :] = torch.from_numpy(reconstructed).to(
+                            x.device
+                        )
 
                     except Exception:
                         # Skip distortion if wavelet processing fails
@@ -434,7 +470,7 @@ class PerceptualQuantization(nn.Module):
             return x
 
         # Calculate noise power from SNR
-        signal_power = torch.mean(x ** 2)
+        signal_power = torch.mean(x**2)
         noise_power = signal_power / (10 ** (self.snr_db / 10))
         noise_std = torch.sqrt(noise_power)
 
@@ -446,9 +482,13 @@ class PerceptualQuantization(nn.Module):
         x_range = torch.max(x_noisy) - torch.min(x_noisy)
         if x_range > 0:
             quantized = torch.round(
-                (x_noisy - torch.min(x_noisy)) / x_range * (self.quantization_levels - 1)
+                (x_noisy - torch.min(x_noisy))
+                / x_range
+                * (self.quantization_levels - 1)
             )
-            quantized = quantized / (self.quantization_levels - 1) * x_range + torch.min(x_noisy)
+            quantized = quantized / (
+                self.quantization_levels - 1
+            ) * x_range + torch.min(x_noisy)
         else:
             quantized = x_noisy
 
@@ -537,7 +577,7 @@ class SSLViewPipeline(nn.Module):
         quant_snr_db: float = 25.0,
         gaussian_noise_std: float = 0.005,
         freq_masking_ratio: float = 0.1,
-        apply_prob: float = 0.8
+        apply_prob: float = 0.8,
     ):
         super().__init__()
 
@@ -547,7 +587,9 @@ class SSLViewPipeline(nn.Module):
         self.time_masking = TimeMasking(mask_ratio=time_masking_ratio)
         self.channel_dropout = ChannelDropout(dropout_prob=channel_dropout)
         self.temporal_jitter = TemporalJitter(jitter_std=temporal_jitter_std)
-        self.wavelet_distortion = WaveletDistortion(distortion_pct=wavelet_distortion_pct)
+        self.wavelet_distortion = WaveletDistortion(
+            distortion_pct=wavelet_distortion_pct
+        )
         self.perceptual_quant = PerceptualQuantization(snr_db=quant_snr_db)
         self.gaussian_noise = GaussianNoise(noise_std=gaussian_noise_std)
         self.freq_masking = FrequencyMasking(mask_ratio=freq_masking_ratio)
@@ -560,14 +602,14 @@ class SSLViewPipeline(nn.Module):
             self.wavelet_distortion,
             self.perceptual_quant,
             self.gaussian_noise,
-            self.freq_masking
+            self.freq_masking,
         ]
 
     def forward(
         self,
         x: torch.Tensor,
         distortion_pct: Optional[float] = None,
-        n_augmentations: Optional[int] = None
+        n_augmentations: Optional[int] = None,
     ) -> torch.Tensor:
         """
         Apply random augmentations to create a view.
@@ -593,9 +635,7 @@ class SSLViewPipeline(nn.Module):
 
         # Randomly select augmentations
         selected_augs = np.random.choice(
-            self.augmentations,
-            size=n_augmentations,
-            replace=False
+            self.augmentations, size=n_augmentations, replace=False
         )
 
         # Apply selected augmentations
@@ -631,9 +671,7 @@ class SSLViewPipeline(nn.Module):
 
 
 def create_ssl_views(
-    x: torch.Tensor,
-    view_pipeline: SSLViewPipeline,
-    n_views: int = 2
+    x: torch.Tensor, view_pipeline: SSLViewPipeline, n_views: int = 2
 ) -> List[torch.Tensor]:
     """
     Create multiple views of the input signal for SSL.

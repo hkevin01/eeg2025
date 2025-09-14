@@ -9,16 +9,17 @@ This module handles:
 5. Archive creation for final submission
 """
 
-import os
 import csv
-import json
-import zipfile
 import hashlib
+import json
 import logging
+import os
+import zipfile
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Any, Tuple
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
 
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SubmissionMetadata:
     """Metadata for submission package."""
+
     team_name: str
     submission_id: str
     timestamp: str
@@ -47,6 +49,7 @@ class SubmissionMetadata:
 @dataclass
 class CrossTaskPrediction:
     """Single cross-task prediction entry."""
+
     subject_id: str
     session_id: str
     task: str  # Target task name
@@ -65,7 +68,9 @@ class CrossTaskPrediction:
 
         # Check confidence if provided
         if self.confidence is not None:
-            if not isinstance(self.confidence, (int, float)) or np.isnan(self.confidence):
+            if not isinstance(self.confidence, (int, float)) or np.isnan(
+                self.confidence
+            ):
                 return False
             if not (0 <= self.confidence <= 1):
                 return False
@@ -76,6 +81,7 @@ class CrossTaskPrediction:
 @dataclass
 class PsychopathologyPrediction:
     """Single psychopathology prediction entry."""
+
     subject_id: str
     p_factor: float
     internalizing: float
@@ -93,14 +99,23 @@ class PsychopathologyPrediction:
             return False
 
         # Check all predictions are numeric
-        predictions = [self.p_factor, self.internalizing, self.externalizing, self.attention]
-        if not all(isinstance(p, (int, float)) and not np.isnan(p) for p in predictions):
+        predictions = [
+            self.p_factor,
+            self.internalizing,
+            self.externalizing,
+            self.attention,
+        ]
+        if not all(
+            isinstance(p, (int, float)) and not np.isnan(p) for p in predictions
+        ):
             return False
 
         # Check confidences if provided
         confidences = [
-            self.confidence_p_factor, self.confidence_internalizing,
-            self.confidence_externalizing, self.confidence_attention
+            self.confidence_p_factor,
+            self.confidence_internalizing,
+            self.confidence_externalizing,
+            self.confidence_attention,
         ]
         for conf in confidences:
             if conf is not None:
@@ -117,32 +132,42 @@ class SubmissionValidator:
 
     # Expected column schemas
     CROSS_TASK_SCHEMA = {
-        'required': ['subject_id', 'session_id', 'task', 'prediction'],
-        'optional': ['confidence'],
-        'types': {
-            'subject_id': str,
-            'session_id': str,
-            'task': str,
-            'prediction': float,
-            'confidence': float
-        }
+        "required": ["subject_id", "session_id", "task", "prediction"],
+        "optional": ["confidence"],
+        "types": {
+            "subject_id": str,
+            "session_id": str,
+            "task": str,
+            "prediction": float,
+            "confidence": float,
+        },
     }
 
     PSYCH_SCHEMA = {
-        'required': ['subject_id', 'p_factor', 'internalizing', 'externalizing', 'attention'],
-        'optional': ['confidence_p_factor', 'confidence_internalizing',
-                    'confidence_externalizing', 'confidence_attention'],
-        'types': {
-            'subject_id': str,
-            'p_factor': float,
-            'internalizing': float,
-            'externalizing': float,
-            'attention': float,
-            'confidence_p_factor': float,
-            'confidence_internalizing': float,
-            'confidence_externalizing': float,
-            'confidence_attention': float
-        }
+        "required": [
+            "subject_id",
+            "p_factor",
+            "internalizing",
+            "externalizing",
+            "attention",
+        ],
+        "optional": [
+            "confidence_p_factor",
+            "confidence_internalizing",
+            "confidence_externalizing",
+            "confidence_attention",
+        ],
+        "types": {
+            "subject_id": str,
+            "p_factor": float,
+            "internalizing": float,
+            "externalizing": float,
+            "attention": float,
+            "confidence_p_factor": float,
+            "confidence_internalizing": float,
+            "confidence_externalizing": float,
+            "confidence_attention": float,
+        },
     }
 
     def __init__(self):
@@ -162,12 +187,12 @@ class SubmissionValidator:
             return False
 
         # Check required columns
-        missing_cols = set(self.CROSS_TASK_SCHEMA['required']) - set(df.columns)
+        missing_cols = set(self.CROSS_TASK_SCHEMA["required"]) - set(df.columns)
         if missing_cols:
             self.validation_errors.append(f"Missing required columns: {missing_cols}")
 
         # Check for duplicate entries
-        duplicate_mask = df.duplicated(subset=['subject_id', 'session_id', 'task'])
+        duplicate_mask = df.duplicated(subset=["subject_id", "session_id", "task"])
         if duplicate_mask.any():
             duplicates = df[duplicate_mask]
             self.validation_errors.append(f"Found {len(duplicates)} duplicate entries")
@@ -176,11 +201,15 @@ class SubmissionValidator:
         for idx, row in df.iterrows():
             try:
                 pred = CrossTaskPrediction(
-                    subject_id=str(row['subject_id']),
-                    session_id=str(row['session_id']),
-                    task=str(row['task']),
-                    prediction=float(row['prediction']),
-                    confidence=float(row['confidence']) if 'confidence' in row and pd.notna(row['confidence']) else None
+                    subject_id=str(row["subject_id"]),
+                    session_id=str(row["session_id"]),
+                    task=str(row["task"]),
+                    prediction=float(row["prediction"]),
+                    confidence=(
+                        float(row["confidence"])
+                        if "confidence" in row and pd.notna(row["confidence"])
+                        else None
+                    ),
                 )
 
                 if not pred.validate():
@@ -190,10 +219,12 @@ class SubmissionValidator:
                 self.validation_errors.append(f"Error validating row {idx}: {e}")
 
         # Check prediction ranges (warnings)
-        if 'prediction' in df.columns:
-            pred_min, pred_max = df['prediction'].min(), df['prediction'].max()
+        if "prediction" in df.columns:
+            pred_min, pred_max = df["prediction"].min(), df["prediction"].max()
             if pred_min < -5 or pred_max > 5:
-                self.validation_warnings.append(f"Prediction range [{pred_min:.2f}, {pred_max:.2f}] seems unusual")
+                self.validation_warnings.append(
+                    f"Prediction range [{pred_min:.2f}, {pred_max:.2f}] seems unusual"
+                )
 
         return len(self.validation_errors) == 0
 
@@ -209,28 +240,50 @@ class SubmissionValidator:
             return False
 
         # Check required columns
-        missing_cols = set(self.PSYCH_SCHEMA['required']) - set(df.columns)
+        missing_cols = set(self.PSYCH_SCHEMA["required"]) - set(df.columns)
         if missing_cols:
             self.validation_errors.append(f"Missing required columns: {missing_cols}")
 
         # Check for duplicate subject IDs
-        if df['subject_id'].duplicated().any():
-            duplicates = df[df['subject_id'].duplicated()]
-            self.validation_errors.append(f"Found duplicate subject IDs: {duplicates['subject_id'].tolist()}")
+        if df["subject_id"].duplicated().any():
+            duplicates = df[df["subject_id"].duplicated()]
+            self.validation_errors.append(
+                f"Found duplicate subject IDs: {duplicates['subject_id'].tolist()}"
+            )
 
         # Validate each row
         for idx, row in df.iterrows():
             try:
                 pred = PsychopathologyPrediction(
-                    subject_id=str(row['subject_id']),
-                    p_factor=float(row['p_factor']),
-                    internalizing=float(row['internalizing']),
-                    externalizing=float(row['externalizing']),
-                    attention=float(row['attention']),
-                    confidence_p_factor=float(row['confidence_p_factor']) if 'confidence_p_factor' in row and pd.notna(row['confidence_p_factor']) else None,
-                    confidence_internalizing=float(row['confidence_internalizing']) if 'confidence_internalizing' in row and pd.notna(row['confidence_internalizing']) else None,
-                    confidence_externalizing=float(row['confidence_externalizing']) if 'confidence_externalizing' in row and pd.notna(row['confidence_externalizing']) else None,
-                    confidence_attention=float(row['confidence_attention']) if 'confidence_attention' in row and pd.notna(row['confidence_attention']) else None
+                    subject_id=str(row["subject_id"]),
+                    p_factor=float(row["p_factor"]),
+                    internalizing=float(row["internalizing"]),
+                    externalizing=float(row["externalizing"]),
+                    attention=float(row["attention"]),
+                    confidence_p_factor=(
+                        float(row["confidence_p_factor"])
+                        if "confidence_p_factor" in row
+                        and pd.notna(row["confidence_p_factor"])
+                        else None
+                    ),
+                    confidence_internalizing=(
+                        float(row["confidence_internalizing"])
+                        if "confidence_internalizing" in row
+                        and pd.notna(row["confidence_internalizing"])
+                        else None
+                    ),
+                    confidence_externalizing=(
+                        float(row["confidence_externalizing"])
+                        if "confidence_externalizing" in row
+                        and pd.notna(row["confidence_externalizing"])
+                        else None
+                    ),
+                    confidence_attention=(
+                        float(row["confidence_attention"])
+                        if "confidence_attention" in row
+                        and pd.notna(row["confidence_attention"])
+                        else None
+                    ),
                 )
 
                 if not pred.validate():
@@ -240,22 +293,21 @@ class SubmissionValidator:
                 self.validation_errors.append(f"Error validating row {idx}: {e}")
 
         # Check score ranges (warnings)
-        score_cols = ['p_factor', 'internalizing', 'externalizing', 'attention']
+        score_cols = ["p_factor", "internalizing", "externalizing", "attention"]
         for col in score_cols:
             if col in df.columns:
                 col_min, col_max = df[col].min(), df[col].max()
                 # CBCL scores typically range roughly -3 to 3 (standardized)
                 if col_min < -5 or col_max > 5:
-                    self.validation_warnings.append(f"{col} range [{col_min:.2f}, {col_max:.2f}] seems unusual for CBCL scores")
+                    self.validation_warnings.append(
+                        f"{col} range [{col_min:.2f}, {col_max:.2f}] seems unusual for CBCL scores"
+                    )
 
         return len(self.validation_errors) == 0
 
     def get_validation_report(self) -> Dict[str, List[str]]:
         """Get validation report."""
-        return {
-            'errors': self.validation_errors,
-            'warnings': self.validation_warnings
-        }
+        return {"errors": self.validation_errors, "warnings": self.validation_warnings}
 
 
 class SubmissionPackager:
@@ -272,12 +324,12 @@ class SubmissionPackager:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         self.submission_id = f"{team_name}_{timestamp}"
 
-        logger.info(f"Initialized submission packager for {team_name}, ID: {self.submission_id}")
+        logger.info(
+            f"Initialized submission packager for {team_name}, ID: {self.submission_id}"
+        )
 
     def export_cross_task_predictions(
-        self,
-        predictions: List[CrossTaskPrediction],
-        filename: Optional[str] = None
+        self, predictions: List[CrossTaskPrediction], filename: Optional[str] = None
     ) -> Path:
         """Export cross-task predictions to CSV."""
         if filename is None:
@@ -285,7 +337,9 @@ class SubmissionPackager:
 
         csv_path = self.output_dir / filename
 
-        logger.info(f"Exporting {len(predictions)} cross-task predictions to {csv_path}")
+        logger.info(
+            f"Exporting {len(predictions)} cross-task predictions to {csv_path}"
+        )
 
         # Validate all predictions first
         invalid_predictions = []
@@ -297,18 +351,26 @@ class SubmissionPackager:
             raise ValueError(f"Invalid predictions at indices: {invalid_predictions}")
 
         # Write CSV
-        with open(csv_path, 'w', newline='') as csvfile:
-            fieldnames = ['subject_id', 'session_id', 'task', 'prediction', 'confidence']
+        with open(csv_path, "w", newline="") as csvfile:
+            fieldnames = [
+                "subject_id",
+                "session_id",
+                "task",
+                "prediction",
+                "confidence",
+            ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             writer.writeheader()
             for pred in predictions:
                 row = {
-                    'subject_id': pred.subject_id,
-                    'session_id': pred.session_id,
-                    'task': pred.task,
-                    'prediction': pred.prediction,
-                    'confidence': pred.confidence if pred.confidence is not None else ''
+                    "subject_id": pred.subject_id,
+                    "session_id": pred.session_id,
+                    "task": pred.task,
+                    "prediction": pred.prediction,
+                    "confidence": (
+                        pred.confidence if pred.confidence is not None else ""
+                    ),
                 }
                 writer.writerow(row)
 
@@ -323,7 +385,7 @@ class SubmissionPackager:
     def export_psychopathology_predictions(
         self,
         predictions: List[PsychopathologyPrediction],
-        filename: Optional[str] = None
+        filename: Optional[str] = None,
     ) -> Path:
         """Export psychopathology predictions to CSV."""
         if filename is None:
@@ -331,7 +393,9 @@ class SubmissionPackager:
 
         csv_path = self.output_dir / filename
 
-        logger.info(f"Exporting {len(predictions)} psychopathology predictions to {csv_path}")
+        logger.info(
+            f"Exporting {len(predictions)} psychopathology predictions to {csv_path}"
+        )
 
         # Validate all predictions first
         invalid_predictions = []
@@ -343,26 +407,48 @@ class SubmissionPackager:
             raise ValueError(f"Invalid predictions at indices: {invalid_predictions}")
 
         # Write CSV
-        with open(csv_path, 'w', newline='') as csvfile:
+        with open(csv_path, "w", newline="") as csvfile:
             fieldnames = [
-                'subject_id', 'p_factor', 'internalizing', 'externalizing', 'attention',
-                'confidence_p_factor', 'confidence_internalizing',
-                'confidence_externalizing', 'confidence_attention'
+                "subject_id",
+                "p_factor",
+                "internalizing",
+                "externalizing",
+                "attention",
+                "confidence_p_factor",
+                "confidence_internalizing",
+                "confidence_externalizing",
+                "confidence_attention",
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             writer.writeheader()
             for pred in predictions:
                 row = {
-                    'subject_id': pred.subject_id,
-                    'p_factor': pred.p_factor,
-                    'internalizing': pred.internalizing,
-                    'externalizing': pred.externalizing,
-                    'attention': pred.attention,
-                    'confidence_p_factor': pred.confidence_p_factor if pred.confidence_p_factor is not None else '',
-                    'confidence_internalizing': pred.confidence_internalizing if pred.confidence_internalizing is not None else '',
-                    'confidence_externalizing': pred.confidence_externalizing if pred.confidence_externalizing is not None else '',
-                    'confidence_attention': pred.confidence_attention if pred.confidence_attention is not None else ''
+                    "subject_id": pred.subject_id,
+                    "p_factor": pred.p_factor,
+                    "internalizing": pred.internalizing,
+                    "externalizing": pred.externalizing,
+                    "attention": pred.attention,
+                    "confidence_p_factor": (
+                        pred.confidence_p_factor
+                        if pred.confidence_p_factor is not None
+                        else ""
+                    ),
+                    "confidence_internalizing": (
+                        pred.confidence_internalizing
+                        if pred.confidence_internalizing is not None
+                        else ""
+                    ),
+                    "confidence_externalizing": (
+                        pred.confidence_externalizing
+                        if pred.confidence_externalizing is not None
+                        else ""
+                    ),
+                    "confidence_attention": (
+                        pred.confidence_attention
+                        if pred.confidence_attention is not None
+                        else ""
+                    ),
                 }
                 writer.writerow(row)
 
@@ -378,7 +464,7 @@ class SubmissionPackager:
         self,
         metadata: SubmissionMetadata,
         files: List[Path],
-        filename: Optional[str] = None
+        filename: Optional[str] = None,
     ) -> Path:
         """Create submission manifest JSON."""
         if filename is None:
@@ -390,35 +476,37 @@ class SubmissionPackager:
         file_info = []
         for file_path in files:
             if file_path.exists():
-                with open(file_path, 'rb') as f:
+                with open(file_path, "rb") as f:
                     file_hash = hashlib.sha256(f.read()).hexdigest()
 
-                file_info.append({
-                    'filename': file_path.name,
-                    'size_bytes': file_path.stat().st_size,
-                    'sha256': file_hash,
-                    'created': datetime.fromtimestamp(file_path.stat().st_ctime, timezone.utc).isoformat()
-                })
+                file_info.append(
+                    {
+                        "filename": file_path.name,
+                        "size_bytes": file_path.stat().st_size,
+                        "sha256": file_hash,
+                        "created": datetime.fromtimestamp(
+                            file_path.stat().st_ctime, timezone.utc
+                        ).isoformat(),
+                    }
+                )
 
         # Create manifest
         manifest = {
-            'metadata': metadata.to_dict(),
-            'files': file_info,
-            'submission_created': datetime.now(timezone.utc).isoformat(),
-            'validation_status': 'pending'
+            "metadata": metadata.to_dict(),
+            "files": file_info,
+            "submission_created": datetime.now(timezone.utc).isoformat(),
+            "validation_status": "pending",
         }
 
         # Write manifest
-        with open(manifest_path, 'w') as f:
+        with open(manifest_path, "w") as f:
             json.dump(manifest, f, indent=2)
 
         logger.info(f"Created submission manifest: {manifest_path}")
         return manifest_path
 
     def create_submission_archive(
-        self,
-        files: List[Path],
-        archive_name: Optional[str] = None
+        self, files: List[Path], archive_name: Optional[str] = None
     ) -> Path:
         """Create final submission archive."""
         if archive_name is None:
@@ -428,13 +516,15 @@ class SubmissionPackager:
 
         logger.info(f"Creating submission archive: {archive_path}")
 
-        with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file_path in files:
                 if file_path.exists():
                     zipf.write(file_path, file_path.name)
                     logger.debug(f"Added {file_path.name} to archive")
 
-        logger.info(f"Created submission archive: {archive_path} ({archive_path.stat().st_size} bytes)")
+        logger.info(
+            f"Created submission archive: {archive_path} ({archive_path.stat().st_size} bytes)"
+        )
         return archive_path
 
     def validate_submission_files(self, csv_files: List[Path]) -> Dict[str, Any]:
@@ -444,25 +534,25 @@ class SubmissionPackager:
         for csv_file in csv_files:
             filename = csv_file.name
 
-            if 'cross_task' in filename.lower():
+            if "cross_task" in filename.lower():
                 is_valid = self.validator.validate_cross_task_csv(csv_file)
                 validation_results[filename] = {
-                    'valid': is_valid,
-                    'type': 'cross_task',
-                    'report': self.validator.get_validation_report()
+                    "valid": is_valid,
+                    "type": "cross_task",
+                    "report": self.validator.get_validation_report(),
                 }
-            elif 'psychopathology' in filename.lower() or 'psych' in filename.lower():
+            elif "psychopathology" in filename.lower() or "psych" in filename.lower():
                 is_valid = self.validator.validate_psychopathology_csv(csv_file)
                 validation_results[filename] = {
-                    'valid': is_valid,
-                    'type': 'psychopathology',
-                    'report': self.validator.get_validation_report()
+                    "valid": is_valid,
+                    "type": "psychopathology",
+                    "report": self.validator.get_validation_report(),
                 }
             else:
                 validation_results[filename] = {
-                    'valid': False,
-                    'type': 'unknown',
-                    'report': {'errors': ['Unknown file type'], 'warnings': []}
+                    "valid": False,
+                    "type": "unknown",
+                    "report": {"errors": ["Unknown file type"], "warnings": []},
                 }
 
         return validation_results
@@ -472,7 +562,7 @@ class SubmissionPackager:
         cross_task_predictions: Optional[List[CrossTaskPrediction]] = None,
         psychopathology_predictions: Optional[List[PsychopathologyPrediction]] = None,
         metadata: Optional[SubmissionMetadata] = None,
-        additional_files: Optional[List[Path]] = None
+        additional_files: Optional[List[Path]] = None,
     ) -> Tuple[Path, Dict[str, Any]]:
         """Package complete submission with all components."""
         logger.info("Packaging full submission...")
@@ -498,7 +588,7 @@ class SubmissionPackager:
                 model_description="EEG2025 submission",
                 training_duration_hours=0.0,
                 num_parameters=0,
-                cross_validation_folds=5
+                cross_validation_folds=5,
             )
 
         # Export prediction files
@@ -509,7 +599,9 @@ class SubmissionPackager:
             exported_files.append(ct_file)
 
         if psychopathology_predictions:
-            psych_file = self.export_psychopathology_predictions(psychopathology_predictions)
+            psych_file = self.export_psychopathology_predictions(
+                psychopathology_predictions
+            )
             exported_files.append(psych_file)
 
         # Add additional files
@@ -533,13 +625,15 @@ class SubmissionPackager:
         return archive_file, validation_results
 
 
-def create_sample_predictions(num_subjects: int = 100) -> Tuple[List[CrossTaskPrediction], List[PsychopathologyPrediction]]:
+def create_sample_predictions(
+    num_subjects: int = 100,
+) -> Tuple[List[CrossTaskPrediction], List[PsychopathologyPrediction]]:
     """Create sample predictions for testing."""
     np.random.seed(42)  # For reproducible samples
 
     # Generate sample cross-task predictions
     cross_task_predictions = []
-    tasks = ['sternberg', 'n_back', 'rest', 'flanker', 'go_nogo']
+    tasks = ["sternberg", "n_back", "rest", "flanker", "go_nogo"]
 
     for i in range(num_subjects):
         subject_id = f"sub-{i+1:03d}"
@@ -555,13 +649,15 @@ def create_sample_predictions(num_subjects: int = 100) -> Tuple[List[CrossTaskPr
                 prediction = np.random.normal(0, 1.5)
                 confidence = np.random.uniform(0.3, 0.95)
 
-                cross_task_predictions.append(CrossTaskPrediction(
-                    subject_id=subject_id,
-                    session_id=session_id,
-                    task=task,
-                    prediction=prediction,
-                    confidence=confidence
-                ))
+                cross_task_predictions.append(
+                    CrossTaskPrediction(
+                        subject_id=subject_id,
+                        session_id=session_id,
+                        task=task,
+                        prediction=prediction,
+                        confidence=confidence,
+                    )
+                )
 
     # Generate sample psychopathology predictions
     psych_predictions = []
@@ -581,17 +677,19 @@ def create_sample_predictions(num_subjects: int = 100) -> Tuple[List[CrossTaskPr
         conf_ext = np.random.uniform(0.3, 0.85)
         conf_att = np.random.uniform(0.3, 0.85)
 
-        psych_predictions.append(PsychopathologyPrediction(
-            subject_id=subject_id,
-            p_factor=p_factor,
-            internalizing=internalizing,
-            externalizing=externalizing,
-            attention=attention,
-            confidence_p_factor=conf_p,
-            confidence_internalizing=conf_int,
-            confidence_externalizing=conf_ext,
-            confidence_attention=conf_att
-        ))
+        psych_predictions.append(
+            PsychopathologyPrediction(
+                subject_id=subject_id,
+                p_factor=p_factor,
+                internalizing=internalizing,
+                externalizing=externalizing,
+                attention=attention,
+                confidence_p_factor=conf_p,
+                confidence_internalizing=conf_int,
+                confidence_externalizing=conf_ext,
+                confidence_attention=conf_att,
+            )
+        )
 
     return cross_task_predictions, psych_predictions
 
@@ -605,8 +703,7 @@ if __name__ == "__main__":
 
     # Create submission packager
     packager = SubmissionPackager(
-        output_dir=Path("test_submission"),
-        team_name="example_team"
+        output_dir=Path("test_submission"), team_name="example_team"
     )
 
     # Package submission
@@ -620,20 +717,20 @@ if __name__ == "__main__":
         num_parameters=2_500_000,
         cross_validation_folds=5,
         best_validation_score=0.73,
-        notes="Used 3-layer CNN with domain adversarial training"
+        notes="Used 3-layer CNN with domain adversarial training",
     )
 
     archive_path, validation_results = packager.package_full_submission(
         cross_task_predictions=ct_preds,
         psychopathology_predictions=psych_preds,
-        metadata=metadata
+        metadata=metadata,
     )
 
     print(f"Created submission archive: {archive_path}")
     print("\nValidation results:")
     for filename, result in validation_results.items():
         print(f"  {filename}: {'✓' if result['valid'] else '✗'}")
-        if result['report']['errors']:
+        if result["report"]["errors"]:
             print(f"    Errors: {result['report']['errors']}")
-        if result['report']['warnings']:
+        if result["report"]["warnings"]:
             print(f"    Warnings: {result['report']['warnings']}")

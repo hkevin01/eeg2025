@@ -11,22 +11,26 @@ Implements multi-output regression for CBCL psychopathology factors with:
 
 import logging
 import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
 import wandb
-from torch.utils.tensorboard import SummaryWriter
-from sklearn.preprocessing import StandardScaler, RobustScaler
 from scipy.stats import pearsonr, spearmanr
+from sklearn.preprocessing import RobustScaler, StandardScaler
+from torch.utils.tensorboard import SummaryWriter
 
-from ..models.advanced_foundation_model import AdvancedEEGFoundationModel
 from ..dataio.hbn_dataset import HBNDataset, create_hbn_datasets
+from ..models.advanced_foundation_model import AdvancedEEGFoundationModel
+from ..models.heads.psychopathology import (
+    ClinicalNormalizationLayer,
+    PsychopathologyHead,
+)
 from ..utils.domain_adaptation import DomainAdapter, IRMPenalty
-from ..models.heads.psychopathology import PsychopathologyHead, ClinicalNormalizationLayer
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +45,9 @@ class Challenge2Config:
     num_layers: int = 12
 
     # Psychopathology factors
-    target_factors: List[str] = None  # ["p_factor", "internalizing", "externalizing", "attention"]
+    target_factors: List[str] = (
+        None  # ["p_factor", "internalizing", "externalizing", "attention"]
+    )
     use_age_normalization: bool = True
     use_demographic_features: bool = True
 
@@ -83,7 +89,12 @@ class Challenge2Config:
 
     def __post_init__(self):
         if self.target_factors is None:
-            self.target_factors = ["p_factor", "internalizing", "externalizing", "attention"]
+            self.target_factors = [
+                "p_factor",
+                "internalizing",
+                "externalizing",
+                "attention",
+            ]
 
         if self.tasks is None:
             self.tasks = ["RS", "SuS", "MW", "CCD"]
@@ -103,13 +114,14 @@ class Challenge2Model(nn.Module):
 
         # Create foundation model backbone
         from ..models.advanced_foundation_model import FoundationModelConfig
+
         foundation_config = FoundationModelConfig(
             backbone_type=config.backbone_type,
             hidden_dim=config.hidden_dim,
             num_layers=config.num_layers,
             use_domain_adaptation=True,
             use_compression_ssl=False,
-            use_gpu_optimization=True
+            use_gpu_optimization=True,
         )
 
         self.foundation_model = AdvancedEEGFoundationModel(foundation_config)
@@ -117,9 +129,7 @@ class Challenge2Model(nn.Module):
         # Clinical normalization layer
         if config.use_age_normalization:
             self.clinical_normalizer = ClinicalNormalizationLayer(
-                num_factors=self.num_factors,
-                age_bins=10,
-                use_gender=True
+                num_factors=self.num_factors, age_bins=10, use_gender=True
             )
 
         # Psychopathology prediction head
@@ -128,7 +138,7 @@ class Challenge2Model(nn.Module):
             num_factors=self.num_factors,
             factor_names=config.target_factors,
             use_uncertainty=True,
-            use_correlation_loss=True
+            use_correlation_loss=True,
         )
 
         # Subject invariance components
@@ -136,22 +146,24 @@ class Challenge2Model(nn.Module):
             self.subject_adapter = DomainAdapter(
                 feature_dim=config.hidden_dim,
                 num_tasks=len(config.tasks),
-                adapter_dim=256
+                adapter_dim=256,
             )
 
         if config.use_irm_penalty:
             self.irm_penalty = IRMPenalty()
 
         # Task-specific feature extractors
-        self.task_extractors = nn.ModuleDict({
-            task: nn.Sequential(
-                nn.Linear(config.hidden_dim, config.hidden_dim),
-                nn.LayerNorm(config.hidden_dim),
-                nn.ReLU(),
-                nn.Dropout(0.1)
-            )
-            for task in config.tasks
-        })
+        self.task_extractors = nn.ModuleDict(
+            {
+                task: nn.Sequential(
+                    nn.Linear(config.hidden_dim, config.hidden_dim),
+                    nn.LayerNorm(config.hidden_dim),
+                    nn.ReLU(),
+                    nn.Dropout(0.1),
+                )
+                for task in config.tasks
+            }
+        )
 
     def forward(
         self,
@@ -160,7 +172,7 @@ class Challenge2Model(nn.Module):
         subject_ids: Optional[torch.Tensor] = None,
         age: Optional[torch.Tensor] = None,
         gender: Optional[torch.Tensor] = None,
-        return_features: bool = False
+        return_features: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Forward pass with clinical factor prediction."""
 
@@ -169,7 +181,7 @@ class Challenge2Model(nn.Module):
             x=x,
             task_ids=task_ids,
             domain_ids={"subject": subject_ids} if subject_ids is not None else None,
-            mode="training"
+            mode="training",
         )
 
         features = foundation_outputs["features"]
@@ -179,33 +191,31 @@ class Challenge2Model(nn.Module):
         for i, task_id in enumerate(task_ids):
             task_name = self.config.tasks[task_id.item()]
             if task_name in self.task_extractors:
-                task_feat = self.task_extractors[task_name](features[i:i+1])
+                task_feat = self.task_extractors[task_name](features[i : i + 1])
                 task_features.append(task_feat)
             else:
-                task_features.append(features[i:i+1])
+                task_features.append(features[i : i + 1])
 
         adapted_features = torch.cat(task_features, dim=0)
 
         # Apply subject invariance if enabled
-        if hasattr(self, 'subject_adapter'):
+        if hasattr(self, "subject_adapter"):
             adapted_features = self.subject_adapter(adapted_features, task_ids)
 
         # Psychopathology predictions
         psych_outputs = self.psych_head(adapted_features)
 
         # Clinical normalization if enabled
-        if hasattr(self, 'clinical_normalizer') and age is not None:
+        if hasattr(self, "clinical_normalizer") and age is not None:
             normalized_predictions = self.clinical_normalizer(
-                psych_outputs["predictions"],
-                age=age,
-                gender=gender
+                psych_outputs["predictions"], age=age, gender=gender
             )
             psych_outputs["normalized_predictions"] = normalized_predictions
 
         outputs = {
             "predictions": psych_outputs["predictions"],
             "uncertainties": psych_outputs.get("uncertainties", None),
-            "factor_correlations": psych_outputs.get("factor_correlations", None)
+            "factor_correlations": psych_outputs.get("factor_correlations", None),
         }
 
         # Add normalized predictions if available
@@ -227,11 +237,11 @@ class Challenge2Model(nn.Module):
         x: torch.Tensor,
         task_ids: torch.Tensor,
         targets: torch.Tensor,
-        subject_ids: torch.Tensor
+        subject_ids: torch.Tensor,
     ) -> torch.Tensor:
         """Compute IRM penalty for subject invariance."""
 
-        if not hasattr(self, 'irm_penalty'):
+        if not hasattr(self, "irm_penalty"):
             return torch.tensor(0.0, device=x.device)
 
         # Split by subjects for IRM
@@ -252,11 +262,7 @@ class Challenge2Model(nn.Module):
             subject_targets = targets[subject_mask]
 
             # Forward pass for this subject
-            outputs = self.forward(
-                subject_x,
-                subject_task_ids,
-                return_features=False
-            )
+            outputs = self.forward(subject_x, subject_task_ids, return_features=False)
 
             # Compute loss for this subject
             predictions = outputs["predictions"]
@@ -280,7 +286,7 @@ class Challenge2Trainer:
         config: Challenge2Config,
         model: Challenge2Model,
         device: torch.device,
-        log_dir: Optional[str] = None
+        log_dir: Optional[str] = None,
     ):
         self.config = config
         self.model = model.to(device)
@@ -290,7 +296,7 @@ class Challenge2Trainer:
         self.optimizer = torch.optim.AdamW(
             model.parameters(),
             lr=config.learning_rate,
-            weight_decay=config.weight_decay
+            weight_decay=config.weight_decay,
         )
 
         # Learning rate scheduler with warmup
@@ -299,7 +305,7 @@ class Challenge2Trainer:
             max_lr=config.learning_rate * 5,
             total_steps=config.max_epochs,
             pct_start=config.warmup_epochs / config.max_epochs,
-            anneal_strategy='cos'
+            anneal_strategy="cos",
         )
 
         # Loss functions
@@ -315,7 +321,7 @@ class Challenge2Trainer:
                 self.score_scalers[factor] = StandardScaler()
 
         # Metrics tracking
-        self.best_metric = float('-inf')
+        self.best_metric = float("-inf")
         self.patience_counter = 0
 
         # Logging
@@ -327,9 +333,7 @@ class Challenge2Trainer:
             self.log_dir = None
 
     def _correlation_loss(
-        self,
-        predictions: torch.Tensor,
-        targets: torch.Tensor
+        self, predictions: torch.Tensor, targets: torch.Tensor
     ) -> torch.Tensor:
         """Compute negative correlation loss."""
 
@@ -340,8 +344,8 @@ class Challenge2Trainer:
         # Compute correlation coefficient
         numerator = (pred_centered * target_centered).sum(dim=0)
 
-        pred_std = torch.sqrt((pred_centered ** 2).sum(dim=0) + 1e-8)
-        target_std = torch.sqrt((target_centered ** 2).sum(dim=0) + 1e-8)
+        pred_std = torch.sqrt((pred_centered**2).sum(dim=0) + 1e-8)
+        target_std = torch.sqrt((target_centered**2).sum(dim=0) + 1e-8)
 
         correlation = numerator / (pred_std * target_std + 1e-8)
 
@@ -349,9 +353,7 @@ class Challenge2Trainer:
         return -correlation.mean()
 
     def preprocess_clinical_scores(
-        self,
-        scores: Dict[str, np.ndarray],
-        fit: bool = False
+        self, scores: Dict[str, np.ndarray], fit: bool = False
     ) -> torch.Tensor:
         """Preprocess clinical scores with normalization."""
 
@@ -367,15 +369,11 @@ class Challenge2Trainer:
             # Handle missing values
             if self.config.missing_data_strategy == "median":
                 factor_scores = np.where(
-                    np.isnan(factor_scores),
-                    np.nanmedian(factor_scores),
-                    factor_scores
+                    np.isnan(factor_scores), np.nanmedian(factor_scores), factor_scores
                 )
             elif self.config.missing_data_strategy == "mean":
                 factor_scores = np.where(
-                    np.isnan(factor_scores),
-                    np.nanmean(factor_scores),
-                    factor_scores
+                    np.isnan(factor_scores), np.nanmean(factor_scores), factor_scores
                 )
             else:  # zero
                 factor_scores = np.where(np.isnan(factor_scores), 0.0, factor_scores)
@@ -390,14 +388,16 @@ class Challenge2Trainer:
                 factor_scores[outlier_mask] = np.clip(
                     factor_scores[outlier_mask],
                     mean_score - self.config.outlier_threshold * std_score,
-                    mean_score + self.config.outlier_threshold * std_score
+                    mean_score + self.config.outlier_threshold * std_score,
                 )
 
             # Normalization
             scaler = self.score_scalers[factor]
 
             if fit:
-                factor_scores = scaler.fit_transform(factor_scores.reshape(-1, 1)).flatten()
+                factor_scores = scaler.fit_transform(
+                    factor_scores.reshape(-1, 1)
+                ).flatten()
             else:
                 factor_scores = scaler.transform(factor_scores.reshape(-1, 1)).flatten()
 
@@ -416,10 +416,12 @@ class Challenge2Trainer:
         # Forward pass
         outputs = self.model(
             x=batch["eeg"],
-            task_ids=batch.get("task_label", torch.zeros(batch["eeg"].size(0), device=self.device)),
+            task_ids=batch.get(
+                "task_label", torch.zeros(batch["eeg"].size(0), device=self.device)
+            ),
             subject_ids=batch.get("subject_id", None),
             age=batch.get("age", None),
-            gender=batch.get("gender", None)
+            gender=batch.get("gender", None),
         )
 
         # Get target clinical scores
@@ -444,9 +446,11 @@ class Challenge2Trainer:
         if self.config.use_irm_penalty and "subject_id" in batch:
             irm_penalty = self.model.compute_irm_penalty(
                 batch["eeg"],
-                batch.get("task_label", torch.zeros(batch["eeg"].size(0), device=self.device)),
+                batch.get(
+                    "task_label", torch.zeros(batch["eeg"].size(0), device=self.device)
+                ),
                 targets,
-                batch["subject_id"]
+                batch["subject_id"],
             )
             losses["irm_penalty"] = irm_penalty
             total_loss += self.config.irm_weight * irm_penalty
@@ -477,10 +481,12 @@ class Challenge2Trainer:
         with torch.no_grad():
             outputs = self.model(
                 x=batch["eeg"],
-                task_ids=batch.get("task_label", torch.zeros(batch["eeg"].size(0), device=self.device)),
+                task_ids=batch.get(
+                    "task_label", torch.zeros(batch["eeg"].size(0), device=self.device)
+                ),
                 subject_ids=batch.get("subject_id", None),
                 age=batch.get("age", None),
-                gender=batch.get("gender", None)
+                gender=batch.get("gender", None),
             )
 
         # Collect predictions and targets
@@ -490,9 +496,7 @@ class Challenge2Trainer:
         return predictions, targets
 
     def compute_official_metrics(
-        self,
-        all_predictions: List[np.ndarray],
-        all_targets: List[np.ndarray]
+        self, all_predictions: List[np.ndarray], all_targets: List[np.ndarray]
     ) -> Dict[str, float]:
         """Compute official Challenge 2 metrics."""
 
@@ -514,7 +518,9 @@ class Challenge2Trainer:
                 valid_mask = ~(np.isnan(pred_factor) | np.isnan(target_factor))
 
                 if valid_mask.sum() > 10:  # Need sufficient samples
-                    corr, p_value = pearsonr(pred_factor[valid_mask], target_factor[valid_mask])
+                    corr, p_value = pearsonr(
+                        pred_factor[valid_mask], target_factor[valid_mask]
+                    )
                     metrics[f"{factor}_correlation"] = corr
                     metrics[f"{factor}_p_value"] = p_value
                     factor_correlations.append(corr)
@@ -580,7 +586,9 @@ class Challenge2Trainer:
         train_metrics = {}
         if train_losses:
             for key in train_losses[0].keys():
-                train_metrics[f"train_{key}"] = np.mean([loss[key] for loss in train_losses])
+                train_metrics[f"train_{key}"] = np.mean(
+                    [loss[key] for loss in train_losses]
+                )
 
         val_metrics = self.compute_official_metrics(val_predictions, val_targets)
         val_metrics = {f"val_{k}": v for k, v in val_metrics.items()}
@@ -603,7 +611,9 @@ class Challenge2Trainer:
 
         history = {"train_loss": [], "val_avg_correlation": []}
 
-        logger.info(f"Starting Challenge 2 training for {self.config.max_epochs} epochs")
+        logger.info(
+            f"Starting Challenge 2 training for {self.config.max_epochs} epochs"
+        )
 
         for epoch in range(self.config.max_epochs):
             start_time = time.time()
@@ -613,10 +623,14 @@ class Challenge2Trainer:
 
             # Track history
             history["train_loss"].append(metrics.get("train_total_loss", 0.0))
-            history["val_avg_correlation"].append(metrics.get("val_avg_correlation", 0.0))
+            history["val_avg_correlation"].append(
+                metrics.get("val_avg_correlation", 0.0)
+            )
 
             # Early stopping check
-            current_metric = metrics.get(f"val_{self.config.monitor_metric.replace('val_', '')}", 0.0)
+            current_metric = metrics.get(
+                f"val_{self.config.monitor_metric.replace('val_', '')}", 0.0
+            )
 
             if current_metric > self.best_metric + self.config.min_delta:
                 self.best_metric = current_metric
@@ -624,14 +638,17 @@ class Challenge2Trainer:
 
                 # Save best model
                 if self.log_dir:
-                    torch.save({
-                        'epoch': epoch,
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        'score_scalers': self.score_scalers,
-                        'best_metric': self.best_metric,
-                        'config': self.config
-                    }, self.log_dir / "best_model.ckpt")
+                    torch.save(
+                        {
+                            "epoch": epoch,
+                            "model_state_dict": self.model.state_dict(),
+                            "optimizer_state_dict": self.optimizer.state_dict(),
+                            "score_scalers": self.score_scalers,
+                            "best_metric": self.best_metric,
+                            "config": self.config,
+                        },
+                        self.log_dir / "best_model.ckpt",
+                    )
 
             else:
                 self.patience_counter += 1

@@ -5,10 +5,11 @@ This module provides various classification head architectures for different
 tasks in the EEG Foundation Challenge.
 """
 
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional
 
 
 class ClassificationHead(nn.Module):
@@ -22,7 +23,7 @@ class ClassificationHead(nn.Module):
         num_classes: int,
         hidden_dim: Optional[int] = None,
         dropout: float = 0.5,
-        use_batch_norm: bool = True
+        use_batch_norm: bool = True,
     ):
         """
         Initialize classification head.
@@ -43,23 +44,22 @@ class ClassificationHead(nn.Module):
             layers = []
             if use_batch_norm:
                 layers.append(nn.BatchNorm1d(in_features))
-            layers.extend([
-                nn.Dropout(dropout),
-                nn.Linear(in_features, num_classes)
-            ])
+            layers.extend([nn.Dropout(dropout), nn.Linear(in_features, num_classes)])
         else:
             # Two layer classifier
             layers = []
             if use_batch_norm:
                 layers.append(nn.BatchNorm1d(in_features))
-            layers.extend([
-                nn.Dropout(dropout),
-                nn.Linear(in_features, hidden_dim),
-                nn.ReLU(),
-                nn.BatchNorm1d(hidden_dim) if use_batch_norm else nn.Identity(),
-                nn.Dropout(dropout),
-                nn.Linear(hidden_dim, num_classes)
-            ])
+            layers.extend(
+                [
+                    nn.Dropout(dropout),
+                    nn.Linear(in_features, hidden_dim),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(hidden_dim) if use_batch_norm else nn.Identity(),
+                    nn.Dropout(dropout),
+                    nn.Linear(hidden_dim, num_classes),
+                ]
+            )
 
         self.classifier = nn.Sequential(*layers)
 
@@ -86,7 +86,7 @@ class MultiTaskHead(nn.Module):
         in_features: int,
         task_configs: dict,
         shared_dim: int = 256,
-        dropout: float = 0.5
+        dropout: float = 0.5,
     ):
         """
         Initialize multi-task head.
@@ -106,7 +106,7 @@ class MultiTaskHead(nn.Module):
             nn.Linear(in_features, shared_dim),
             nn.ReLU(),
             nn.BatchNorm1d(shared_dim),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
         # Task-specific heads
@@ -143,7 +143,7 @@ class AttentionHead(nn.Module):
         in_features: int,
         num_classes: int,
         num_heads: int = 8,
-        dropout: float = 0.5
+        dropout: float = 0.5,
     ):
         """
         Initialize attention head.
@@ -160,14 +160,12 @@ class AttentionHead(nn.Module):
             embed_dim=in_features,
             num_heads=num_heads,
             dropout=dropout,
-            batch_first=True
+            batch_first=True,
         )
 
         self.norm = nn.LayerNorm(in_features)
         self.classifier = ClassificationHead(
-            in_features=in_features,
-            num_classes=num_classes,
-            dropout=dropout
+            in_features=in_features, num_classes=num_classes, dropout=dropout
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -206,7 +204,7 @@ class DomainAdversarialHead(nn.Module):
         num_domains: int,
         hidden_dim: int = 256,
         dropout: float = 0.5,
-        gradient_reversal_lambda: float = 1.0
+        gradient_reversal_lambda: float = 1.0,
     ):
         """
         Initialize domain adversarial head.
@@ -230,7 +228,7 @@ class DomainAdversarialHead(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, num_domains)
+            nn.Linear(hidden_dim, num_domains),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -244,7 +242,9 @@ class DomainAdversarialHead(nn.Module):
             Domain predictions [batch_size, num_domains]
         """
         # Apply gradient reversal
-        reversed_features = GradientReversalFunction.apply(x, self.gradient_reversal_lambda)
+        reversed_features = GradientReversalFunction.apply(
+            x, self.gradient_reversal_lambda
+        )
         return self.domain_classifier(reversed_features)
 
 
@@ -273,7 +273,7 @@ class ContrastiveHead(nn.Module):
         in_features: int,
         projection_dim: int = 128,
         hidden_dim: int = 512,
-        dropout: float = 0.1
+        dropout: float = 0.1,
     ):
         """
         Initialize contrastive head.
@@ -291,7 +291,7 @@ class ContrastiveHead(nn.Module):
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, projection_dim)
+            nn.Linear(hidden_dim, projection_dim),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -325,7 +325,7 @@ class CCDRegressionHead(nn.Module):
         activation: str = "relu",
         use_batch_norm: bool = True,
         predict_uncertainty: bool = False,
-        output_activation: Optional[str] = None
+        output_activation: Optional[str] = None,
     ):
         """
         Initialize CCD regression head.
@@ -464,7 +464,7 @@ class CCDClassificationHead(nn.Module):
         dropout_rate: float = 0.3,
         activation: str = "relu",
         use_batch_norm: bool = True,
-        class_weights: Optional[torch.Tensor] = None
+        class_weights: Optional[torch.Tensor] = None,
     ):
         """
         Initialize CCD classification head.
@@ -571,16 +571,18 @@ def create_head(head_type: str, **kwargs) -> nn.Module:
         Classification head module
     """
     head_map = {
-        'simple': ClassificationHead,
-        'multitask': MultiTaskHead,
-        'attention': AttentionHead,
-        'adversarial': DomainAdversarialHead,
-        'contrastive': ContrastiveHead,
-        'ccd_regression': CCDRegressionHead,
-        'ccd_classification': CCDClassificationHead
+        "simple": ClassificationHead,
+        "multitask": MultiTaskHead,
+        "attention": AttentionHead,
+        "adversarial": DomainAdversarialHead,
+        "contrastive": ContrastiveHead,
+        "ccd_regression": CCDRegressionHead,
+        "ccd_classification": CCDClassificationHead,
     }
 
     if head_type not in head_map:
-        raise ValueError(f"Unknown head type: {head_type}. Available: {list(head_map.keys())}")
+        raise ValueError(
+            f"Unknown head type: {head_type}. Available: {list(head_map.keys())}"
+        )
 
     return head_map[head_type](**kwargs)

@@ -5,11 +5,12 @@ Psychopathology Prediction Heads for Challenge 2
 Specialized heads for CBCL factor prediction with clinical normalization.
 """
 
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Dict, List, Optional, Tuple
 
 
 class ClinicalNormalizationLayer(nn.Module):
@@ -24,7 +25,7 @@ class ClinicalNormalizationLayer(nn.Module):
         num_factors: int,
         age_bins: int = 10,
         use_gender: bool = True,
-        age_range: Tuple[float, float] = (5.0, 21.0)
+        age_range: Tuple[float, float] = (5.0, 21.0),
     ):
         super().__init__()
 
@@ -39,7 +40,9 @@ class ClinicalNormalizationLayer(nn.Module):
 
         # Gender-based adjustment if enabled
         if use_gender:
-            self.gender_adjustments = nn.Parameter(torch.zeros(2, num_factors))  # Male=0, Female=1
+            self.gender_adjustments = nn.Parameter(
+                torch.zeros(2, num_factors)
+            )  # Male=0, Female=1
 
         # Learnable normalization weights
         self.norm_weights = nn.Parameter(torch.ones(num_factors))
@@ -57,7 +60,7 @@ class ClinicalNormalizationLayer(nn.Module):
         self,
         predictions: torch.Tensor,
         age: torch.Tensor,
-        gender: Optional[torch.Tensor] = None
+        gender: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """
         Apply clinical normalization.
@@ -77,7 +80,7 @@ class ClinicalNormalizationLayer(nn.Module):
 
         # Age-based normalization
         age_mean = self.age_means[age_bins]  # [batch_size, num_factors]
-        age_std = self.age_stds[age_bins]    # [batch_size, num_factors]
+        age_std = self.age_stds[age_bins]  # [batch_size, num_factors]
 
         # Z-score normalization
         normalized = (predictions - age_mean) / (age_std + 1e-8)
@@ -105,7 +108,7 @@ class FactorCorrelationModule(nn.Module):
         self.correlation_weights = nn.Parameter(torch.zeros(num_factors, num_factors))
 
         # Known clinical correlations (initialized based on literature)
-        self.register_buffer('prior_correlations', self._get_prior_correlations())
+        self.register_buffer("prior_correlations", self._get_prior_correlations())
 
     def _get_prior_correlations(self) -> torch.Tensor:
         """Get prior correlation matrix based on clinical knowledge."""
@@ -141,11 +144,15 @@ class FactorCorrelationModule(nn.Module):
         """
         # Compute empirical correlations
         centered_preds = predictions - predictions.mean(dim=0, keepdim=True)
-        cov_matrix = torch.mm(centered_preds.T, centered_preds) / (predictions.size(0) - 1)
+        cov_matrix = torch.mm(centered_preds.T, centered_preds) / (
+            predictions.size(0) - 1
+        )
 
         # Compute correlation matrix
         std_devs = torch.sqrt(torch.diag(cov_matrix))
-        corr_matrix = cov_matrix / (std_devs.unsqueeze(1) * std_devs.unsqueeze(0) + 1e-8)
+        corr_matrix = cov_matrix / (
+            std_devs.unsqueeze(1) * std_devs.unsqueeze(0) + 1e-8
+        )
 
         # Correlation regularization loss
         corr_loss = F.mse_loss(corr_matrix, self.prior_correlations)
@@ -153,7 +160,7 @@ class FactorCorrelationModule(nn.Module):
         return {
             "correlation_matrix": corr_matrix,
             "correlation_loss": corr_loss,
-            "predicted_correlations": corr_matrix
+            "predicted_correlations": corr_matrix,
         }
 
 
@@ -183,16 +190,10 @@ class UncertaintyEstimationHead(nn.Module):
         log_var = self.log_var_head(x)
         var = torch.exp(log_var)
 
-        return {
-            "mean": mean,
-            "variance": var,
-            "log_variance": log_var
-        }
+        return {"mean": mean, "variance": var, "log_variance": log_var}
 
     def compute_nll_loss(
-        self,
-        predictions: Dict[str, torch.Tensor],
-        targets: torch.Tensor
+        self, predictions: Dict[str, torch.Tensor], targets: torch.Tensor
     ) -> torch.Tensor:
         """Compute negative log-likelihood loss."""
         mean = predictions["mean"]
@@ -224,7 +225,7 @@ class PsychopathologyHead(nn.Module):
         dropout: float = 0.3,
         use_uncertainty: bool = True,
         use_correlation_loss: bool = True,
-        use_batch_norm: bool = True
+        use_batch_norm: bool = True,
     ):
         super().__init__()
 
@@ -239,12 +240,18 @@ class PsychopathologyHead(nn.Module):
         in_dim = input_dim
 
         for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(in_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim) if use_batch_norm else nn.LayerNorm(hidden_dim),
-                nn.ReLU(inplace=True),
-                nn.Dropout(dropout)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(in_dim, hidden_dim),
+                    (
+                        nn.BatchNorm1d(hidden_dim)
+                        if use_batch_norm
+                        else nn.LayerNorm(hidden_dim)
+                    ),
+                    nn.ReLU(inplace=True),
+                    nn.Dropout(dropout),
+                ]
+            )
             in_dim = hidden_dim
 
         self.shared_layers = nn.Sequential(*layers)
@@ -260,26 +267,25 @@ class PsychopathologyHead(nn.Module):
             self.correlation_module = FactorCorrelationModule(num_factors)
 
         # Factor-specific fine-tuning layers
-        self.factor_layers = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(in_dim, in_dim // 2),
-                nn.ReLU(),
-                nn.Dropout(dropout // 2),
-                nn.Linear(in_dim // 2, 1)
-            )
-            for _ in range(num_factors)
-        ])
+        self.factor_layers = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(in_dim, in_dim // 2),
+                    nn.ReLU(),
+                    nn.Dropout(dropout // 2),
+                    nn.Linear(in_dim // 2, 1),
+                )
+                for _ in range(num_factors)
+            ]
+        )
 
         # Attention mechanism for factor importance
         self.factor_attention = nn.Sequential(
-            nn.Linear(in_dim, num_factors),
-            nn.Softmax(dim=-1)
+            nn.Linear(in_dim, num_factors), nn.Softmax(dim=-1)
         )
 
     def forward(
-        self,
-        x: torch.Tensor,
-        return_attention: bool = False
+        self, x: torch.Tensor, return_attention: bool = False
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass for psychopathology prediction.
@@ -315,15 +321,12 @@ class PsychopathologyHead(nn.Module):
         attention_weights = self.factor_attention(shared_features)
 
         # Combine main and factor-specific predictions
-        combined_predictions = (
-            0.7 * main_predictions +
-            0.3 * factor_predictions
-        )
+        combined_predictions = 0.7 * main_predictions + 0.3 * factor_predictions
 
         outputs = {
             "predictions": combined_predictions,
             "main_predictions": main_predictions,
-            "factor_predictions": factor_predictions
+            "factor_predictions": factor_predictions,
         }
 
         if uncertainties is not None:
@@ -345,7 +348,7 @@ class PsychopathologyHead(nn.Module):
         targets: torch.Tensor,
         uncertainties: Optional[torch.Tensor] = None,
         correlation_loss: Optional[torch.Tensor] = None,
-        loss_weights: Dict[str, float] = None
+        loss_weights: Dict[str, float] = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Compute comprehensive loss for psychopathology prediction.
@@ -361,11 +364,7 @@ class PsychopathologyHead(nn.Module):
             Dictionary of loss components
         """
         if loss_weights is None:
-            loss_weights = {
-                "mse": 1.0,
-                "correlation": 0.1,
-                "uncertainty": 0.1
-            }
+            loss_weights = {"mse": 1.0, "correlation": 0.1, "uncertainty": 0.1}
 
         losses = {}
 
@@ -382,11 +381,13 @@ class PsychopathologyHead(nn.Module):
             pred_factor = pred_centered[:, i]
             target_factor = target_centered[:, i]
 
-            pred_std = torch.sqrt((pred_factor ** 2).mean() + 1e-8)
-            target_std = torch.sqrt((target_factor ** 2).mean() + 1e-8)
+            pred_std = torch.sqrt((pred_factor**2).mean() + 1e-8)
+            target_std = torch.sqrt((target_factor**2).mean() + 1e-8)
 
-            correlation = (pred_factor * target_factor).mean() / (pred_std * target_std + 1e-8)
-            correlation_loss_value += (1 - correlation)
+            correlation = (pred_factor * target_factor).mean() / (
+                pred_std * target_std + 1e-8
+            )
+            correlation_loss_value += 1 - correlation
 
         losses["correlation_loss"] = correlation_loss_value / self.num_factors
 
@@ -401,8 +402,8 @@ class PsychopathologyHead(nn.Module):
 
         # Total loss
         total_loss = (
-            loss_weights["mse"] * losses["mse_loss"] +
-            loss_weights["correlation"] * losses["correlation_loss"]
+            loss_weights["mse"] * losses["mse_loss"]
+            + loss_weights["correlation"] * losses["correlation_loss"]
         )
 
         if "uncertainty_loss" in losses:
@@ -424,10 +425,7 @@ class MultiTaskPsychopathologyHead(nn.Module):
     """
 
     def __init__(
-        self,
-        input_dim: int,
-        task_configs: Dict[str, Dict],
-        shared_dim: int = 256
+        self, input_dim: int, task_configs: Dict[str, Dict], shared_dim: int = 256
     ):
         super().__init__()
 
@@ -438,7 +436,7 @@ class MultiTaskPsychopathologyHead(nn.Module):
             nn.Linear(input_dim, shared_dim),
             nn.BatchNorm1d(shared_dim),
             nn.ReLU(),
-            nn.Dropout(0.3)
+            nn.Dropout(0.3),
         )
 
         # Task-specific heads
@@ -446,8 +444,7 @@ class MultiTaskPsychopathologyHead(nn.Module):
 
         for task_name, config in task_configs.items():
             self.task_heads[task_name] = PsychopathologyHead(
-                input_dim=shared_dim,
-                **config
+                input_dim=shared_dim, **config
             )
 
     def forward(self, x: torch.Tensor, task_name: str) -> Dict[str, torch.Tensor]:

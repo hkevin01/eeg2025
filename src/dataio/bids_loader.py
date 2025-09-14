@@ -14,17 +14,17 @@ Features:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import mne
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
 from mne_bids import BIDSPath, read_raw_bids
+from torch.utils.data import DataLoader, Dataset
 
-from .starter_kit import StarterKitDataLoader
 from .preprocessing import LeakageFreePreprocessor, SessionAwareSampler
+from .starter_kit import StarterKitDataLoader
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +73,10 @@ class HBNDataset(Dataset):
         self.transform = transform
 
         # Validate split
-        if split not in ['train', 'val', 'test']:
-            raise ValueError(f"Invalid split: {split}. Must be one of ['train', 'val', 'test']")
+        if split not in ["train", "val", "test"]:
+            raise ValueError(
+                f"Invalid split: {split}. Must be one of ['train', 'val', 'test']"
+            )
 
         # Initialize challenge data loader
         self.starter_kit = StarterKitDataLoader(bids_root=self.bids_root)
@@ -88,7 +90,9 @@ class HBNDataset(Dataset):
         # Initialize preprocessor if needed
         self.preprocessor = None
         if self.preprocessing_config:
-            stats_dir = Path(self.preprocessing_config.get('stats_dir', 'preprocessing_stats'))
+            stats_dir = Path(
+                self.preprocessing_config.get("stats_dir", "preprocessing_stats")
+            )
             self.preprocessor = LeakageFreePreprocessor(stats_dir=stats_dir)
 
         # Load labels if requested
@@ -102,8 +106,12 @@ class HBNDataset(Dataset):
         # Extract windows from all files
         self.windows = self._extract_windows()
 
-        logger.info(f"Initialized HBNDataset with {len(self.windows)} windows for {split} split")
-        logger.info(f"Initialized HBNDataset with {len(self.windows)} windows for {split} split")
+        logger.info(
+            f"Initialized HBNDataset with {len(self.windows)} windows for {split} split"
+        )
+        logger.info(
+            f"Initialized HBNDataset with {len(self.windows)} windows for {split} split"
+        )
 
     def _load_official_splits(self) -> Dict[str, List[str]]:
         """Load official challenge splits with validation."""
@@ -118,17 +126,22 @@ class HBNDataset(Dataset):
 
                 if splits_file.exists():
                     import json
-                    with open(splits_file, 'r') as f:
+
+                    with open(splits_file, "r") as f:
                         splits_data = json.load(f)
-                    splits = splits_data['splits']
+                    splits = splits_data["splits"]
                 else:
-                    raise FileNotFoundError(f"Official splits not found for version {self.splits_version}")
+                    raise FileNotFoundError(
+                        f"Official splits not found for version {self.splits_version}"
+                    )
 
             # Validate splits
             self._validate_splits(splits)
 
-            logger.info(f"Loaded official splits {self.splits_version}: "
-                       f"train={len(splits['train'])}, val={len(splits['val'])}, test={len(splits['test'])}")
+            logger.info(
+                f"Loaded official splits {self.splits_version}: "
+                f"train={len(splits['train'])}, val={len(splits['val'])}, test={len(splits['test'])}"
+            )
 
             return splits
 
@@ -138,7 +151,7 @@ class HBNDataset(Dataset):
 
     def _validate_splits(self, splits: Dict[str, List[str]]) -> None:
         """Validate that splits meet challenge requirements."""
-        required_splits = {'train', 'val', 'test'}
+        required_splits = {"train", "val", "test"}
 
         # Check all required splits are present
         if not all(split in splits for split in required_splits):
@@ -161,21 +174,21 @@ class HBNDataset(Dataset):
         """Load challenge-specific labels (CCD and CBCL)."""
         try:
             # Load CCD labels for Challenge 1 (response time + success)
-            if any(task in ['CCD'] for task in self.tasks):
-                self.labels['ccd'] = self.starter_kit.load_ccd_labels(split=self.split)
+            if any(task in ["CCD"] for task in self.tasks):
+                self.labels["ccd"] = self.starter_kit.load_ccd_labels(split=self.split)
                 logger.info(f"Loaded CCD labels: {len(self.labels['ccd'])} records")
 
             # Load CBCL labels for Challenge 2 (behavioral factors)
-            self.labels['cbcl'] = self.starter_kit.load_cbcl_labels(split=self.split)
+            self.labels["cbcl"] = self.starter_kit.load_cbcl_labels(split=self.split)
             logger.info(f"Loaded CBCL labels: {len(self.labels['cbcl'])} records")
 
         except Exception as e:
             logger.warning(f"Could not load some challenge labels: {e}")
             # Initialize empty labels to prevent errors
-            if 'ccd' not in self.labels:
-                self.labels['ccd'] = pd.DataFrame()
-            if 'cbcl' not in self.labels:
-                self.labels['cbcl'] = pd.DataFrame()
+            if "ccd" not in self.labels:
+                self.labels["ccd"] = pd.DataFrame()
+            if "cbcl" not in self.labels:
+                self.labels["cbcl"] = pd.DataFrame()
 
     def _build_file_index(self) -> List[Dict]:
         """Build index of all available EEG files for split participants."""
@@ -185,10 +198,7 @@ class HBNDataset(Dataset):
             for task in self.tasks:
                 # Find all sessions for this participant/task
                 bids_path = BIDSPath(
-                    subject=participant,
-                    task=task,
-                    datatype="eeg",
-                    root=self.bids_root
+                    subject=participant, task=task, datatype="eeg", root=self.bids_root
                 )
 
                 try:
@@ -197,7 +207,9 @@ class HBNDataset(Dataset):
                     for match in matches:
                         # Validate that this participant is in the correct split
                         if participant not in self.participants:
-                            logger.warning(f"Participant {participant} not in {self.split} split, skipping")
+                            logger.warning(
+                                f"Participant {participant} not in {self.split} split, skipping"
+                            )
                             continue
 
                         file_info = {
@@ -210,15 +222,19 @@ class HBNDataset(Dataset):
                         file_index.append(file_info)
 
                 except Exception as e:
-                    logger.warning(f"Could not find files for {participant}/{task}: {e}")
+                    logger.warning(
+                        f"Could not find files for {participant}/{task}: {e}"
+                    )
 
         logger.info(f"Found {len(file_index)} EEG files for {self.split} split")
 
         # Log split integrity check
-        unique_participants = set(info['participant'] for info in file_index)
+        unique_participants = set(info["participant"] for info in file_index)
         if len(unique_participants) != len(self.participants):
             missing = set(self.participants) - unique_participants
-            logger.warning(f"Some participants in {self.split} split have no EEG files: {missing}")
+            logger.warning(
+                f"Some participants in {self.split} split have no EEG files: {missing}"
+            )
 
         return file_index
 
@@ -235,9 +251,7 @@ class HBNDataset(Dataset):
                 if self.preprocessor:
                     session_id = f"{file_info['participant']}_{file_info['session']}_{file_info['task']}"
                     raw = self.preprocessor.preprocess_raw(
-                        raw=raw,
-                        session_id=session_id,
-                        split=self.split
+                        raw=raw, session_id=session_id, split=self.split
                     )
                 else:
                     # Basic preprocessing fallback
@@ -250,7 +264,9 @@ class HBNDataset(Dataset):
             except Exception as e:
                 logger.warning(f"Could not process {file_info['bids_path']}: {e}")
 
-        logger.info(f"Extracted {len(windows)} windows from {len(self.file_index)} files")
+        logger.info(
+            f"Extracted {len(windows)} windows from {len(self.file_index)} files"
+        )
         return windows
 
     def _basic_preprocessing(self, raw: mne.io.Raw) -> mne.io.Raw:
@@ -270,7 +286,7 @@ class HBNDataset(Dataset):
 
         # Re-referencing
         if self.preprocessing_config.get("reref") == "CAR":
-            raw_copy.set_eeg_reference(ref_channels='average', verbose=False)
+            raw_copy.set_eeg_reference(ref_channels="average", verbose=False)
 
         return raw_copy
 
@@ -334,7 +350,9 @@ class HBNDataset(Dataset):
             if not participant_ccd.empty:
                 # For simplicity, use session-level aggregates
                 # In practice, you might want more sophisticated temporal alignment
-                labels["response_time_target"] = participant_ccd["response_time_target"].mean()
+                labels["response_time_target"] = participant_ccd[
+                    "response_time_target"
+                ].mean()
                 labels["success_target"] = participant_ccd["success_target"].mean()
 
         # CBCL labels (Challenge 2) - subject-level
@@ -344,9 +362,17 @@ class HBNDataset(Dataset):
 
             if not participant_cbcl.empty:
                 # Get CBCL factors
-                for col in ["p_factor", "internalizing", "externalizing", "attention", "binary_label"]:
+                for col in [
+                    "p_factor",
+                    "internalizing",
+                    "externalizing",
+                    "attention",
+                    "binary_label",
+                ]:
                     if col in participant_cbcl.columns:
-                        labels[col] = participant_cbcl[col].iloc[0]  # Subject-level label
+                        labels[col] = participant_cbcl[col].iloc[
+                            0
+                        ]  # Subject-level label
 
         return labels
 
@@ -360,7 +386,7 @@ class HBNDataset(Dataset):
             "subject_id": window["participant"],
             "session_id": window["session"],
             "task": window["task"],
-            "split": window["split"]
+            "split": window["split"],
         }
 
     def __len__(self) -> int:
@@ -391,8 +417,15 @@ class HBNDataset(Dataset):
 
         # Prepare labels
         labels = {}
-        for key in ["response_time_target", "success_target", "p_factor",
-                   "internalizing", "externalizing", "attention", "binary_label"]:
+        for key in [
+            "response_time_target",
+            "success_target",
+            "p_factor",
+            "internalizing",
+            "externalizing",
+            "attention",
+            "binary_label",
+        ]:
             if key in window_info:
                 value = window_info[key]
                 if pd.notna(value):  # Only include non-NaN labels
@@ -406,7 +439,7 @@ class HBNDataset(Dataset):
             "split": window_info["split"],
             "window_idx": window_info["window_idx"],
             "start_time": window_info["start_time"],
-            "end_time": window_info["end_time"]
+            "end_time": window_info["end_time"],
         }
 
         return eeg_tensor, {"labels": labels, "metadata": metadata}
@@ -430,7 +463,7 @@ class HBNDataLoader:
         num_workers: int = 4,
         pin_memory: bool = True,
         splits_version: str = "v1.0",
-        preprocessing_config: Optional[Dict] = None
+        preprocessing_config: Optional[Dict] = None,
     ):
         self.bids_root = Path(bids_root)
         self.batch_size = batch_size
@@ -442,11 +475,7 @@ class HBNDataLoader:
         logger.info(f"Initialized HBNDataLoader with batch_size={batch_size}")
 
     def get_dataloader(
-        self,
-        split: str,
-        tasks: List[str],
-        shuffle: bool = None,
-        **dataset_kwargs
+        self, split: str, tasks: List[str], shuffle: bool = None, **dataset_kwargs
     ) -> DataLoader:
         """
         Get DataLoader for a specific split with session-aware sampling.
@@ -462,7 +491,7 @@ class HBNDataLoader:
         """
         # Default shuffle behavior
         if shuffle is None:
-            shuffle = (split == 'train')
+            shuffle = split == "train"
 
         # Create dataset
         dataset = HBNDataset(
@@ -471,14 +500,12 @@ class HBNDataLoader:
             tasks=tasks,
             preprocessing_config=self.preprocessing_config,
             splits_version=self.splits_version,
-            **dataset_kwargs
+            **dataset_kwargs,
         )
 
         # Create session-aware sampler
         sampler = SessionAwareSampler(
-            dataset=dataset,
-            batch_size=self.batch_size,
-            shuffle=shuffle
+            dataset=dataset, batch_size=self.batch_size, shuffle=shuffle
         )
 
         # Create DataLoader
@@ -487,10 +514,12 @@ class HBNDataLoader:
             batch_sampler=sampler,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            collate_fn=self._collate_fn
+            collate_fn=self._collate_fn,
         )
 
-        logger.info(f"Created DataLoader for {split} split: {len(dataset)} windows, {len(dataloader)} batches")
+        logger.info(
+            f"Created DataLoader for {split} split: {len(dataset)} windows, {len(dataloader)} batches"
+        )
 
         return dataloader
 
@@ -527,12 +556,7 @@ class HBNDataLoader:
 
     def validate_splits_integrity(self) -> Dict[str, Any]:
         """Validate that data loading maintains split integrity."""
-        results = {
-            "valid": True,
-            "errors": [],
-            "warnings": [],
-            "stats": {}
-        }
+        results = {"valid": True, "errors": [], "warnings": [], "stats": {}}
 
         try:
             # Load a small sample from each split
@@ -547,7 +571,7 @@ class HBNDataLoader:
                         tasks=test_tasks,
                         preprocessing_config=self.preprocessing_config,
                         splits_version=self.splits_version,
-                        load_labels=False  # Faster for validation
+                        load_labels=False,  # Faster for validation
                     )
                     split_datasets[split] = dataset
                 except Exception as e:
@@ -563,10 +587,12 @@ class HBNDataLoader:
 
             # Check overlaps
             for i, (split1, subjects1) in enumerate(split_subjects.items()):
-                for split2, subjects2 in list(split_subjects.items())[i+1:]:
+                for split2, subjects2 in list(split_subjects.items())[i + 1 :]:
                     overlap = subjects1 & subjects2
                     if overlap:
-                        results["errors"].append(f"Subject overlap between {split1} and {split2}: {list(overlap)}")
+                        results["errors"].append(
+                            f"Subject overlap between {split1} and {split2}: {list(overlap)}"
+                        )
                         results["valid"] = False
 
             # Check session isolation at the window level
@@ -581,7 +607,9 @@ class HBNDataLoader:
             if results["valid"]:
                 logger.info("✅ Split integrity validation passed")
             else:
-                logger.error(f"❌ Split integrity validation failed: {results['errors']}")
+                logger.error(
+                    f"❌ Split integrity validation failed: {results['errors']}"
+                )
 
         except Exception as e:
             results["valid"] = False
@@ -633,7 +661,7 @@ class HBNDataLoader:
         # Extract windows
         start = 0
         while start + window_samples <= n_samples:
-            window_data = data[:, start:start + window_samples]
+            window_data = data[:, start : start + window_samples]
 
             window_info = {
                 "data": window_data,
@@ -699,7 +727,7 @@ class HBNDataLoader:
         participants: Optional[List[str]] = None,
         tasks: List[str] = ["SuS", "CCD"],
         split: str = "train",
-        **kwargs
+        **kwargs,
     ) -> HBNDataset:
         """
         Create a dataset for specified participants and tasks.
@@ -719,10 +747,7 @@ class HBNDataLoader:
         logger.info(f"Creating {split} dataset with {len(participants)} participants")
 
         return HBNDataset(
-            bids_root=self.bids_root,
-            participants=participants,
-            tasks=tasks,
-            **kwargs
+            bids_root=self.bids_root, participants=participants, tasks=tasks, **kwargs
         )
 
     def get_dataloader(
@@ -731,7 +756,7 @@ class HBNDataLoader:
         batch_size: int = 32,
         shuffle: bool = True,
         num_workers: int = 4,
-        **kwargs
+        **kwargs,
     ) -> DataLoader:
         """Create PyTorch DataLoader."""
         return DataLoader(
@@ -740,7 +765,7 @@ class HBNDataLoader:
             shuffle=shuffle,
             num_workers=num_workers,
             pin_memory=torch.cuda.is_available(),
-            **kwargs
+            **kwargs,
         )
 
     def _get_available_participants(self, tasks: List[str]) -> List[str]:
@@ -757,7 +782,9 @@ class HBNDataLoader:
                 # Check if participant has data for required tasks
                 has_all_tasks = True
                 for task in tasks:
-                    task_files = list(sub_dir.glob(f"**/sub-{participant_id}_task-{task}_eeg.*"))
+                    task_files = list(
+                        sub_dir.glob(f"**/sub-{participant_id}_task-{task}_eeg.*")
+                    )
                     if not task_files:
                         has_all_tasks = False
                         break
@@ -794,12 +821,14 @@ class HBNDataLoader:
 
         # Create splits
         train_participants = shuffled_participants[:n_train].tolist()
-        val_participants = shuffled_participants[n_train:n_train + n_val].tolist()
-        test_participants = shuffled_participants[n_train + n_val:].tolist()
+        val_participants = shuffled_participants[n_train : n_train + n_val].tolist()
+        test_participants = shuffled_participants[n_train + n_val :].tolist()
 
-        logger.info(f"Split {n_participants} participants: "
-                   f"train={len(train_participants)}, "
-                   f"val={len(val_participants)}, "
-                   f"test={len(test_participants)}")
+        logger.info(
+            f"Split {n_participants} participants: "
+            f"train={len(train_participants)}, "
+            f"val={len(val_participants)}, "
+            f"test={len(test_participants)}"
+        )
 
         return train_participants, val_participants, test_participants

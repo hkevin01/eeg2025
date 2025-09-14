@@ -5,34 +5,33 @@ This module provides optimized training loops, performance benchmarking,
 and comprehensive evaluation for the enhanced EEG foundation model.
 """
 
+import gc
+import json
+import logging
+import time
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import autocast, GradScaler
-import numpy as np
-from pathlib import Path
-import time
-import json
-import logging
-from typing import Dict, List, Optional, Tuple, Any, Union
-from dataclasses import dataclass, asdict
 import wandb
+from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
-import gc
+
+from ..data.enhanced_pipeline import RealLabelManager, create_enhanced_dataloader
+from ..models.invariance.dann import AdversaryType, MultiAdversaryDANN
 
 # Import our components
-from ..models.task_aware import (
-    TaskAwareTemporalCNN, MultiTaskHead, HBNTask
-)
-from ..models.invariance.dann import MultiAdversaryDANN, AdversaryType
-from ..utils.gpu_optimization import OptimizedModel, ModelBenchmarker
-from ..data.enhanced_pipeline import (
-    create_enhanced_dataloader, RealLabelManager
-)
+from ..models.task_aware import HBNTask, MultiTaskHead, TaskAwareTemporalCNN
 from ..utils.augmentations import (
-    TimeMasking, CompressionDistortion, SchedulableAugmentation
+    CompressionDistortion,
+    SchedulableAugmentation,
+    TimeMasking,
 )
-
+from ..utils.gpu_optimization import ModelBenchmarker, OptimizedModel
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +39,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TrainingConfig:
     """Configuration for enhanced training."""
+
     # Model parameters
     input_channels: int = 19
     hidden_dim: int = 128
@@ -88,11 +88,13 @@ class TrainingConfig:
 class EnhancedTrainer:
     """Enhanced trainer with task-aware models and multi-adversary training."""
 
-    def __init__(self,
-                 config: TrainingConfig,
-                 data_root: Union[str, Path],
-                 output_dir: Union[str, Path],
-                 device: str = "auto"):
+    def __init__(
+        self,
+        config: TrainingConfig,
+        data_root: Union[str, Path],
+        output_dir: Union[str, Path],
+        device: str = "auto",
+    ):
         """
         Initialize enhanced trainer.
 
@@ -128,7 +130,7 @@ class EnhancedTrainer:
         # Training state
         self.current_epoch = 0
         self.global_step = 0
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
 
         # Metrics tracking
         self.train_metrics = []
@@ -144,13 +146,12 @@ class EnhancedTrainer:
             num_layers=self.config.num_layers,
             dropout=self.config.dropout,
             use_task_tokens=self.config.use_task_tokens,
-            adaptation_method=self.config.adaptation_method
+            adaptation_method=self.config.adaptation_method,
         )
 
         # Multi-task head
         self.multi_task_head = MultiTaskHead(
-            hidden_dim=self.config.hidden_dim,
-            dropout=self.config.dropout
+            hidden_dim=self.config.hidden_dim, dropout=self.config.dropout
         )
 
         # Multi-adversary DANN
@@ -159,24 +160,29 @@ class EnhancedTrainer:
             self.dann = MultiAdversaryDANN(
                 feature_dim=self.config.hidden_dim,
                 adversary_types=adversary_types,
-                hidden_dim=self.config.hidden_dim
+                hidden_dim=self.config.hidden_dim,
             )
         else:
             self.dann = None
 
         # Combine into optimized model
         self.model = OptimizedModel(
-            model=nn.ModuleDict({
-                'backbone': self.backbone,
-                'multi_task_head': self.multi_task_head,
-                'dann': self.dann
-            }) if self.dann else nn.ModuleDict({
-                'backbone': self.backbone,
-                'multi_task_head': self.multi_task_head
-            }),
+            model=(
+                nn.ModuleDict(
+                    {
+                        "backbone": self.backbone,
+                        "multi_task_head": self.multi_task_head,
+                        "dann": self.dann,
+                    }
+                )
+                if self.dann
+                else nn.ModuleDict(
+                    {"backbone": self.backbone, "multi_task_head": self.multi_task_head}
+                )
+            ),
             use_amp=self.config.use_amp,
             compile_mode=self.config.compile_mode,
-            device=str(self.device)
+            device=str(self.device),
         )
 
         logger.info(f"Initialized models on {self.device}")
@@ -188,7 +194,7 @@ class EnhancedTrainer:
         self.optimizer = optim.AdamW(
             self.model.parameters(),
             lr=self.config.learning_rate,
-            weight_decay=self.config.weight_decay
+            weight_decay=self.config.weight_decay,
         )
 
         # Learning rate scheduler
@@ -196,15 +202,13 @@ class EnhancedTrainer:
             self.optimizer,
             T_0=self.config.num_epochs // 4,
             T_mult=2,
-            eta_min=self.config.learning_rate * 0.01
+            eta_min=self.config.learning_rate * 0.01,
         )
 
         # Warmup scheduler
         if self.config.warmup_epochs > 0:
             self.warmup_scheduler = optim.lr_scheduler.LinearLR(
-                self.optimizer,
-                start_factor=0.1,
-                total_iters=self.config.warmup_epochs
+                self.optimizer, start_factor=0.1, total_iters=self.config.warmup_epochs
             )
         else:
             self.warmup_scheduler = None
@@ -219,13 +223,12 @@ class EnhancedTrainer:
         if self.config.use_schedulable_augs:
             augmentations = [
                 TimeMasking(
-                    mask_ratio=self.config.mask_ratio_schedule[0],
-                    schedulable=True
+                    mask_ratio=self.config.mask_ratio_schedule[0], schedulable=True
                 ),
                 CompressionDistortion(
                     distortion_percentage=self.config.compression_schedule[0],
-                    schedulable=True
-                )
+                    schedulable=True,
+                ),
             ]
 
         # Create loaders for each task
@@ -240,7 +243,7 @@ class EnhancedTrainer:
                     sequence_length=self.config.sequence_length,
                     num_workers=self.config.num_workers,
                     label_manager=self.label_manager,
-                    augmentations=augmentations.copy()
+                    augmentations=augmentations.copy(),
                 )
 
                 # Validation loader
@@ -252,16 +255,20 @@ class EnhancedTrainer:
                     sequence_length=self.config.sequence_length,
                     num_workers=self.config.num_workers,
                     label_manager=self.label_manager,
-                    augmentations=[]  # No augmentations for validation
+                    augmentations=[],  # No augmentations for validation
                 )
 
                 if len(train_loader.dataset) > 0:
                     self.train_loaders[task] = train_loader
-                    logger.info(f"Created {task.value} train loader: {len(train_loader.dataset)} samples")
+                    logger.info(
+                        f"Created {task.value} train loader: {len(train_loader.dataset)} samples"
+                    )
 
                 if len(val_loader.dataset) > 0:
                     self.val_loaders[task] = val_loader
-                    logger.info(f"Created {task.value} val loader: {len(val_loader.dataset)} samples")
+                    logger.info(
+                        f"Created {task.value} val loader: {len(val_loader.dataset)} samples"
+                    )
 
             except Exception as e:
                 logger.warning(f"Failed to create loaders for {task.value}: {e}")
@@ -290,80 +297,88 @@ class EnhancedTrainer:
             dataset = loader.dataset
             for aug in dataset.augmentations:
                 if isinstance(aug, SchedulableAugmentation):
-                    if hasattr(aug, 'mask_ratio'):
+                    if hasattr(aug, "mask_ratio"):
                         aug.mask_ratio = current_mask_ratio
-                    if hasattr(aug, 'distortion_percentage'):
+                    if hasattr(aug, "distortion_percentage"):
                         aug.distortion_percentage = current_compression
 
-        logger.debug(f"Updated augmentations: mask_ratio={current_mask_ratio:.3f}, compression={current_compression:.3f}")
+        logger.debug(
+            f"Updated augmentations: mask_ratio={current_mask_ratio:.3f}, compression={current_compression:.3f}"
+        )
 
-    def _compute_losses(self, batch: Dict[str, torch.Tensor], task: HBNTask) -> Dict[str, torch.Tensor]:
+    def _compute_losses(
+        self, batch: Dict[str, torch.Tensor], task: HBNTask
+    ) -> Dict[str, torch.Tensor]:
         """Compute all losses for a batch."""
         # Extract input
         eeg_data = batch["eeg"].to(self.device)
         batch_size = eeg_data.shape[0]
 
         # Forward pass through backbone
-        features = self.model.model['backbone'](eeg_data, task)
+        features = self.model.model["backbone"](eeg_data, task)
 
         # Multi-task predictions
-        predictions = self.model.model['multi_task_head'](features)
+        predictions = self.model.model["multi_task_head"](features)
 
         losses = {}
 
         # Task-specific losses
         if task == HBNTask.CCD:
             # CCD regression losses
-            if 'ccd_rt_mean' in batch:
-                rt_target = batch['ccd_rt_mean'].to(self.device)
-                rt_pred = predictions['ccd_rt']
-                losses['ccd_rt'] = nn.MSELoss()(rt_pred.squeeze(), rt_target)
+            if "ccd_rt_mean" in batch:
+                rt_target = batch["ccd_rt_mean"].to(self.device)
+                rt_pred = predictions["ccd_rt"]
+                losses["ccd_rt"] = nn.MSELoss()(rt_pred.squeeze(), rt_target)
 
-            if 'ccd_accuracy' in batch:
-                acc_target = batch['ccd_accuracy'].to(self.device)
-                acc_pred = predictions['ccd_success']
-                losses['ccd_accuracy'] = nn.MSELoss()(acc_pred.squeeze(), acc_target)
+            if "ccd_accuracy" in batch:
+                acc_target = batch["ccd_accuracy"].to(self.device)
+                acc_pred = predictions["ccd_success"]
+                losses["ccd_accuracy"] = nn.MSELoss()(acc_pred.squeeze(), acc_target)
 
         # CBCL factor losses (for all tasks)
         cbcl_targets = []
         cbcl_preds = []
 
-        for factor in ['internalizing', 'externalizing', 'attention', 'total']:
-            key = f'cbcl_{factor}'
+        for factor in ["internalizing", "externalizing", "attention", "total"]:
+            key = f"cbcl_{factor}"
             if key in batch:
                 cbcl_targets.append(batch[key].to(self.device))
-                cbcl_preds.append(predictions[f'cbcl_{factor}'])
+                cbcl_preds.append(predictions[f"cbcl_{factor}"])
 
         if cbcl_targets:
             cbcl_target = torch.stack(cbcl_targets, dim=1)
             cbcl_pred = torch.stack(cbcl_preds, dim=1)
-            losses['cbcl'] = nn.MSELoss()(cbcl_pred, cbcl_target)
+            losses["cbcl"] = nn.MSELoss()(cbcl_pred, cbcl_target)
 
         # Multi-adversary losses
         if self.dann is not None:
             adversary_losses = {}
 
             # Site adversary
-            if 'site' in batch:
-                site_labels = self._encode_categorical(batch['site'], 'site')
+            if "site" in batch:
+                site_labels = self._encode_categorical(batch["site"], "site")
                 if site_labels is not None:
                     adversary_losses[AdversaryType.SITE] = site_labels.to(self.device)
 
             # Subject adversary (use subject_id hash)
-            if 'subject_id' in batch:
-                subject_labels = torch.tensor([
-                    hash(sid) % 100 for sid in batch['subject_id']
-                ], dtype=torch.long).to(self.device)
+            if "subject_id" in batch:
+                subject_labels = torch.tensor(
+                    [hash(sid) % 100 for sid in batch["subject_id"]], dtype=torch.long
+                ).to(self.device)
                 adversary_losses[AdversaryType.SUBJECT] = subject_labels
 
             # Age adversary
-            if 'age' in batch:
-                age_labels = (batch['age'].to(self.device) // 2).long()  # Bin by 2-year groups
+            if "age" in batch:
+                age_labels = (
+                    batch["age"].to(self.device) // 2
+                ).long()  # Bin by 2-year groups
                 age_labels = torch.clamp(age_labels, 0, 10)  # Cap at 10 groups
                 adversary_losses[AdversaryType.AGE_GROUP] = age_labels
 
             # Task adversary
-            task_labels = torch.full((batch_size,), task.value, dtype=torch.long).to(self.device)
+            task_labels = torch.full((batch_size,), task.value, dtype=torch.long).to(
+                self.device
+            )
             adversary_losses[AdversaryType.TASK] = task_labels
 
             # Compute adversarial loss
@@ -371,20 +386,26 @@ class EnhancedTrainer:
                 # Calculate lambda based on schedule
                 adversary_lambda = self._get_adversary_lambda(self.current_epoch)
 
-                adv_loss = self.model.model['dann'].compute_adversarial_loss(
+                adv_loss = self.model.model["dann"].compute_adversarial_loss(
                     features, adversary_losses, adversary_lambda
                 )
-                losses['adversarial'] = adv_loss
+                losses["adversarial"] = adv_loss
 
         return losses, predictions
 
-    def _encode_categorical(self, values: List[str], category: str) -> Optional[torch.Tensor]:
+    def _encode_categorical(
+        self, values: List[str], category: str
+    ) -> Optional[torch.Tensor]:
         """Encode categorical values to integer labels."""
-        if category == 'site':
+        if category == "site":
             # Common HBN sites
             site_mapping = {
-                'RU': 0, 'CBIC': 1, 'CUNY': 2, 'NYU': 3, 'SI': 4,
-                'Unknown': 5
+                "RU": 0,
+                "CBIC": 1,
+                "CUNY": 2,
+                "NYU": 3,
+                "SI": 4,
+                "Unknown": 5,
             }
             labels = [site_mapping.get(site, 5) for site in values]
             return torch.tensor(labels, dtype=torch.long)
@@ -437,8 +458,7 @@ class EnhancedTrainer:
                         if self.config.gradient_clip > 0:
                             self.model.scaler.unscale_(self.optimizer)
                             torch.nn.utils.clip_grad_norm_(
-                                self.model.parameters(),
-                                self.config.gradient_clip
+                                self.model.parameters(), self.config.gradient_clip
                             )
 
                         self.model.scaler.step(self.optimizer)
@@ -448,8 +468,7 @@ class EnhancedTrainer:
 
                         if self.config.gradient_clip > 0:
                             torch.nn.utils.clip_grad_norm_(
-                                self.model.parameters(),
-                                self.config.gradient_clip
+                                self.model.parameters(), self.config.gradient_clip
                             )
 
                         self.optimizer.step()
@@ -457,7 +476,9 @@ class EnhancedTrainer:
                     self.optimizer.zero_grad()
 
                     # Track losses
-                    loss_dict = {f"{task.value}_{k}": v.item() for k, v in losses.items()}
+                    loss_dict = {
+                        f"{task.value}_{k}": v.item() for k, v in losses.items()
+                    }
                     loss_dict[f"{task.value}_total"] = total_loss.item()
                     task_losses.append(loss_dict)
 
@@ -500,7 +521,9 @@ class EnhancedTrainer:
                         losses, predictions = self._compute_losses(batch, task)
                         total_loss = sum(losses.values())
 
-                        loss_dict = {f"{task.value}_{k}": v.item() for k, v in losses.items()}
+                        loss_dict = {
+                            f"{task.value}_{k}": v.item() for k, v in losses.items()
+                        }
                         loss_dict[f"{task.value}_total"] = total_loss.item()
                         task_losses.append(loss_dict)
 
@@ -532,7 +555,7 @@ class EnhancedTrainer:
         results = self.benchmarker.benchmark_comprehensive(
             model=self.backbone,
             input_shapes=input_shapes,
-            save_path=self.output_dir / f"benchmark_epoch_{self.current_epoch}.json"
+            save_path=self.output_dir / f"benchmark_epoch_{self.current_epoch}.json",
         )
 
         self.benchmarker.print_summary(results)
@@ -541,15 +564,15 @@ class EnhancedTrainer:
     def save_checkpoint(self, is_best: bool = False):
         """Save training checkpoint."""
         checkpoint = {
-            'epoch': self.current_epoch,
-            'global_step': self.global_step,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
-            'config': asdict(self.config),
-            'train_metrics': self.train_metrics,
-            'val_metrics': self.val_metrics,
-            'best_val_loss': self.best_val_loss
+            "epoch": self.current_epoch,
+            "global_step": self.global_step,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "scheduler_state_dict": self.scheduler.state_dict(),
+            "config": asdict(self.config),
+            "train_metrics": self.train_metrics,
+            "val_metrics": self.val_metrics,
+            "best_val_loss": self.best_val_loss,
         }
 
         # Save regular checkpoint
@@ -572,25 +595,33 @@ class EnhancedTrainer:
 
             # Training
             train_losses = self.train_epoch()
-            self.train_metrics.append({'epoch': epoch, **train_losses})
+            self.train_metrics.append({"epoch": epoch, **train_losses})
 
             # Validation
             if epoch % self.config.eval_frequency == 0:
                 val_losses = self.validate()
-                self.val_metrics.append({'epoch': epoch, **val_losses})
+                self.val_metrics.append({"epoch": epoch, **val_losses})
 
                 # Check for best model
-                avg_val_loss = np.mean([v for k, v in val_losses.items() if 'total' in k])
+                avg_val_loss = np.mean(
+                    [v for k, v in val_losses.items() if "total" in k]
+                )
                 is_best = avg_val_loss < self.best_val_loss
                 if is_best:
                     self.best_val_loss = avg_val_loss
 
-                logger.info(f"Epoch {epoch}: train_loss={np.mean(list(train_losses.values())):.4f}, "
-                           f"val_loss={avg_val_loss:.4f}")
+                logger.info(
+                    f"Epoch {epoch}: train_loss={np.mean(list(train_losses.values())):.4f}, "
+                    f"val_loss={avg_val_loss:.4f}"
+                )
 
             # Save checkpoint
             if epoch % self.config.save_frequency == 0:
-                self.save_checkpoint(is_best=is_best if epoch % self.config.eval_frequency == 0 else False)
+                self.save_checkpoint(
+                    is_best=(
+                        is_best if epoch % self.config.eval_frequency == 0 else False
+                    )
+                )
 
             # Performance benchmark
             if epoch % self.config.benchmark_frequency == 0 and epoch > 0:
@@ -606,13 +637,17 @@ class EnhancedTrainer:
 
         # Save final metrics
         metrics_path = self.output_dir / "training_metrics.json"
-        with open(metrics_path, 'w') as f:
-            json.dump({
-                'train_metrics': self.train_metrics,
-                'val_metrics': self.val_metrics,
-                'benchmark_results': self.benchmark_results,
-                'config': asdict(self.config)
-            }, f, indent=2)
+        with open(metrics_path, "w") as f:
+            json.dump(
+                {
+                    "train_metrics": self.train_metrics,
+                    "val_metrics": self.val_metrics,
+                    "benchmark_results": self.benchmark_results,
+                    "config": asdict(self.config),
+                },
+                f,
+                indent=2,
+            )
 
         logger.info("Training completed!")
 
@@ -631,7 +666,7 @@ if __name__ == "__main__":
         use_multi_adversary=True,
         adversary_types=["site", "subject", "task"],
         use_amp=True,
-        compile_mode="max-autotune"
+        compile_mode="max-autotune",
     )
 
     # Initialize trainer
@@ -640,9 +675,7 @@ if __name__ == "__main__":
 
     if data_root.exists():
         trainer = EnhancedTrainer(
-            config=config,
-            data_root=data_root,
-            output_dir=output_dir
+            config=config, data_root=data_root, output_dir=output_dir
         )
 
         # Start training

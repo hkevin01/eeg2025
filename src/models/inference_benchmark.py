@@ -15,39 +15,42 @@ Key Features:
 - Production deployment readiness assessment
 """
 
-from typing import Dict, List, Optional, Tuple, Union, Any, Callable
+import gc
+import json
+import threading
+import time
+from collections import defaultdict, deque
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+import psutil
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import time
-import gc
-import psutil
-import threading
-from dataclasses import dataclass, asdict
-from collections import defaultdict, deque
-import json
-import numpy as np
-from pathlib import Path
-import matplotlib.pyplot as plt
-import seaborn as sns
-from contextlib import contextmanager
 
 
 @dataclass
 class PerformanceTarget:
     """Performance targets for production deployment."""
-    max_latency_ms: float = 100.0        # Maximum acceptable latency
-    p95_latency_ms: float = 50.0         # 95th percentile latency target
-    p99_latency_ms: float = 80.0         # 99th percentile latency target
-    max_memory_mb: float = 2048.0        # Maximum memory usage
-    min_throughput_qps: float = 10.0     # Minimum queries per second
-    max_warmup_time_s: float = 30.0      # Maximum warmup time
-    target_accuracy: float = 0.85        # Minimum accuracy requirement
+
+    max_latency_ms: float = 100.0  # Maximum acceptable latency
+    p95_latency_ms: float = 50.0  # 95th percentile latency target
+    p99_latency_ms: float = 80.0  # 99th percentile latency target
+    max_memory_mb: float = 2048.0  # Maximum memory usage
+    min_throughput_qps: float = 10.0  # Minimum queries per second
+    max_warmup_time_s: float = 30.0  # Maximum warmup time
+    target_accuracy: float = 0.85  # Minimum accuracy requirement
 
 
 @dataclass
 class InferenceBenchmarkConfig:
     """Configuration for inference benchmarking."""
+
     # Test parameters
     warmup_iterations: int = 50
     measure_iterations: int = 200
@@ -85,6 +88,7 @@ class InferenceBenchmarkConfig:
 @dataclass
 class LatencyMetrics:
     """Latency measurement results."""
+
     mean: float
     std: float
     min: float
@@ -95,7 +99,7 @@ class LatencyMetrics:
     p999: float
 
     @classmethod
-    def from_measurements(cls, latencies: List[float]) -> 'LatencyMetrics':
+    def from_measurements(cls, latencies: List[float]) -> "LatencyMetrics":
         """Create metrics from list of latency measurements."""
         latencies_np = np.array(latencies)
         return cls(
@@ -106,13 +110,14 @@ class LatencyMetrics:
             p50=float(np.percentile(latencies_np, 50)),
             p95=float(np.percentile(latencies_np, 95)),
             p99=float(np.percentile(latencies_np, 99)),
-            p999=float(np.percentile(latencies_np, 99.9))
+            p999=float(np.percentile(latencies_np, 99.9)),
         )
 
 
 @dataclass
 class MemoryMetrics:
     """Memory usage metrics."""
+
     peak_cpu_mb: float
     peak_gpu_mb: float
     avg_cpu_mb: float
@@ -121,7 +126,9 @@ class MemoryMetrics:
     gpu_samples: List[float]
 
     @classmethod
-    def from_samples(cls, cpu_samples: List[float], gpu_samples: List[float]) -> 'MemoryMetrics':
+    def from_samples(
+        cls, cpu_samples: List[float], gpu_samples: List[float]
+    ) -> "MemoryMetrics":
         """Create metrics from memory samples."""
         return cls(
             peak_cpu_mb=max(cpu_samples) if cpu_samples else 0.0,
@@ -129,13 +136,14 @@ class MemoryMetrics:
             avg_cpu_mb=np.mean(cpu_samples) if cpu_samples else 0.0,
             avg_gpu_mb=np.mean(gpu_samples) if gpu_samples else 0.0,
             cpu_samples=cpu_samples,
-            gpu_samples=gpu_samples
+            gpu_samples=gpu_samples,
         )
 
 
 @dataclass
 class BenchmarkResult:
     """Complete benchmark result for a single configuration."""
+
     batch_size: int
     sequence_length: int
     latency_metrics: LatencyMetrics
@@ -236,10 +244,10 @@ class StreamingEvaluator:
             return {}
 
         return {
-            'current_latency_p95': np.percentile(list(self.latency_window), 95),
-            'current_accuracy': np.mean(list(self.accuracy_window)),
-            'violation_rate': self.violation_count / self.total_inferences,
-            'avg_latency': np.mean(list(self.latency_window))
+            "current_latency_p95": np.percentile(list(self.latency_window), 95),
+            "current_accuracy": np.mean(list(self.accuracy_window)),
+            "violation_rate": self.violation_count / self.total_inferences,
+            "avg_latency": np.mean(list(self.latency_window)),
         }
 
     def is_meeting_targets(self) -> bool:
@@ -248,8 +256,10 @@ class StreamingEvaluator:
         if not metrics:
             return True
 
-        return (metrics['current_latency_p95'] <= self.latency_target_ms and
-                metrics['violation_rate'] <= 0.05)  # Allow 5% violations
+        return (
+            metrics["current_latency_p95"] <= self.latency_target_ms
+            and metrics["violation_rate"] <= 0.05
+        )  # Allow 5% violations
 
 
 class InferenceBenchmark:
@@ -271,7 +281,7 @@ class InferenceBenchmark:
         model: nn.Module,
         input_generator: Callable[[int, int], torch.Tensor],
         target_generator: Optional[Callable[[int, int], torch.Tensor]] = None,
-        model_name: str = "model"
+        model_name: str = "model",
     ) -> Dict[str, Any]:
         """
         Comprehensive model benchmarking.
@@ -297,8 +307,7 @@ class InferenceBenchmark:
                 print(f"  Testing batch_size={batch_size}, seq_len={seq_len}")
 
                 result = self._benchmark_configuration(
-                    model, input_generator, target_generator,
-                    batch_size, seq_len
+                    model, input_generator, target_generator, batch_size, seq_len
                 )
                 all_results.append(result)
 
@@ -321,7 +330,7 @@ class InferenceBenchmark:
         input_generator: Callable,
         target_generator: Optional[Callable],
         batch_size: int,
-        seq_len: int
+        seq_len: int,
     ) -> BenchmarkResult:
         """Benchmark a specific configuration."""
 
@@ -367,7 +376,11 @@ class InferenceBenchmark:
                         target = target.cuda()
 
                     # Simple accuracy for demonstration
-                    pred = torch.argmax(output, dim=-1) if output.dim() > 1 else output.round()
+                    pred = (
+                        torch.argmax(output, dim=-1)
+                        if output.dim() > 1
+                        else output.round()
+                    )
                     correct = (pred == target).float().mean().item()
                     accuracies.append(correct)
 
@@ -394,37 +407,49 @@ class InferenceBenchmark:
             memory_metrics=memory_metrics,
             throughput_qps=throughput,
             meets_targets=meets_targets,
-            target_violations=violations
+            target_violations=violations,
         )
 
     def _check_performance_targets(
         self,
         latency_metrics: LatencyMetrics,
         memory_metrics: MemoryMetrics,
-        throughput: float
+        throughput: float,
     ) -> Tuple[bool, List[str]]:
         """Check if performance meets targets."""
         targets = self.config.performance_targets
         violations = []
 
         if latency_metrics.mean > targets.max_latency_ms:
-            violations.append(f"Mean latency {latency_metrics.mean:.2f}ms > {targets.max_latency_ms}ms")
+            violations.append(
+                f"Mean latency {latency_metrics.mean:.2f}ms > {targets.max_latency_ms}ms"
+            )
 
         if latency_metrics.p95 > targets.p95_latency_ms:
-            violations.append(f"P95 latency {latency_metrics.p95:.2f}ms > {targets.p95_latency_ms}ms")
+            violations.append(
+                f"P95 latency {latency_metrics.p95:.2f}ms > {targets.p95_latency_ms}ms"
+            )
 
         if latency_metrics.p99 > targets.p99_latency_ms:
-            violations.append(f"P99 latency {latency_metrics.p99:.2f}ms > {targets.p99_latency_ms}ms")
+            violations.append(
+                f"P99 latency {latency_metrics.p99:.2f}ms > {targets.p99_latency_ms}ms"
+            )
 
         if memory_metrics.peak_gpu_mb > targets.max_memory_mb:
-            violations.append(f"GPU memory {memory_metrics.peak_gpu_mb:.2f}MB > {targets.max_memory_mb}MB")
+            violations.append(
+                f"GPU memory {memory_metrics.peak_gpu_mb:.2f}MB > {targets.max_memory_mb}MB"
+            )
 
         if throughput < targets.min_throughput_qps:
-            violations.append(f"Throughput {throughput:.2f} QPS < {targets.min_throughput_qps} QPS")
+            violations.append(
+                f"Throughput {throughput:.2f} QPS < {targets.min_throughput_qps} QPS"
+            )
 
         return len(violations) == 0, violations
 
-    def _aggregate_results(self, results: List[BenchmarkResult], model_name: str) -> Dict[str, Any]:
+    def _aggregate_results(
+        self, results: List[BenchmarkResult], model_name: str
+    ) -> Dict[str, Any]:
         """Aggregate benchmark results."""
 
         # Overall performance summary
@@ -433,11 +458,13 @@ class InferenceBenchmark:
         total_violations = []
 
         for result in results:
-            all_latencies.extend([
-                result.latency_metrics.mean,
-                result.latency_metrics.p95,
-                result.latency_metrics.p99
-            ])
+            all_latencies.extend(
+                [
+                    result.latency_metrics.mean,
+                    result.latency_metrics.p95,
+                    result.latency_metrics.p99,
+                ]
+            )
             all_throughputs.append(result.throughput_qps)
             total_violations.extend(result.target_violations)
 
@@ -450,28 +477,28 @@ class InferenceBenchmark:
         performance_grade = passing_configs / len(results)
 
         return {
-            'model_name': model_name,
-            'summary': {
-                'total_configurations': len(results),
-                'passing_configurations': passing_configs,
-                'performance_grade': performance_grade,
-                'avg_latency_ms': np.mean(all_latencies),
-                'avg_throughput_qps': np.mean(all_throughputs),
-                'total_violations': len(total_violations)
+            "model_name": model_name,
+            "summary": {
+                "total_configurations": len(results),
+                "passing_configurations": passing_configs,
+                "performance_grade": performance_grade,
+                "avg_latency_ms": np.mean(all_latencies),
+                "avg_throughput_qps": np.mean(all_throughputs),
+                "total_violations": len(total_violations),
             },
-            'best_configurations': {
-                'lowest_latency': asdict(best_latency),
-                'highest_throughput': asdict(best_throughput)
+            "best_configurations": {
+                "lowest_latency": asdict(best_latency),
+                "highest_throughput": asdict(best_throughput),
             },
-            'all_results': [asdict(r) for r in results],
-            'violations': total_violations
+            "all_results": [asdict(r) for r in results],
+            "violations": total_violations,
         }
 
     def _save_results(self, results: Dict[str, Any], model_name: str):
         """Save benchmark results to file."""
         output_file = Path(self.config.output_dir) / f"{model_name}_benchmark.json"
 
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(results, f, indent=2)
 
         print(f"Results saved to {output_file}")
@@ -480,9 +507,9 @@ class InferenceBenchmark:
         """Generate performance visualization plots."""
         try:
             # Set up plotting style
-            plt.style.use('seaborn-v0_8')
+            plt.style.use("seaborn-v0_8")
             fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-            fig.suptitle(f'Performance Analysis: {model_name}', fontsize=16)
+            fig.suptitle(f"Performance Analysis: {model_name}", fontsize=16)
 
             # Extract data for plotting
             batch_sizes = [r.batch_size for r in results]
@@ -492,49 +519,73 @@ class InferenceBenchmark:
 
             # Plot 1: Latency vs Batch Size
             axes[0, 0].scatter(batch_sizes, latencies_p95, alpha=0.7)
-            axes[0, 0].axhline(y=self.config.performance_targets.p95_latency_ms,
-                              color='r', linestyle='--', label='P95 Target')
-            axes[0, 0].set_xlabel('Batch Size')
-            axes[0, 0].set_ylabel('P95 Latency (ms)')
-            axes[0, 0].set_title('Latency vs Batch Size')
+            axes[0, 0].axhline(
+                y=self.config.performance_targets.p95_latency_ms,
+                color="r",
+                linestyle="--",
+                label="P95 Target",
+            )
+            axes[0, 0].set_xlabel("Batch Size")
+            axes[0, 0].set_ylabel("P95 Latency (ms)")
+            axes[0, 0].set_title("Latency vs Batch Size")
             axes[0, 0].legend()
 
             # Plot 2: Throughput vs Batch Size
-            axes[0, 1].scatter(batch_sizes, throughputs, alpha=0.7, color='green')
-            axes[0, 1].axhline(y=self.config.performance_targets.min_throughput_qps,
-                              color='r', linestyle='--', label='Throughput Target')
-            axes[0, 1].set_xlabel('Batch Size')
-            axes[0, 1].set_ylabel('Throughput (QPS)')
-            axes[0, 1].set_title('Throughput vs Batch Size')
+            axes[0, 1].scatter(batch_sizes, throughputs, alpha=0.7, color="green")
+            axes[0, 1].axhline(
+                y=self.config.performance_targets.min_throughput_qps,
+                color="r",
+                linestyle="--",
+                label="Throughput Target",
+            )
+            axes[0, 1].set_xlabel("Batch Size")
+            axes[0, 1].set_ylabel("Throughput (QPS)")
+            axes[0, 1].set_title("Throughput vs Batch Size")
             axes[0, 1].legend()
 
             # Plot 3: Memory Usage vs Batch Size
-            axes[1, 0].scatter(batch_sizes, memory_usage, alpha=0.7, color='orange')
-            axes[1, 0].axhline(y=self.config.performance_targets.max_memory_mb,
-                              color='r', linestyle='--', label='Memory Target')
-            axes[1, 0].set_xlabel('Batch Size')
-            axes[1, 0].set_ylabel('Peak GPU Memory (MB)')
-            axes[1, 0].set_title('Memory Usage vs Batch Size')
+            axes[1, 0].scatter(batch_sizes, memory_usage, alpha=0.7, color="orange")
+            axes[1, 0].axhline(
+                y=self.config.performance_targets.max_memory_mb,
+                color="r",
+                linestyle="--",
+                label="Memory Target",
+            )
+            axes[1, 0].set_xlabel("Batch Size")
+            axes[1, 0].set_ylabel("Peak GPU Memory (MB)")
+            axes[1, 0].set_title("Memory Usage vs Batch Size")
             axes[1, 0].legend()
 
             # Plot 4: Latency Distribution
             all_latencies = []
             for r in results:
-                all_latencies.extend([r.latency_metrics.mean, r.latency_metrics.p95, r.latency_metrics.p99])
+                all_latencies.extend(
+                    [
+                        r.latency_metrics.mean,
+                        r.latency_metrics.p95,
+                        r.latency_metrics.p99,
+                    ]
+                )
 
-            axes[1, 1].hist(all_latencies, bins=20, alpha=0.7, color='purple')
-            axes[1, 1].axvline(x=self.config.performance_targets.max_latency_ms,
-                              color='r', linestyle='--', label='Max Latency Target')
-            axes[1, 1].set_xlabel('Latency (ms)')
-            axes[1, 1].set_ylabel('Frequency')
-            axes[1, 1].set_title('Latency Distribution')
+            axes[1, 1].hist(all_latencies, bins=20, alpha=0.7, color="purple")
+            axes[1, 1].axvline(
+                x=self.config.performance_targets.max_latency_ms,
+                color="r",
+                linestyle="--",
+                label="Max Latency Target",
+            )
+            axes[1, 1].set_xlabel("Latency (ms)")
+            axes[1, 1].set_ylabel("Frequency")
+            axes[1, 1].set_title("Latency Distribution")
             axes[1, 1].legend()
 
             plt.tight_layout()
 
             # Save plot
-            plot_file = Path(self.config.output_dir) / f"{model_name}_performance_plots.png"
-            plt.savefig(plot_file, dpi=300, bbox_inches='tight')
+            plot_file = (
+                Path(self.config.output_dir) / f"{model_name}_performance_plots.png"
+            )
+            plt.savefig(plot_file, dpi=300, bbox_inches="tight")
             plt.close()
 
             print(f"Performance plots saved to {plot_file}")
@@ -547,7 +598,7 @@ class InferenceBenchmark:
         model: nn.Module,
         input_generator: Callable,
         target_generator: Optional[Callable] = None,
-        duration_seconds: int = 60
+        duration_seconds: int = 60,
     ) -> Dict[str, Any]:
         """
         Benchmark streaming inference performance.
@@ -568,8 +619,7 @@ class InferenceBenchmark:
 
         model.eval()
         evaluator = StreamingEvaluator(
-            self.config.streaming_window_size,
-            self.config.streaming_latency_target_ms
+            self.config.streaming_window_size, self.config.streaming_latency_target_ms
         )
 
         start_time = time.time()
@@ -595,7 +645,11 @@ class InferenceBenchmark:
                     if torch.cuda.is_available():
                         target = target.cuda()
 
-                    pred = torch.argmax(output, dim=-1) if output.dim() > 1 else output.round()
+                    pred = (
+                        torch.argmax(output, dim=-1)
+                        if output.dim() > 1
+                        else output.round()
+                    )
                     is_correct = (pred == target).all().item()
 
                 # Add result to evaluator
@@ -609,12 +663,12 @@ class InferenceBenchmark:
         final_metrics = evaluator.get_current_metrics()
 
         return {
-            'duration_seconds': total_time,
-            'total_inferences': inference_count,
-            'inferences_per_second': inference_count / total_time,
-            'meeting_targets': evaluator.is_meeting_targets(),
-            'metrics': final_metrics,
-            'target_latency_ms': self.config.streaming_latency_target_ms
+            "duration_seconds": total_time,
+            "total_inferences": inference_count,
+            "inferences_per_second": inference_count / total_time,
+            "meeting_targets": evaluator.is_meeting_targets(),
+            "metrics": final_metrics,
+            "target_latency_ms": self.config.streaming_latency_target_ms,
         }
 
 
@@ -627,7 +681,7 @@ if __name__ == "__main__":
         batch_sizes=[1, 4, 8],
         sequence_lengths=[512, 1024],
         save_results=False,
-        generate_plots=False
+        generate_plots=False,
     )
 
     benchmark = InferenceBenchmark(config)
@@ -661,7 +715,9 @@ if __name__ == "__main__":
         model, input_generator, target_generator, "dummy_model"
     )
 
-    print(f"Benchmark completed. Performance grade: {results['summary']['performance_grade']:.2%}")
+    print(
+        f"Benchmark completed. Performance grade: {results['summary']['performance_grade']:.2%}"
+    )
     print(f"Average latency: {results['summary']['avg_latency_ms']:.2f}ms")
     print(f"Average throughput: {results['summary']['avg_throughput_qps']:.2f} QPS")
 
@@ -672,7 +728,9 @@ if __name__ == "__main__":
     )
 
     if streaming_results:
-        print(f"Streaming performance: {streaming_results['inferences_per_second']:.1f} inferences/sec")
+        print(
+            f"Streaming performance: {streaming_results['inferences_per_second']:.1f} inferences/sec"
+        )
         print(f"Meeting targets: {streaming_results['meeting_targets']}")
 
     print("\nAll tests completed!")

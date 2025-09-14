@@ -5,12 +5,13 @@ Unit tests for Task-Aware Adapters (FiLM + LoRA).
 import pytest
 import torch
 import torch.nn as nn
+
 from src.models.adapters import (
-    TaskTokenEmbedding,
+    AdapterStack,
     FiLMLayer,
     LoRAAdapter,
-    AdapterStack,
-    TaskAwareTransformer
+    TaskAwareTransformer,
+    TaskTokenEmbedding,
 )
 
 
@@ -19,10 +20,7 @@ class TestTaskTokenEmbedding:
 
     def test_initialization(self):
         """Test proper initialization."""
-        task_embedding = TaskTokenEmbedding(
-            num_tasks=6,
-            embedding_dim=128
-        )
+        task_embedding = TaskTokenEmbedding(num_tasks=6, embedding_dim=128)
 
         assert task_embedding.num_tasks == 6
         assert task_embedding.embedding_dim == 128
@@ -57,10 +55,7 @@ class TestFiLMLayer:
 
     def test_initialization(self):
         """Test proper initialization."""
-        film = FiLMLayer(
-            feature_dim=256,
-            condition_dim=128
-        )
+        film = FiLMLayer(feature_dim=256, condition_dim=128)
 
         assert film.feature_dim == 256
         assert film.condition_dim == 128
@@ -70,7 +65,7 @@ class TestFiLMLayer:
         film = FiLMLayer(feature_dim=256, condition_dim=128)
 
         features = torch.randn(32, 256, 1000)  # (B, C, T)
-        condition = torch.randn(32, 128)       # (B, condition_dim)
+        condition = torch.randn(32, 128)  # (B, condition_dim)
 
         modulated = film(features, condition)
 
@@ -170,7 +165,7 @@ class TestAdapterStack:
             task_embedding_dim=128,
             num_tasks=6,
             use_film=True,
-            use_lora=True
+            use_lora=True,
         )
 
         assert adapter.feature_dim == 256
@@ -185,11 +180,11 @@ class TestAdapterStack:
             task_embedding_dim=128,
             num_tasks=6,
             use_film=True,
-            use_lora=False
+            use_lora=False,
         )
 
         features = torch.randn(32, 256, 1000)  # (B, C, T)
-        task_ids = torch.randint(0, 6, (32,))   # (B,)
+        task_ids = torch.randint(0, 6, (32,))  # (B,)
 
         adapted_features = adapter(features, task_ids)
 
@@ -199,17 +194,14 @@ class TestAdapterStack:
         """Test that different tasks produce different output distributions."""
         torch.manual_seed(42)
         adapter = AdapterStack(
-            feature_dim=128,
-            task_embedding_dim=64,
-            num_tasks=6,
-            use_film=True
+            feature_dim=128, task_embedding_dim=64, num_tasks=6, use_film=True
         )
 
         features = torch.randn(32, 128, 500)
 
         # Test two different tasks
         task_ids_1 = torch.zeros(32, dtype=torch.long)  # All task 0
-        task_ids_2 = torch.ones(32, dtype=torch.long)   # All task 1
+        task_ids_2 = torch.ones(32, dtype=torch.long)  # All task 1
 
         output_1 = adapter(features, task_ids_1)
         output_2 = adapter(features, task_ids_2)
@@ -233,7 +225,7 @@ class TestAdapterStack:
             task_embedding_dim=128,
             num_tasks=6,
             use_film=True,
-            use_lora=False
+            use_lora=False,
         )
 
         features = torch.randn(16, 256, 200)
@@ -250,7 +242,7 @@ class TestAdapterStack:
             num_tasks=6,
             use_film=False,
             use_lora=True,
-            base_layer=nn.Linear(256, 256)
+            base_layer=nn.Linear(256, 256),
         )
 
         features = torch.randn(16, 256, 200)
@@ -266,10 +258,7 @@ class TestTaskAwareTransformer:
     def test_initialization(self):
         """Test task-aware transformer initialization."""
         model = TaskAwareTransformer(
-            d_model=256,
-            num_heads=8,
-            num_layers=4,
-            num_tasks=6
+            d_model=256, num_heads=8, num_layers=4, num_tasks=6
         )
 
         assert model.d_model == 256
@@ -279,10 +268,7 @@ class TestTaskAwareTransformer:
     def test_forward_pass_eeg_data(self):
         """Test forward pass on EEG-like data."""
         model = TaskAwareTransformer(
-            d_model=128,
-            num_heads=8,
-            num_layers=2,
-            num_tasks=6
+            d_model=128, num_heads=8, num_layers=2, num_tasks=6
         )
 
         # Simulate EEG data: (batch, channels, time)
@@ -299,12 +285,7 @@ class TestTaskAwareTransformer:
     def test_different_tasks_different_representations(self):
         """Test that different tasks produce different representations."""
         torch.manual_seed(42)
-        model = TaskAwareTransformer(
-            d_model=64,
-            num_heads=4,
-            num_layers=2,
-            num_tasks=6
-        )
+        model = TaskAwareTransformer(d_model=64, num_heads=4, num_layers=2, num_tasks=6)
 
         eeg_data = torch.randn(8, 64, 500)
 
@@ -330,12 +311,12 @@ class TestHBNTaskIntegration:
             task_embedding_dim=128,
             num_tasks=6,  # 6 HBN paradigms
             use_film=True,
-            use_lora=True
+            use_lora=True,
         )
 
         # Simulate batch with different tasks
         features = torch.randn(32, 768, 2000)  # 2s at 1000Hz
-        task_ids = torch.randint(0, 6, (32,))   # Random task assignment
+        task_ids = torch.randint(0, 6, (32,))  # Random task assignment
 
         adapted = adapter(features, task_ids)
 
@@ -352,11 +333,7 @@ class TestHBNTaskIntegration:
     def test_task_specific_statistics(self):
         """Test that each task produces different output statistics."""
         torch.manual_seed(42)
-        adapter = AdapterStack(
-            feature_dim=128,
-            task_embedding_dim=64,
-            num_tasks=6
-        )
+        adapter = AdapterStack(feature_dim=128, task_embedding_dim=64, num_tasks=6)
 
         features = torch.randn(100, 128, 1000)  # Large batch for statistics
 
@@ -372,7 +349,7 @@ class TestHBNTaskIntegration:
 
         # Check that tasks produce different statistics
         assert len(set([round(m, 3) for m in task_means])) > 1  # Different means
-        assert len(set([round(s, 3) for s in task_stds])) > 1   # Different stds
+        assert len(set([round(s, 3) for s in task_stds])) > 1  # Different stds
 
 
 if __name__ == "__main__":

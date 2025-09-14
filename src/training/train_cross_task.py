@@ -7,21 +7,26 @@ to downstream tasks (CCD) with official metrics and alignment techniques.
 
 import logging
 import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
 import wandb
-from torch.utils.tensorboard import SummaryWriter
-from sklearn.metrics import roc_auc_score, average_precision_score, balanced_accuracy_score
 from scipy.stats import pearsonr
+from sklearn.metrics import (
+    average_precision_score,
+    balanced_accuracy_score,
+    roc_auc_score,
+)
+from torch.utils.tensorboard import SummaryWriter
 
 from ..models.backbones.temporal_cnn import TemporalCNN
+from ..models.heads import CCDClassificationHead, CCDRegressionHead
 from ..models.losses.corr_mse import CorrMSELoss
-from ..models.heads import CCDRegressionHead, CCDClassificationHead
 from ..utils.augmentations import SSLViewPipeline
 
 logger = logging.getLogger(__name__)
@@ -59,7 +64,9 @@ class CrossTaskConfig:
 
     # Early stopping
     early_stopping_patience: int = 10
-    primary_metric: str = "combined_score"  # Combination of RT correlation and success AUROC
+    primary_metric: str = (
+        "combined_score"  # Combination of RT correlation and success AUROC
+    )
 
     # Augmentation
     use_compression_views: bool = True
@@ -122,12 +129,12 @@ class FiLMAdapter(nn.Module):
 
         # Generate FiLM parameters
         gamma = self.gamma_generator(task_emb)  # [batch_size, feature_dim]
-        beta = self.beta_generator(task_emb)    # [batch_size, feature_dim]
+        beta = self.beta_generator(task_emb)  # [batch_size, feature_dim]
 
         # Apply FiLM conditioning
         if features.dim() == 3:  # [batch_size, seq_len, feature_dim]
             gamma = gamma.unsqueeze(1)  # [batch_size, 1, feature_dim]
-            beta = beta.unsqueeze(1)    # [batch_size, 1, feature_dim]
+            beta = beta.unsqueeze(1)  # [batch_size, 1, feature_dim]
 
         modulated_features = gamma * features + beta
 
@@ -151,9 +158,11 @@ class MMDAlignment(nn.Module):
         # x1: [n1, d], x2: [n2, d]
         # Returns: [n1, n2]
         pairwise_dist = torch.cdist(x1, x2, p=2) ** 2
-        return torch.exp(-pairwise_dist / (2 * self.bandwidth ** 2))
+        return torch.exp(-pairwise_dist / (2 * self.bandwidth**2))
 
-    def forward(self, sus_embeddings: torch.Tensor, ccd_embeddings: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, sus_embeddings: torch.Tensor, ccd_embeddings: torch.Tensor
+    ) -> torch.Tensor:
         """
         Compute MMD loss between SuS and CCD embeddings.
 
@@ -171,11 +180,7 @@ class MMDAlignment(nn.Module):
             k_sus_ccd = self.rbf_kernel(sus_embeddings, ccd_embeddings)
 
             # MMD^2 = E[k(x,x)] + E[k(y,y)] - 2*E[k(x,y)]
-            mmd_loss = (
-                k_sus_sus.mean() +
-                k_ccd_ccd.mean() -
-                2 * k_sus_ccd.mean()
-            )
+            mmd_loss = k_sus_sus.mean() + k_ccd_ccd.mean() - 2 * k_sus_ccd.mean()
 
             return mmd_loss
         else:
@@ -190,10 +195,7 @@ class CrossTaskModel(nn.Module):
     """
 
     def __init__(
-        self,
-        backbone: nn.Module,
-        config: CrossTaskConfig,
-        n_channels: int = 64
+        self, backbone: nn.Module, config: CrossTaskConfig, n_channels: int = 64
     ):
         super().__init__()
 
@@ -221,7 +223,7 @@ class CrossTaskModel(nn.Module):
             self.film_adapter = FiLMAdapter(
                 feature_dim=self.feature_dim,
                 task_token_dim=config.task_token_dim,
-                n_tasks=2  # SuS=0, CCD=1
+                n_tasks=2,  # SuS=0, CCD=1
             )
 
         if config.use_mmd_alignment:
@@ -239,13 +241,15 @@ class CrossTaskModel(nn.Module):
             else:
                 param.requires_grad = True
 
-        logger.info(f"Frozen {n_params_to_freeze}/{len(all_params)} backbone parameters")
+        logger.info(
+            f"Frozen {n_params_to_freeze}/{len(all_params)} backbone parameters"
+        )
 
     def forward(
         self,
         x: torch.Tensor,
         task_id: Optional[torch.Tensor] = None,
-        return_embeddings: bool = False
+        return_embeddings: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """
         Forward pass with task-specific processing.
@@ -267,7 +271,7 @@ class CrossTaskModel(nn.Module):
         outputs = {}
 
         # Apply FiLM adapter if enabled
-        if hasattr(self, 'film_adapter') and task_id is not None:
+        if hasattr(self, "film_adapter") and task_id is not None:
             pooled_features = self.film_adapter(pooled_features, task_id)
 
         # Task-specific predictions
@@ -307,7 +311,7 @@ class OfficialMetrics:
         """Compute Root Mean Square Error."""
         mask = ~(np.isnan(y_true) | np.isnan(y_pred))
         if mask.sum() == 0:
-            return float('inf')
+            return float("inf")
 
         return np.sqrt(np.mean((y_true[mask] - y_pred[mask]) ** 2))
 
@@ -342,7 +346,7 @@ class OfficialMetrics:
         rt_true: np.ndarray,
         rt_pred: np.ndarray,
         success_true: np.ndarray,
-        success_pred: np.ndarray
+        success_pred: np.ndarray,
     ) -> Dict[str, float]:
         """Compute all official metrics."""
         metrics = {}
@@ -354,7 +358,9 @@ class OfficialMetrics:
         # Success metrics
         metrics["success_auroc"] = cls.auroc(success_true, success_pred)
         metrics["success_auprc"] = cls.auprc(success_true, success_pred)
-        metrics["success_balanced_acc"] = cls.balanced_accuracy(success_true, success_pred)
+        metrics["success_balanced_acc"] = cls.balanced_accuracy(
+            success_true, success_pred
+        )
 
         # Combined metric (normalized)
         # Normalize RT correlation to [0, 1] and combine with AUROC
@@ -376,7 +382,7 @@ class CrossTaskTrainer:
         config: CrossTaskConfig,
         model: CrossTaskModel,
         view_pipeline: Optional[SSLViewPipeline],
-        device: torch.device
+        device: torch.device,
     ):
         self.config = config
         self.model = model.to(device)
@@ -390,13 +396,12 @@ class CrossTaskTrainer:
         self.optimizer = torch.optim.AdamW(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=config.lr,
-            weight_decay=config.weight_decay
+            weight_decay=config.weight_decay,
         )
 
         # Initialize scheduler
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optimizer,
-            T_max=config.epochs
+            self.optimizer, T_max=config.epochs
         )
 
         # Logging setup
@@ -405,7 +410,7 @@ class CrossTaskTrainer:
         # Training state
         self.current_epoch = 0
         self.global_step = 0
-        self.best_metric = -float('inf')
+        self.best_metric = -float("inf")
         self.patience_counter = 0
 
         # Metrics tracker
@@ -450,7 +455,7 @@ class CrossTaskTrainer:
                 wandb.init(
                     project="eeg2025_cross_task",
                     config=self.config.__dict__,
-                    dir=str(self.ckpt_dir)
+                    dir=str(self.ckpt_dir),
                 )
             self.use_wandb = True
         except Exception as e:
@@ -501,10 +506,7 @@ class CrossTaskTrainer:
 
         # Apply augmentation if enabled
         if self.config.use_compression_views and self.view_pipeline is not None:
-            x = self.view_pipeline(
-                x,
-                distortion_pct=self.config.wavelet_distortion_pct
-            )
+            x = self.view_pipeline(x, distortion_pct=self.config.wavelet_distortion_pct)
 
         # Forward pass
         outputs = self.model(x, task_id=task_id, return_embeddings=True)
@@ -526,7 +528,7 @@ class CrossTaskTrainer:
         total_loss += self.config.loss_weights["classification"] * clf_loss
 
         # MMD alignment loss (if enabled and SuS data available)
-        if hasattr(self.model, 'mmd_alignment') and "sus_embeddings" in batch:
+        if hasattr(self.model, "mmd_alignment") and "sus_embeddings" in batch:
             sus_embeddings = batch["sus_embeddings"].to(self.device)
             ccd_embeddings = outputs["pooled_features"]
 
@@ -578,8 +580,7 @@ class CrossTaskTrainer:
             # Compute validation losses
             reg_loss = self.losses["regression"](rt_pred, rt_true)
             clf_loss = self.losses["classification"](
-                outputs["success_prediction"].squeeze(),
-                success_true.float()
+                outputs["success_prediction"].squeeze(), success_true.float()
             )
 
             val_results = {
@@ -589,7 +590,7 @@ class CrossTaskTrainer:
                 "success_pred": success_pred.cpu().numpy(),
                 "val_regression_loss": reg_loss.item(),
                 "val_classification_loss": clf_loss.item(),
-                "val_total_loss": (reg_loss + clf_loss).item()
+                "val_total_loss": (reg_loss + clf_loss).item(),
             }
 
             return val_results
@@ -610,9 +611,11 @@ class CrossTaskTrainer:
                 self.log_step(step_losses, batch_idx, len(train_loader))
 
             # Validation
-            if (val_loader is not None and
-                batch_idx % self.config.eval_every == 0 and
-                batch_idx > 0):
+            if (
+                val_loader is not None
+                and batch_idx % self.config.eval_every == 0
+                and batch_idx > 0
+            ):
                 val_results = self.validate(val_loader)
                 self.log_validation(val_results)
 
@@ -641,12 +644,15 @@ class CrossTaskTrainer:
 
         # Compute official metrics
         metrics = self.metrics.compute_all_metrics(
-            all_rt_true, all_rt_pred,
-            all_success_true, all_success_pred
+            all_rt_true, all_rt_pred, all_success_true, all_success_pred
         )
 
         # Add validation losses
-        for loss_key in ["val_regression_loss", "val_classification_loss", "val_total_loss"]:
+        for loss_key in [
+            "val_regression_loss",
+            "val_classification_loss",
+            "val_total_loss",
+        ]:
             values = [r[loss_key] for r in val_results]
             metrics[loss_key] = np.mean(values)
 
@@ -670,7 +676,9 @@ class CrossTaskTrainer:
 
         # W&B logging
         if self.use_wandb:
-            wandb.log({f"train/{k}": v for k, v in losses.items()}, step=self.global_step)
+            wandb.log(
+                {f"train/{k}": v for k, v in losses.items()}, step=self.global_step
+            )
 
     def log_validation(self, metrics: Dict[str, float]):
         """Log validation metrics."""
@@ -689,9 +697,13 @@ class CrossTaskTrainer:
 
         # W&B logging
         if self.use_wandb:
-            wandb.log({f"val/{k}": v for k, v in metrics.items()}, step=self.global_step)
+            wandb.log(
+                {f"val/{k}": v for k, v in metrics.items()}, step=self.global_step
+            )
 
-    def save_checkpoint(self, epoch: int, metrics: Dict[str, float], is_best: bool = False):
+    def save_checkpoint(
+        self, epoch: int, metrics: Dict[str, float], is_best: bool = False
+    ):
         """Save model checkpoint."""
         checkpoint = {
             "epoch": epoch,
@@ -712,7 +724,9 @@ class CrossTaskTrainer:
         if is_best:
             best_path = self.ckpt_dir / "best.ckpt"
             torch.save(checkpoint, best_path)
-            logger.info(f"Saved best checkpoint at epoch {epoch} with {self.config.primary_metric}: {metrics[self.config.primary_metric]:.4f}")
+            logger.info(
+                f"Saved best checkpoint at epoch {epoch} with {self.config.primary_metric}: {metrics[self.config.primary_metric]:.4f}"
+            )
 
         logger.info(f"Checkpoint saved: {ckpt_path}")
 
@@ -762,7 +776,9 @@ class CrossTaskTrainer:
 
                 # Early stopping
                 if self.patience_counter >= self.config.early_stopping_patience:
-                    logger.info(f"Early stopping at epoch {epoch} (patience: {self.patience_counter})")
+                    logger.info(
+                        f"Early stopping at epoch {epoch} (patience: {self.patience_counter})"
+                    )
                     break
             else:
                 is_best = False
@@ -774,7 +790,9 @@ class CrossTaskTrainer:
 
             # Epoch logging
             epoch_time = time.time() - start_time
-            log_str = f"Epoch {epoch}/{self.config.epochs} completed in {epoch_time:.2f}s"
+            log_str = (
+                f"Epoch {epoch}/{self.config.epochs} completed in {epoch_time:.2f}s"
+            )
             log_str += f" | Train Loss: {train_loss:.4f}"
             if val_metrics:
                 log_str += f" | {self.config.primary_metric}: {val_metrics[self.config.primary_metric]:.4f}"
@@ -803,13 +821,15 @@ class FocalLoss(nn.Module):
         self.gamma = gamma
 
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        bce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        bce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
         pt = torch.exp(-bce_loss)
         focal_loss = self.alpha * (1 - pt) ** self.gamma * bce_loss
         return focal_loss.mean()
 
 
-def create_cross_task_model(config: CrossTaskConfig, n_channels: int = 64) -> CrossTaskModel:
+def create_cross_task_model(
+    config: CrossTaskConfig, n_channels: int = 64
+) -> CrossTaskModel:
     """
     Factory function to create cross-task model.
 
@@ -826,16 +846,12 @@ def create_cross_task_model(config: CrossTaskConfig, n_channels: int = 64) -> Cr
             n_channels=n_channels,
             n_filters=128,  # Should match SSL config
             kernel_size=25,
-            n_blocks=4
+            n_blocks=4,
         )
     else:
         raise ValueError(f"Unknown backbone: {config.backbone}")
 
     # Create cross-task model
-    model = CrossTaskModel(
-        backbone=backbone,
-        config=config,
-        n_channels=n_channels
-    )
+    model = CrossTaskModel(backbone=backbone, config=config, n_channels=n_channels)
 
     return model
