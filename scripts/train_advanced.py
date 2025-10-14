@@ -25,7 +25,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-import wandb
+
+# Optional wandb import
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
+    print("⚠️  wandb not available, continuing without it")
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -100,12 +107,14 @@ def setup_experiment(args):
         json.dump(vars(args), f, indent=2)
 
     # Setup logging
-    if args.use_wandb:
+    if args.use_wandb and WANDB_AVAILABLE:
         wandb.init(
             project=args.wandb_project,
             name=args.experiment_name,
             config=vars(args)
         )
+    elif args.use_wandb and not WANDB_AVAILABLE:
+        print("⚠️  wandb requested but not available, skipping...")
 
     return output_dir
 
@@ -255,9 +264,9 @@ def ssl_pretrain(model: AdvancedEEGFoundationModel, train_loader: DataLoader, ar
     torch.save(ssl_checkpoint, output_dir / "ssl_checkpoint.pt")
 
     # Log SSL results
-    if args.use_wandb:
+    if args.use_wandb and WANDB_AVAILABLE:
         for epoch, losses in enumerate(zip(*ssl_history.values())):
-            wandb.log({
+            if WANDB_AVAILABLE: wandb.log({
                 "ssl_epoch": epoch,
                 "ssl_total_loss": losses[0],
                 "ssl_reconstruction_loss": losses[1],
@@ -453,7 +462,7 @@ def supervised_finetune(
               f"Train Acc: {epoch_train_acc:.4f}, Val Acc: {epoch_val_acc:.4f}")
 
         if args.use_wandb:
-            wandb.log({
+            if WANDB_AVAILABLE: wandb.log({
                 "epoch": epoch,
                 "train_loss": epoch_train_loss,
                 "val_loss": epoch_val_loss,
@@ -538,7 +547,7 @@ def evaluate_model(model: AdvancedEEGFoundationModel, test_loader: DataLoader, a
         print(f"  {key}: {value:.4f}")
 
     if args.use_wandb:
-        wandb.log({"test_" + k: v for k, v in metrics.items()})
+        if WANDB_AVAILABLE: wandb.log({"test_" + k: v for k, v in metrics.items()})
 
     return metrics
 
@@ -567,7 +576,7 @@ def run_benchmark(model: AdvancedEEGFoundationModel, args, output_dir: Path):
     print(f"  Average Throughput: {benchmark_results['summary']['avg_throughput_qps']:.2f} QPS")
 
     if args.use_wandb:
-        wandb.log({
+        if WANDB_AVAILABLE: wandb.log({
             "benchmark_performance_grade": benchmark_results['summary']['performance_grade'],
             "benchmark_avg_latency_ms": benchmark_results['summary']['avg_latency_ms'],
             "benchmark_avg_throughput_qps": benchmark_results['summary']['avg_throughput_qps']
@@ -635,7 +644,7 @@ def main():
     print(f"Test accuracy: {test_metrics.get('classification_accuracy', 'N/A'):.4f}")
 
     if args.use_wandb:
-        wandb.finish()
+        if WANDB_AVAILABLE: wandb.finish()
 
 
 if __name__ == "__main__":

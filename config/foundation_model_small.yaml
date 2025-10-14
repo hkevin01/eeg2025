@@ -1,0 +1,85 @@
+# Foundation Model Configuration - Small Dataset (2 subjects)
+# For initial development and testing
+
+model:
+  name: advanced_foundation_model
+  architecture:
+    n_channels: 128
+    sampling_rate: 500
+    window_size_sec: 2.0
+    n_attention_heads: 8
+    n_transformer_layers: 6
+    hidden_dim: 512
+    feedforward_dim: 2048
+    dropout: 0.1
+    attention_dropout: 0.1
+    
+  features:
+    use_temporal_encoding: true
+    use_channel_encoding: true
+    use_task_conditioning: true
+    
+training:
+  # Small dataset settings
+  batch_size: 8
+  accumulation_steps: 4  # Effective batch size: 32
+  max_epochs: 50
+  early_stopping_patience: 10
+  
+  # Optimization
+  optimizer: adamw
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  warmup_steps: 100
+  scheduler: cosine
+  
+  # Regularization
+  gradient_clip: 1.0
+  label_smoothing: 0.1
+  mixup_alpha: 0.2
+  
+  # Checkpointing
+  save_every_n_epochs: 5
+  keep_last_n_checkpoints: 3
+  
+data:
+  root_dir: data/raw/hbn
+  subjects: 2  # Starting small
+  tasks: [sus, ccd, rest, mw]
+  
+  # Splits
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+  
+  # Preprocessing
+  bandpass_filter: [0.5, 45.0]
+  notch_filter: [60.0]
+  resample_freq: 500
+  window_size_sec: 2.0
+  window_overlap: 0.5
+  
+  # Augmentation
+  use_augmentation: true
+  augmentation:
+    time_shift_ms: 100
+    amplitude_scale: [0.9, 1.1]
+    gaussian_noise_std: 0.01
+    
+logging:
+  log_dir: runs/foundation_small
+  log_every_n_steps: 10
+  tensorboard: true
+  wandb: false
+  
+  metrics:
+    - accuracy
+    - loss
+    - pearson_r
+    - auroc
+    
+compute:
+  device: cuda
+  num_workers: 4
+  pin_memory: true
+  mixed_precision: true  # FP16 training
