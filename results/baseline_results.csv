@@ -1,0 +1,4 @@
+model,validation_correlation
+Simple CNN,-0.02928078974249724
+Linear Regression,-0.15530958936180478
+Random Forest,0.03873538754626668
