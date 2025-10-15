@@ -1,89 +1,113 @@
 {
-  "// ====================================================================": "",
-  "// VS CODE PERFORMANCE OPTIMIZATION FOR LARGE ML TRAINING": "",
-  "// Prevents crashes/freezes during epoch processing": "",
-  "// ====================================================================": "",
-  
-  "// === PYTHON LINTING: Disable heavy linters during training ===": "",
-  "python.linting.enabled": false,
-  "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": false,
-  "python.linting.mypyEnabled": false,
-  
-  "// === TYPE CHECKING: Disable Pylance intensive features ===": "",
-  "python.analysis.typeCheckingMode": "off",
-  "python.analysis.diagnosticMode": "openFilesOnly",
-  "python.analysis.autoImportCompletions": false,
-  "python.analysis.indexing": false,
-  
-  "// === AUTO SAVE: Reduce file watching overhead ===": "",
-  "files.autoSave": "onFocusChange",
-  "files.watcherExclude": {
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true,
-    "**/node_modules/*/**": true,
-    "**/.hg/store/**": true,
-    "**/logs/**": true,
-    "**/checkpoints/**": true,
-    "**/outputs/**": true,
-    "**/data/**": true,
-    "**/__pycache__/**": true,
-    "**/.pytest_cache/**": true,
-    "**/*.pyc": true
-  },
-  
-  "// === FILE SEARCH: Exclude large directories ===": "",
-  "files.exclude": {
-    "**/__pycache__": true,
-    "**/.pytest_cache": true,
-    "**/*.pyc": true
-  },
-  "search.exclude": {
-    "**/logs": true,
-    "**/checkpoints": true,
-    "**/outputs": true,
-    "**/data": true,
-    "**/__pycache__": true,
-    "**/.pytest_cache": true
-  },
-  
-  "// === TERMINAL: Optimize output handling ===": "",
-  "terminal.integrated.scrollback": 1000,
-  "terminal.integrated.fastScrollSensitivity": 5,
-  "terminal.integrated.gpuAcceleration": "off",
-  
-  "// === EDITOR: Reduce visual overhead ===": "",
-  "editor.minimap.enabled": false,
-  "editor.codeLens": false,
-  "editor.lightbulb.enabled": "off",
-  "editor.hover.delay": 1000,
-  "editor.quickSuggestions": {
-    "other": false,
-    "comments": false,
-    "strings": false
-  },
-  
-  "// === GIT: Reduce git operations ===": "",
-  "git.autorefresh": false,
-  "git.autofetch": false,
-  "git.enabled": true,
-  
-  "// === EXTENSIONS: Disable resource-intensive features ===": "",
-  "extensions.autoUpdate": false,
-  "extensions.autoCheckUpdates": false,
-  
-  "// === TELEMETRY: Disable ===": "",
-  "telemetry.telemetryLevel": "off",
-  
-  "// === PYTHON FORMATTING: Only on manual save ===": "",
-  "editor.formatOnSave": false,
-  "editor.formatOnType": false,
-  
-  "// === COPILOT: Reduce overhead ===": "",
-  "github.copilot.editor.enableAutoCompletions": false,
-  
-  "// === FILE ASSOCIATIONS ===": "",
-  "files.associations": {
-    "*.log": "plaintext"
-  }
+    // Python Configuration
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.terminal.activateEnvironment": true,
+
+    // Terminal Configuration for GPU Safety
+    "terminal.integrated.env.linux": {
+        "HSA_OVERRIDE_GFX_VERSION": "10.3.0",
+        "HIP_VISIBLE_DEVICES": "0",
+        "ROCR_VISIBLE_DEVICES": "0",
+        "GPU_MAX_HEAP_SIZE": "100",
+        "GPU_MAX_ALLOC_PERCENT": "100",
+        "PYTORCH_HIP_ALLOC_CONF": "max_split_size_mb:128",
+        "PYTORCH_CUDA_ALLOC_CONF": "max_split_size_mb:128"
+    },
+
+    // Prevent VSCode from using GPU for rendering (conflicts with PyTorch)
+    "terminal.integrated.gpuAcceleration": "off",
+    "window.titleBarStyle": "custom",
+    "disable-hardware-acceleration": true,
+
+    // Python Testing Configuration
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+
+    // Jupyter/Notebook Configuration (GPU Safe)
+    "jupyter.runStartupCommands": [
+        "%load_ext autoreload",
+        "%autoreload 2",
+        "import torch; torch.cuda.empty_cache() if torch.cuda.is_available() else None"
+    ],
+
+    // Prevent Pylance and all language servers from running
+    "python.languageServer": "None",
+    "python.linting.enabled": false,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    "python.linting.mypyEnabled": false,
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.diagnosticMode": "off",
+    "python.analysis.disabled": ["*"],
+    "python.showStartPage": false,
+    "python.showLanguageServerInstallPrompt": false,
+    "python.analysis.downloadChannel": "off",
+    "python.analysis.autoSearchPaths": false,
+    "python.analysis.useImportHeuristic": false,
+    "python.analysis.openFilesOnly": true,
+    "python.analysis.indexing": false,
+    "python.analysis.memory.keepLibraryAst": false,
+    "python.analysis.memory.keepLibraryLocalVariables": false,
+
+    // Disable ALL IntelliSense, Pylance, and Pylint notifications FOREVER
+    "python.showExtensionSurveyPrompt": false,
+    "python.analysis.autoImportCompletions": false,
+    "python.analysis.completeFunctionParens": false,
+    "python.analysis.autoFormatStrings": false,
+    "python.analysis.fixAll": [],
+    "python.linting.showErrorsInTerminal": false,
+    "python.linting.ignorePatterns": ["**/*"],
+    "python.linting.maxNumberOfProblems": 0,
+
+    // Disable all editor suggestions and IntelliSense completely
+    "editor.quickSuggestions": {
+        "other": false,
+        "comments": false,
+        "strings": false
+    },
+    "editor.suggestOnTriggerCharacters": false,
+    "editor.acceptSuggestionOnCommitCharacter": false,
+    "editor.acceptSuggestionOnEnter": "off",
+    "editor.wordBasedSuggestions": "off",
+    "editor.parameterHints.enabled": false,
+    "editor.hover.enabled": false,
+    "editor.codeLens": false,
+    "editor.inlayHints.enabled": "off",
+
+    // Disable extension recommendations and notifications
+    "extensions.ignoreRecommendations": true,
+    "workbench.enableExperiments": false,
+    "workbench.settings.enableNaturalLanguageSearch": false,
+    "telemetry.telemetryLevel": "off",
+    "update.showReleaseNotes": false,
+    "workbench.tips.enabled": false,
+    "breadcrumbs.enabled": false,
+
+    // File watcher limits (prevent system overload)
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true,
+        "**/.hg/store/**": true,
+        "**/data/**": true,
+        "**/checkpoints/**": true,
+        "**/__pycache__/**": true,
+        "**/.pytest_cache/**": true
+    },
+
+    // Editor Performance
+    "editor.renderWhitespace": "selection",
+    "editor.largeFileOptimizations": true,
+
+    // Prevent automatic Python environment detection from using GPU
+    "python.terminal.executeInFileDir": false,
+
+    // Safer execution
+    "python.terminal.launchArgs": [
+        "-u"
+    ],
+    "makefile.configureOnOpen": false
 }
