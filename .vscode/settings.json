@@ -1,92 +1,89 @@
 {
-  // Chat & Copilot
-  "chat.tools.autoApprove": true,
-  "chat.agent.maxRequests": 100,
-  "github.copilot.chat.alternateGptPrompt.enabled": true,
-  "chat.todoListTool.enabled": true,
-
-  // General
-  "files.trimTrailingWhitespace": true,
-  "files.insertFinalNewline": true,
-  "files.eol": "\n",
-  "editor.tabSize": 2,
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.fixAll.eslint": "explicit",
-    "source.organizeImports": "explicit"
-  },
-
-  // TypeScript/JavaScript
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.preferences.importModuleSpecifier": "non-relative",
-  "javascript.preferences.importModuleSpecifier": "non-relative",
-
-  // Python
-  "python.analysis.typeCheckingMode": "basic",
-  "python.analysis.autoImportCompletions": true,
-  "python.formatting.provider": "black",
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": true,
+  "// ====================================================================": "",
+  "// VS CODE PERFORMANCE OPTIMIZATION FOR LARGE ML TRAINING": "",
+  "// Prevents crashes/freezes during epoch processing": "",
+  "// ====================================================================": "",
+  
+  "// === PYTHON LINTING: Disable heavy linters during training ===": "",
+  "python.linting.enabled": false,
+  "python.linting.pylintEnabled": false,
   "python.linting.flake8Enabled": false,
-  "python.testing.pytestEnabled": true,
-  "python.testing.unittestEnabled": false,
-  "python.languageServer": "Pylance",
-  "python.defaultInterpreterPath": "/opt/conda/envs/eeg2025/bin/python",
-
-  // C/C++
-  "C_Cpp.default.cppStandard": "c++20",
-  "C_Cpp.default.cStandard": "c17",
-  "C_Cpp.clang_format_style": "{ BasedOnStyle: Google, IndentWidth: 2, ColumnLimit: 100 }",
-
-  // Java
-  "java.configuration.updateBuildConfiguration": "interactive",
-  "java.compile.nullAnalysis.mode": "automatic",
-  "java.format.settings.url": "${workspaceFolder}/configs/eclipse-java-formatter.xml",
-  "java.format.settings.profile": "GoogleStyle",
-  "java.configuration.runtimes": [
-    { "name": "JavaSE-21", "path": "/usr/lib/jvm/java-21-openjdk" }
-  ],
-
-  // Terminal Shell Integration (VS Code)
-  "terminal.integrated.shellIntegration.enabled": true,
-  "terminal.integrated.shellIntegration.decorationsEnabled": "both",
-  "terminal.integrated.shellIntegration.showCommandGuide": true,
-  "terminal.integrated.shellIntegration.history": 500,
-  "terminal.integrated.stickyScroll.enabled": true,
-
-  // Terminal IntelliSense (Preview)
-  "terminal.integrated.suggest.enabled": true,
-  "terminal.integrated.suggest.showStatusBar": true,
-
-  // EEG/ML Specific
-  "python.analysis.extraPaths": [
-    "./src",
-    "./src/models",
-    "./src/dataio",
-    "./src/training",
-    "./src/utils"
-  ],
-  "jupyter.notebookFileRoot": "${workspaceFolder}",
-  "jupyter.executeWithoutKernel": false,
-
-  // File Associations
-  "files.associations": {
-    "*.edf": "plaintext",
-    "*.bdf": "plaintext",
-    "*.fif": "plaintext",
-    "*.yaml": "yaml",
-    "*.yml": "yaml"
+  "python.linting.mypyEnabled": false,
+  
+  "// === TYPE CHECKING: Disable Pylance intensive features ===": "",
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.autoImportCompletions": false,
+  "python.analysis.indexing": false,
+  
+  "// === AUTO SAVE: Reduce file watching overhead ===": "",
+  "files.autoSave": "onFocusChange",
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/*/**": true,
+    "**/.hg/store/**": true,
+    "**/logs/**": true,
+    "**/checkpoints/**": true,
+    "**/outputs/**": true,
+    "**/data/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true,
+    "**/*.pyc": true
   },
-
-  // Naming conventions enforcement
-  "python.linting.pylintArgs": [
-    "--disable=C0103,C0114,C0115,C0116",
-    "--variable-naming-style=snake_case",
-    "--function-naming-style=snake_case",
-    "--method-naming-style=snake_case",
-    "--class-naming-style=PascalCase",
-    "--module-naming-style=snake_case",
-    "--const-naming-style=UPPER_CASE"
-  ]
+  
+  "// === FILE SEARCH: Exclude large directories ===": "",
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/*.pyc": true
+  },
+  "search.exclude": {
+    "**/logs": true,
+    "**/checkpoints": true,
+    "**/outputs": true,
+    "**/data": true,
+    "**/__pycache__": true,
+    "**/.pytest_cache": true
+  },
+  
+  "// === TERMINAL: Optimize output handling ===": "",
+  "terminal.integrated.scrollback": 1000,
+  "terminal.integrated.fastScrollSensitivity": 5,
+  "terminal.integrated.gpuAcceleration": "off",
+  
+  "// === EDITOR: Reduce visual overhead ===": "",
+  "editor.minimap.enabled": false,
+  "editor.codeLens": false,
+  "editor.lightbulb.enabled": "off",
+  "editor.hover.delay": 1000,
+  "editor.quickSuggestions": {
+    "other": false,
+    "comments": false,
+    "strings": false
+  },
+  
+  "// === GIT: Reduce git operations ===": "",
+  "git.autorefresh": false,
+  "git.autofetch": false,
+  "git.enabled": true,
+  
+  "// === EXTENSIONS: Disable resource-intensive features ===": "",
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  
+  "// === TELEMETRY: Disable ===": "",
+  "telemetry.telemetryLevel": "off",
+  
+  "// === PYTHON FORMATTING: Only on manual save ===": "",
+  "editor.formatOnSave": false,
+  "editor.formatOnType": false,
+  
+  "// === COPILOT: Reduce overhead ===": "",
+  "github.copilot.editor.enableAutoCompletions": false,
+  
+  "// === FILE ASSOCIATIONS ===": "",
+  "files.associations": {
+    "*.log": "plaintext"
+  }
 }

@@ -1,0 +1,64 @@
+// ========================================
+// GLOBAL VS CODE SETTINGS FOR STABILITY
+// ========================================
+// Place these in your User Settings (Ctrl+Shift+P -> "Preferences: Open User Settings (JSON)")
+// Location: ~/.config/Code/User/settings.json
+
+{
+  // ========================================
+  // CRITICAL STABILITY FIXES
+  // ========================================
+  
+  // Terminal - Prevent crashes from large output
+  "terminal.integrated.scrollback": 3000,
+  "terminal.integrated.gpuAcceleration": "off",
+  "terminal.integrated.rendererType": "dom",
+  "terminal.integrated.persistentSessionReviveProcess": "never",
+  "terminal.integrated.enablePersistentSessions": false,
+  
+  // Memory Management
+  "files.maxMemoryForLargeFilesMB": 8192,
+  "search.maxResults": 10000,
+  "search.smartCase": true,
+  
+  // Disable Heavy Features
+  "telemetry.telemetryLevel": "off",
+  "workbench.enableExperiments": false,
+  "extensions.autoCheckUpdates": false,
+  "extensions.autoUpdate": false,
+  "update.mode": "none",
+  
+  // Git Performance
+  "git.autorefresh": false,
+  "git.autofetch": false,
+  "git.decorations.enabled": false,
+  "git.ignoreLegacyWarning": true,
+  
+  // Editor Performance
+  "editor.largeFileOptimizations": true,
+  "editor.semanticHighlighting.enabled": false,
+  "editor.minimap.enabled": false,
+  "editor.codeLens": false,
+  
+  // Python Performance
+  "python.languageServer": "Pylance",
+  "python.analysis.memory.keepLibraryAst": false,
+  "python.analysis.indexing": false,
+  
+  // Window Management
+  "window.restoreWindows": "none",
+  "window.closeWhenEmpty": true,
+  
+  // File Watching - Reduce CPU usage
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/env/**": true,
+    "**/venv/**": true,
+    "**/.venv/**": true,
+    "**/data/**": true,
+    "**/logs/**": true,
+    "**/__pycache__/**": true
+  }
+}
