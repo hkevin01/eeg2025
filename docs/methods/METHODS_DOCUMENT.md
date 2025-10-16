@@ -8,7 +8,7 @@
 
 ## Abstract
 
-We present deep convolutional neural networks for predicting response times from EEG data (Challenge 1) and externalizing clinical factors (Challenge 2) using the Healthy Brain Network dataset. Our approach achieves NRMSE of 0.4680 for Challenge 1 and 0.0808 for Challenge 2, both significantly outperforming the competition baseline of 0.5. Key innovations include data augmentation for small datasets, channel-wise normalization, and regularization strategies optimized for EEG signal processing.
+We present deep convolutional neural networks for predicting response times from EEG data (Challenge 1) and externalizing clinical factors (Challenge 2) using the Healthy Brain Network dataset. Our approach achieves NRMSE of 0.4680 for Challenge 1 and 0.0808 for Challenge 2 on held-out validation data. Key innovations include data augmentation strategies specifically designed for small EEG datasets, multi-scale temporal feature extraction, and aggressive regularization to prevent overfitting.
 
 ---
 
