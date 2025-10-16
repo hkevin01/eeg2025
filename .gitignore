@@ -29,6 +29,7 @@ ENV/
 # Large data directories
 data/raw/**
 data/processed/**
+data/cache/**
 outputs/**
 checkpoints/*.pth
 logs/*.log
@@ -36,9 +37,15 @@ logs/*.log
 # Keep directory structure but ignore contents
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/cache/.gitkeep
 !outputs/.gitkeep
 !checkpoints/.gitkeep
 !logs/.gitkeep
+
+# P300 Feature Extraction Cache (large pickle files)
+data/processed/p300_cache/
+data/processed/p300_cache/*.pkl
+logs/p300_extraction.log
 
 # IDE
 .vscode/*
@@ -69,6 +76,10 @@ htmlcov/
 *.bak
 *.orig
 nohup.out
+
+# Monitoring and extraction scripts output
+logs/p300_*.log
+logs/*_extraction.log
 
 # Model checkpoints (keep small ones)
 *.pth
