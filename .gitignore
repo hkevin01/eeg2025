@@ -72,4 +72,12 @@ nohup.out
 
 # Model checkpoints (keep small ones)
 *.pth
+*.pt
 !*_best.pth
+
+# Submission packages and large files
+*.zip
+submission_complete.zip
+submission_package/
+archive/*.pt
+archive/*.zip
