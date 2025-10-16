@@ -1,0 +1,57 @@
+Challenge 1: Response Time Prediction (Improved Model)
+======================================================
+
+Competition: EEG 2025 Challenge (NeurIPS)
+Date: October 15, 2025
+
+Model Architecture
+------------------
+- Name: ImprovedResponseTimeCNN
+- Parameters: ~800,000
+- Input: (batch, 129, 200) - 129 channels, 200 samples @ 100Hz
+- Output: (batch, 1) - response time in seconds
+
+Training Details
+-----------------
+- Dataset: HBN CCD (Contrast Change Detection)
+- Subjects: 20
+- Total Segments: 420 trials
+- Segment Length: 200 samples (2 seconds)
+- Train/Val Split: 80/20
+
+- Optimizer: AdamW
+- Learning Rate: 5e-4
+- Weight Decay: 1e-5
+- Scheduler: Cosine Annealing (40 epochs)
+- Batch Size: 32
+- Early Stopping: Patience 10
+
+Data Augmentation
+------------------
+- Gaussian Noise (std=0.02)
+- Time Jitter (±5 samples)
+
+Performance
+-----------
+Best Validation NRMSE: 0.4680
+Target NRMSE: < 0.5
+Status: ✅ BELOW TARGET
+
+Best Epoch: 18/40
+Training Time: ~3 minutes
+
+Response Time Statistics
+-------------------------
+Mean: 3.545s
+Std: 1.552s
+Range: [0.100, 4.980]s
+
+Prediction Performance
+----------------------
+MAE: ~0.73s
+RMSE: ~0.97s
+NRMSE: 0.4680 (normalized by std of true values)
+
+Competition Weight: 30% of final score
+
+Status: READY FOR SUBMISSION ✅

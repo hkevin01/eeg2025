@@ -1,0 +1,7 @@
+Challenge 1: Response Time Prediction
+==================================================
+Best NRMSE: 0.9988
+Training time: 0.2 minutes
+Model: response_time_model.pth
+Input shape: (batch, 129, 200)
+Output shape: (batch, 1)

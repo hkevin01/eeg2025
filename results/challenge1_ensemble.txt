@@ -1,0 +1,12 @@
+Challenge 1: Ensemble Training (3 models)
+==================================================
+
+Model 1 (seed=42): 1.1054
+Model 2 (seed=123): 1.0477
+Model 3 (seed=456): 1.0576
+
+Mean: 1.0703
+Std:  0.0252
+Best: 1.0477
+
+Ensemble prediction: Average of 3 models
