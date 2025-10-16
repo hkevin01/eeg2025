@@ -1,0 +1,35 @@
+================================================================================
+SAFE CUDA/CuFFT/CuBLAS TEST
+================================================================================
+Log file: /home/kevin/Projects/eeg2025/logs/cuda_test_1760544002.log
+Time: 2025-10-15 12:00:02
+
+[   0.0s] ⏱️  Checking initial resources... (total: 0.0s, +0.0s)
+[   0.1s] Initial System Resources:
+[   0.1s]   CPU: 5.0%
+[   0.1s]   Memory: 22.7% used, 24.2 GB available
+[   0.1s] 
+[   0.1s] ⏱️  Step 1: Importing PyTorch... (total: 0.1s, +0.1s)
+[   3.0s]   ✅ PyTorch 2.5.1+rocm6.2 imported
+[   3.0s] 
+[   3.0s] ⏱️  Step 2: Checking CUDA availability... (total: 3.0s, +2.9s)
+[   3.7s]   CUDA Available: True
+[   3.7s]   CUDA Version: None
+[   3.8s]   GPU Count: 1
+[   3.8s]   GPU 0: AMD Radeon RX 5600 XT
+[   3.8s]     Memory: 6.0 GB
+[   3.8s] 
+[   3.8s] ⏱️  Step 3: Importing cuda_optimized module... (total: 3.8s, +0.8s)
+[   5.3s]   ✅ Module imported successfully
+[   5.3s]   CUDA_AVAILABLE: True
+[   5.3s]   CUFFT_AVAILABLE: True
+[   5.3s]   CUBLAS_AVAILABLE: True
+[   5.3s] 
+[   5.4s] Resources after imports:
+[   5.4s]   CPU: 6.7%
+[   5.4s]   Memory: 23.7% used
+[   5.4s] 
+[   5.4s] ⏱️  Step 4: Testing CuFFT Optimizer... (total: 5.4s, +1.6s)
+[   5.4s]   Creating CuFFT optimizer...
+[   5.4s]   ✅ CuFFT Optimizer created
+[   5.4s]   Testing small FFT (batch=2, channels=19, time=1000)...

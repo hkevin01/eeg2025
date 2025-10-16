@@ -1,0 +1,12 @@
+🚀 Fast GPU Training (No Preprocessing)
+============================================================
+
+✅ GPU: AMD Radeon RX 5600 XT
+   Memory: 5.98 GB
+
+📂 Loading from: /home/kevin/Projects/eeg2025/data/raw/hbn
+   (Skipping preprocessing for speed)
+   Subjects: 3
+Loading:   0%|          | 0/3 [00:00<?, ?it/s]/home/kevin/.local/lib/python3.12/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
+Loading: 100%|██████████| 3/3 [00:01<00:00,  2.83it/s]Loading: 100%|██████████| 3/3 [00:01<00:00,  2.83it/s]

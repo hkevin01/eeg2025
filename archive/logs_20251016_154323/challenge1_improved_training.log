@@ -1,0 +1,139 @@
+/home/kevin/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py:61: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+================================================================================
+🎯 CHALLENGE 1: RESPONSE TIME PREDICTION (IMPROVED)
+================================================================================
+Improvements: Cross-validation, Data augmentation, Better architecture
+================================================================================
+
+📂 Loading dataset...
+
+�� Loading CCD data...
+   Found 20 subjects
+/home/kevin/.local/lib/python3.12/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
+   ✅ sub-NDARAH793FBF/sub-NDARAH793FBF_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARAH793FBF/sub-NDARAH793FBF_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAH793FBF/sub-NDARAH793FBF_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAJ689BVN/sub-NDARAJ689BVN_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARAJ689BVN/sub-NDARAJ689BVN_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAJ689BVN/sub-NDARAJ689BVN_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAP785CTE/sub-NDARAP785CTE_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAP785CTE/sub-NDARAP785CTE_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAP785CTE/sub-NDARAP785CTE_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARAU708TL8/sub-NDARAU708TL8_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAU708TL8/sub-NDARAU708TL8_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAU708TL8/sub-NDARAU708TL8_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBE091BGD/sub-NDARBE091BGD_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBE091BGD/sub-NDARBE091BGD_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBE091BGD/sub-NDARBE091BGD_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBE103DHM/sub-NDARBE103DHM_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBE103DHM/sub-NDARBE103DHM_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBE103DHM/sub-NDARBE103DHM_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBF851NH6/sub-NDARBF851NH6_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBF851NH6/sub-NDARBF851NH6_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBF851NH6/sub-NDARBF851NH6_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBH228RDW/sub-NDARBH228RDW_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBH228RDW/sub-NDARBH228RDW_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBH228RDW/sub-NDARBH228RDW_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBJ674TVU/sub-NDARBJ674TVU_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBJ674TVU/sub-NDARBJ674TVU_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBJ674TVU/sub-NDARBJ674TVU_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBM433VER/sub-NDARBM433VER_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBM433VER/sub-NDARBM433VER_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBM433VER/sub-NDARBM433VER_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCA740UC8/sub-NDARCA740UC8_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARCA740UC8/sub-NDARCA740UC8_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCA740UC8/sub-NDARCA740UC8_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU633GCZ/sub-NDARCU633GCZ_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU633GCZ/sub-NDARCU633GCZ_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARCU633GCZ/sub-NDARCU633GCZ_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCU736GZ1/sub-NDARCU736GZ1_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU736GZ1/sub-NDARCU736GZ1_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARCU736GZ1/sub-NDARCU736GZ1_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCU744XWL/sub-NDARCU744XWL_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU744XWL/sub-NDARCU744XWL_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCU744XWL/sub-NDARCU744XWL_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARDC843HHM/sub-NDARDC843HHM_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARDC843HHM/sub-NDARDC843HHM_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARDC843HHM/sub-NDARDC843HHM_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARDH086ZKK/sub-NDARDH086ZKK_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARDH086ZKK/sub-NDARDH086ZKK_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARDH086ZKK/sub-NDARDH086ZKK_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARDL305BT8/sub-NDARDL305BT8_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+
+📊 Total segments: 420
+   Response Time: mean=3.545s, std=1.552s
+   Range: [0.100, 4.980]s
+
+🔄 Starting 5-Fold Cross-Validation
+================================================================================
+
+📍 Fold 1/5
+--------------------------------------------------------------------------------
+  Train: 336 | Val: 84
+  Epoch  0: NRMSE=2.9058 (best=2.9058)
+  Epoch  5: NRMSE=1.3269 (best=1.3269)
+  Epoch 10: NRMSE=1.4870 (best=1.2121)
+  Epoch 15: NRMSE=1.4158 (best=1.2121)
+  ✅ Fold 1 NRMSE: 1.2121
+
+📍 Fold 2/5
+--------------------------------------------------------------------------------
+  Train: 336 | Val: 84
+  Epoch  0: NRMSE=2.0821 (best=2.0821)
+  Epoch  5: NRMSE=1.0581 (best=1.0040)
+  Epoch 10: NRMSE=1.1221 (best=1.0040)
+  ✅ Fold 2 NRMSE: 1.0040
+
+📍 Fold 3/5
+--------------------------------------------------------------------------------
+  Train: 336 | Val: 84
+  Epoch  0: NRMSE=2.6513 (best=2.6513)
+  Epoch  5: NRMSE=1.0361 (best=1.0361)
+  Epoch 10: NRMSE=1.1108 (best=1.0361)
+  ✅ Fold 3 NRMSE: 1.0361
+
+📍 Fold 4/5
+--------------------------------------------------------------------------------
+  Train: 336 | Val: 84
+  Epoch  0: NRMSE=2.2767 (best=2.2767)
+  Epoch  5: NRMSE=1.0713 (best=1.0004)
+  Epoch 10: NRMSE=0.9928 (best=0.9801)
+  ✅ Fold 4 NRMSE: 0.9801
+
+📍 Fold 5/5
+--------------------------------------------------------------------------------
+  Train: 336 | Val: 84
+  Epoch  0: NRMSE=2.1929 (best=2.1929)
+  Epoch  5: NRMSE=1.0377 (best=1.0212)
+  Epoch 10: NRMSE=1.0784 (best=1.0189)
+  ✅ Fold 5 NRMSE: 1.0189
+
+================================================================================
+📊 CROSS-VALIDATION RESULTS
+================================================================================
+
+Fold NRMSEs: ['1.2121', '1.0040', '1.0361', '0.9801', '1.0189']
+Mean NRMSE: 1.0502 ± 0.0830
+⚠️  Above competition target (target: < 0.5)
+
+�� Training final model on all data...
+  Epoch  0: NRMSE=2.3099 (best=2.3099)
+  Epoch  5: NRMSE=0.7915 (best=0.7915)
+  Epoch 10: NRMSE=0.6351 (best=0.6351)
+  Epoch 15: NRMSE=0.5621 (best=0.5364)
+  Epoch 20: NRMSE=0.5202 (best=0.5202)
+  Epoch 25: NRMSE=0.6175 (best=0.4731)
+  Epoch 30: NRMSE=0.5585 (best=0.4680)
+  Epoch 35: NRMSE=0.5274 (best=0.4680)
+
+================================================================================
+✅ IMPROVED TRAINING COMPLETE!
+================================================================================
+
+Cross-Validation: 1.0502 ± 0.0830
+Final Model: 0.4680
+Total time: 1.2 minutes
+
+💾 Model saved to: checkpoints/response_time_improved.pth

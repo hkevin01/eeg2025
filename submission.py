@@ -28,37 +28,51 @@ def resolve_path(name="model_file_name"):
         )
 
 
-class ExternalizingCNN(nn.Module):
-    """CNN for externalizing factor prediction (Challenge 2)"""
+class CompactExternalizingCNN(nn.Module):
+    """Compact CNN for externalizing prediction - multi-release trained (150K params)
 
-    def __init__(self, n_chans=129, n_times=200):
+    Designed to reduce overfitting through:
+    - Smaller architecture (150K vs 600K params)
+    - Strong dropout (0.3-0.5)
+    - ELU activations for better gradients
+    - Trained on R1-R4, validated on R5
+    """
+
+    def __init__(self):
         super().__init__()
 
         self.features = nn.Sequential(
-            nn.Conv1d(n_chans, 64, kernel_size=7, stride=2, padding=3),
+            # Conv1: channels x 200 -> 32x100
+            nn.Conv1d(129, 32, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm1d(32),
+            nn.ELU(),
+            nn.Dropout(0.3),
+
+            # Conv2: 32x100 -> 64x50
+            nn.Conv1d(32, 64, kernel_size=5, stride=2, padding=2),
             nn.BatchNorm1d(64),
-            nn.ReLU(),
+            nn.ELU(),
+            nn.Dropout(0.4),
 
-            nn.Conv1d(64, 128, kernel_size=5, stride=2, padding=2),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
+            # Conv3: 64x50 -> 96x25
+            nn.Conv1d(64, 96, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm1d(96),
+            nn.ELU(),
+            nn.Dropout(0.5),
 
-            nn.Conv1d(128, 256, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-
+            # Global pooling
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten()
         )
 
         self.regressor = nn.Sequential(
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 1)
+            nn.Linear(96, 48),
+            nn.ELU(),
+            nn.Dropout(0.5),
+            nn.Linear(48, 24),
+            nn.ELU(),
+            nn.Dropout(0.4),
+            nn.Linear(24, 1)
         )
 
     def forward(self, x):
@@ -67,73 +81,56 @@ class ExternalizingCNN(nn.Module):
         return output
 
 
-class ResponseTimeCNN(nn.Module):
-    """Improved CNN for response time prediction (Challenge 1)
+class CompactResponseTimeCNN(nn.Module):
+    """Compact CNN for response time prediction - multi-release trained (200K params)
 
-    Architecture improvements:
-    - Initial projection layer
-    - Deeper network (512 features)
-    - More dropout for regularization
-    - Better performance: NRMSE 0.4680 (CV: 1.05 ± 0.08)
+    Designed to reduce overfitting through:
+    - Smaller architecture (200K vs 800K params)
+    - Strong dropout (0.3-0.5)
+    - Trained on R1-R4, validated on R5
     """
 
-    def __init__(self, n_chans=129, n_times=200):
+    def __init__(self):
         super().__init__()
 
-        # Initial projection
-        self.proj = nn.Sequential(
-            nn.Conv1d(129, 64, kernel_size=1),
-            nn.BatchNorm1d(64),
-            nn.ReLU()
-        )
-
-        # Multi-scale feature extraction
-        self.conv1 = nn.Sequential(
-            nn.Conv1d(64, 128, kernel_size=7, stride=2, padding=3),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Dropout(0.2)
-        )
-
-        self.conv2 = nn.Sequential(
-            nn.Conv1d(128, 256, kernel_size=5, stride=2, padding=2),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(0.2)
-        )
-
-        self.conv3 = nn.Sequential(
-            nn.Conv1d(256, 512, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-            nn.Dropout(0.2)
-        )
-
-        # Global pooling
-        self.pool = nn.AdaptiveAvgPool1d(1)
-
-        # Regressor
-        self.regressor = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(512, 256),
+        self.features = nn.Sequential(
+            # Conv1: channels x 200 -> 32x100
+            nn.Conv1d(129, 32, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(256, 128),
+
+            # Conv2: 32x100 -> 64x50
+            nn.Conv1d(32, 64, kernel_size=5, stride=2, padding=2),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(0.4),
+
+            # Conv3: 64x50 -> 128x25
+            nn.Conv1d(64, 128, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+
+            # Global pooling
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten()
+        )
+
+        self.regressor = nn.Sequential(
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(64, 1)
+            nn.Dropout(0.5),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Dropout(0.4),
+            nn.Linear(32, 1)
         )
 
     def forward(self, x):
-        x = self.proj(x)
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.pool(x)
-        x = self.regressor(x)
-        return x
+        features = self.features(x)
+        output = self.regressor(features)
+        return output
 
 
 class Submission:
@@ -163,14 +160,16 @@ class Submission:
             PyTorch model ready for inference
         """
         import sys
-        model_challenge1 = ResponseTimeCNN(
-            n_chans=129,
-            n_times=int(2 * self.sfreq)  # 200 samples @ 100Hz
-        ).to(self.device)
+        model_challenge1 = CompactResponseTimeCNN().to(self.device)
 
         # Load trained weights
         try:
-            weights_path = resolve_path("weights_challenge_1.pt")
+            # Try new multi-release weights first, fallback to old name
+            try:
+                weights_path = resolve_path("weights_challenge_1_multi_release.pt")
+            except FileNotFoundError:
+                weights_path = resolve_path("weights_challenge_1.pt")
+
             sys.stdout.flush()
             state_dict = torch.load(weights_path, map_location=self.device, weights_only=True)
 
@@ -182,7 +181,7 @@ class Submission:
 
             print(f"✓ Loaded Challenge 1 weights from {weights_path}", flush=True)
         except FileNotFoundError:
-            print("⚠ Warning: weights_challenge_1.pt not found, using untrained model", flush=True)
+            print("⚠ Warning: Challenge 1 weights not found, using untrained model", flush=True)
 
         model_challenge1.eval()
         return model_challenge1
@@ -194,14 +193,16 @@ class Submission:
             PyTorch model ready for inference
         """
         import sys
-        model_challenge2 = ExternalizingCNN(
-            n_chans=129,
-            n_times=int(2 * self.sfreq)  # 200 samples @ 100Hz
-        ).to(self.device)
+        model_challenge2 = CompactExternalizingCNN().to(self.device)
 
         # Load trained weights
         try:
-            weights_path = resolve_path("weights_challenge_2.pt")
+            # Try new multi-release weights first, fallback to old name
+            try:
+                weights_path = resolve_path("weights_challenge_2_multi_release.pt")
+            except FileNotFoundError:
+                weights_path = resolve_path("weights_challenge_2.pt")
+
             sys.stdout.flush()
             state_dict = torch.load(weights_path, map_location=self.device, weights_only=True)
 
@@ -213,7 +214,7 @@ class Submission:
 
             print(f"✓ Loaded Challenge 2 weights from {weights_path}", flush=True)
         except FileNotFoundError:
-            print("⚠ Warning: weights_challenge_2.pt not found, using untrained model", flush=True)
+            print("⚠ Warning: Challenge 2 weights not found, using untrained model", flush=True)
 
         model_challenge2.eval()
         return model_challenge2

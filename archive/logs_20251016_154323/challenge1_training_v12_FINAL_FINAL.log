@@ -1,0 +1,2416 @@
+nohup: ignoring input
+2025-10-16 14:49:08,845 - INFO - ================================================================================
+2025-10-16 14:49:08,845 - INFO - 🚀 Challenge 1 Training Started
+2025-10-16 14:49:08,845 - INFO - Crash log: logs/challenge1_crash_20251016_144908.log
+2025-10-16 14:49:08,845 - INFO - ================================================================================
+================================================================================
+🎯 CHALLENGE 1: MULTI-RELEASE RESPONSE TIME PREDICTION
+================================================================================
+Training on: R1, R2, R3
+Validation on: R4
+Using official starter kit metadata extraction with add_extras_columns
+Expected improvement: 10x better generalization
+================================================================================
+[10/16/25 14:49:14] INFO     Starting main train_challenge1_multi_release.py:511
+                             training                                           
+                             pipeline...                                        
+
+📦 Loading training data (R1-R3)...
+
+📂 Loading releases: ['R1', 'R2', 'R3']
+                    INFO     Loading 3      train_challenge1_multi_release.py:95
+                             releases:                                          
+                             ['R1', 'R2',                                       
+                             'R3']                                              
+
+  [1/3] Loading R1...
+                    INFO     Loading        train_challenge1_multi_release.py:99
+                             release R1                                         
+                             (1/3)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 293
+[10/16/25 14:49:16] INFO       R1: Loaded  train_challenge1_multi_release.py:111
+                             293 datasets                                       
+    Checking for corrupted files in 293 datasets...
+                    INFO       R1:         train_challenge1_multi_release.py:118
+                             Checking 293                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/293 files... (50 valid)
+[10/16/25 14:49:22] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             50/293 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/293 files... (100 valid)
+[10/16/25 14:49:27] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             100/293 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/293 files... (150 valid)
+[10/16/25 14:49:34] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             150/293 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/293 files... (200 valid)
+[10/16/25 14:49:40] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             200/293 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/293 files... (250 valid)
+[10/16/25 14:49:46] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             250/293 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 293 (skipped 0 corrupted) - 36.7s
+[10/16/25 14:49:51] INFO       R1:         train_challenge1_multi_release.py:147
+                             Complete -                                         
+                             293 valid, 0                                       
+                             corrupted,                                         
+                             36.7s                                              
+    Preprocessing 293 datasets...
+                    INFO       R1:         train_challenge1_multi_release.py:151
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 14:50:07] INFO       R1:         train_challenge1_multi_release.py:166
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 293/293
+                    INFO       R1: 293     train_challenge1_multi_release.py:174
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R1:         train_challenge1_multi_release.py:183
+                             Creating                                           
+                             windows from                                       
+                             events...                                          
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+    Windows created: 21948
+                    INFO       R1: Created train_challenge1_multi_release.py:199
+                             21948 windows                                      
+    Windows: 21948
+    Injecting trial metadata into windows...
+                    INFO       R1: Adding  train_challenge1_multi_release.py:210
+                             extras                                             
+                             columns to                                         
+                             windows                                            
+                             metadata                                           
+[10/16/25 14:50:08] INFO       R1:         train_challenge1_multi_release.py:220
+                             Metadata                                           
+                             injection                                          
+                             complete                                           
+    Extracting response times from metadata...
+[10/16/25 14:50:09] INFO       R1: Got     train_challenge1_multi_release.py:241
+                             metadata                                           
+                             DataFrame                                          
+                             with 21948                                         
+                             rows                                               
+                    INFO       R1:         train_challenge1_multi_release.py:242
+                             Metadata                                           
+                             columns:                                           
+                             ['i_window_in                                      
+                             _trial',                                           
+                             'i_start_in_t                                      
+                             rial',                                             
+                             'i_stop_in_tr                                      
+                             ial',                                              
+                             'target',                                          
+                             'rt_from_stim                                      
+                             ulus',                                             
+                             'rt_from_tria                                      
+                             lstart',                                           
+                             'stimulus_ons                                      
+                             et',                                               
+                             'response_ons                                      
+                             et',                                               
+                             'correct',                                         
+                             'response_typ                                      
+                             e',                                                
+                             'subject',                                         
+                             'run',                                             
+                             'task',                                            
+                             'age', 'sex',                                      
+                             'release_numb                                      
+                             er',                                               
+                             'ehq_total',                                       
+                             'commercial_u                                      
+                             se',                                               
+                             'full_pheno',                                      
+                             'p_factor',                                        
+                             'attention',                                       
+                             'internalizin                                      
+                             g',                                                
+                             'externalizin                                      
+                             g',                                                
+                             'restingstate                                      
+                             ',                                                 
+                             'despicableme                                      
+                             ',                                                 
+                             'funwithfract                                      
+                             als',                                              
+                             'thepresent',                                      
+                             'diaryofawimp                                      
+                             ykid',                                             
+                             'contrastchan                                      
+                             gedetection_1                                      
+                             ',                                                 
+                             'contrastchan                                      
+                             gedetection_2                                      
+                             ',                                                 
+                             'contrastchan                                      
+                             gedetection_3                                      
+                             ',                                                 
+                             'surroundsupp                                      
+                             _1',                                               
+                             'surroundsupp                                      
+                             _2',                                               
+                             'seqlearning6                                      
+                             target',                                           
+                             'seqlearning8                                      
+                             target',                                           
+                             'symbolsearch                                      
+                             ']                                                 
+    ✅ Response times extracted: 21948/21948 non-zero
+       Range: [0.010, 2.402]
+       Mean: 1.561, Std: 0.404
+
+  [2/3] Loading R2...
+                    INFO     Loading        train_challenge1_multi_release.py:99
+                             release R2                                         
+                             (2/3)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 301
+[10/16/25 14:50:11] INFO       R2: Loaded  train_challenge1_multi_release.py:111
+                             301 datasets                                       
+    Checking for corrupted files in 301 datasets...
+                    INFO       R2:         train_challenge1_multi_release.py:118
+                             Checking 301                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/301 files... (50 valid)
+[10/16/25 14:50:18] INFO       R2:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             50/301 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/301 files... (100 valid)
+[10/16/25 14:50:25] INFO       R2:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             100/301 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/301 files... (150 valid)
+[10/16/25 14:50:32] INFO       R2:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             150/301 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/301 files... (200 valid)
+[10/16/25 14:50:39] INFO       R2:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             200/301 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/301 files... (250 valid)
+[10/16/25 14:50:45] INFO       R2:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             250/301 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/301 files... (300 valid)
+[10/16/25 14:50:51] INFO       R2:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             300/301 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 301 (skipped 0 corrupted) - 41.8s
+                    INFO       R2:         train_challenge1_multi_release.py:147
+                             Complete -                                         
+                             301 valid, 0                                       
+                             corrupted,                                         
+                             41.8s                                              
+    Preprocessing 301 datasets...
+                    INFO       R2:         train_challenge1_multi_release.py:151
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 14:50:56] INFO       R2:         train_challenge1_multi_release.py:166
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 301/301
+                    INFO       R2: 301     train_challenge1_multi_release.py:174
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R2:         train_challenge1_multi_release.py:183
+                             Creating                                           
+                             windows from                                       
+                             events...                                          
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+    Windows created: 22695
+                    INFO       R2: Created train_challenge1_multi_release.py:199
+                             22695 windows                                      
+    Windows: 22695
+    Injecting trial metadata into windows...
+                    INFO       R2: Adding  train_challenge1_multi_release.py:210
+                             extras                                             
+                             columns to                                         
+                             windows                                            
+                             metadata                                           
+[10/16/25 14:50:57] INFO       R2:         train_challenge1_multi_release.py:220
+                             Metadata                                           
+                             injection                                          
+                             complete                                           
+    Extracting response times from metadata...
+[10/16/25 14:50:59] INFO       R2: Got     train_challenge1_multi_release.py:241
+                             metadata                                           
+                             DataFrame                                          
+                             with 22695                                         
+                             rows                                               
+                    INFO       R2:         train_challenge1_multi_release.py:242
+                             Metadata                                           
+                             columns:                                           
+                             ['i_window_in                                      
+                             _trial',                                           
+                             'i_start_in_t                                      
+                             rial',                                             
+                             'i_stop_in_tr                                      
+                             ial',                                              
+                             'target',                                          
+                             'rt_from_stim                                      
+                             ulus',                                             
+                             'rt_from_tria                                      
+                             lstart',                                           
+                             'stimulus_ons                                      
+                             et',                                               
+                             'response_ons                                      
+                             et',                                               
+                             'correct',                                         
+                             'response_typ                                      
+                             e',                                                
+                             'subject',                                         
+                             'run',                                             
+                             'task',                                            
+                             'age', 'sex',                                      
+                             'release_numb                                      
+                             er',                                               
+                             'ehq_total',                                       
+                             'commercial_u                                      
+                             se',                                               
+                             'full_pheno',                                      
+                             'p_factor',                                        
+                             'attention',                                       
+                             'internalizin                                      
+                             g',                                                
+                             'externalizin                                      
+                             g',                                                
+                             'restingstate                                      
+                             ',                                                 
+                             'despicableme                                      
+                             ',                                                 
+                             'funwithfract                                      
+                             als',                                              
+                             'thepresent',                                      
+                             'diaryofawimp                                      
+                             ykid',                                             
+                             'contrastchan                                      
+                             gedetection_1                                      
+                             ',                                                 
+                             'contrastchan                                      
+                             gedetection_2                                      
+                             ',                                                 
+                             'contrastchan                                      
+                             gedetection_3                                      
+                             ',                                                 
+                             'surroundsupp                                      
+                             _1',                                               
+                             'surroundsupp                                      
+                             _2',                                               
+                             'seqlearning6                                      
+                             target',                                           
+                             'seqlearning8                                      
+                             target',                                           
+                             'symbolsearch                                      
+                             ']                                                 
+    ✅ Response times extracted: 22692/22695 non-zero
+       Range: [0.010, 2.400]
+       Mean: 1.598, Std: 0.400
+
+  [3/3] Loading R3...
+                    INFO     Loading        train_challenge1_multi_release.py:99
+                             release R3                                         
+                             (3/3)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 388
+[10/16/25 14:51:01] INFO       R3: Loaded  train_challenge1_multi_release.py:111
+                             388 datasets                                       
+    Checking for corrupted files in 388 datasets...
+                    INFO       R3:         train_challenge1_multi_release.py:118
+                             Checking 388                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/388 files... (50 valid)
+[10/16/25 14:51:07] INFO       R3:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             50/388 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/388 files... (100 valid)
+[10/16/25 14:51:14] INFO       R3:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             100/388 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/388 files... (150 valid)
+[10/16/25 14:51:19] INFO       R3:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             150/388 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/388 files... (200 valid)
+[10/16/25 14:51:25] INFO       R3:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             200/388 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/388 files... (250 valid)
+[10/16/25 14:51:31] INFO       R3:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             250/388 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/388 files... (300 valid)
+[10/16/25 14:51:36] INFO       R3:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             300/388 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 350/388 files... (350 valid)
+[10/16/25 14:51:42] INFO       R3:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             350/388 - 350                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 388 (skipped 0 corrupted) - 46.9s
+[10/16/25 14:51:46] INFO       R3:         train_challenge1_multi_release.py:147
+                             Complete -                                         
+                             388 valid, 0                                       
+                             corrupted,                                         
+                             46.9s                                              
+    Preprocessing 388 datasets...
+                    INFO       R3:         train_challenge1_multi_release.py:151
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 14:51:52] INFO       R3:         train_challenge1_multi_release.py:166
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 388/388
+                    INFO       R3: 388     train_challenge1_multi_release.py:174
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R3:         train_challenge1_multi_release.py:183
+                             Creating                                           
+                             windows from                                       
+                             events...                                          
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+    Windows created: 28758
+                    INFO       R3: Created train_challenge1_multi_release.py:199
+                             28758 windows                                      
+    Windows: 28758
+    Injecting trial metadata into windows...
+                    INFO       R3: Adding  train_challenge1_multi_release.py:210
+                             extras                                             
+                             columns to                                         
+                             windows                                            
+                             metadata                                           
+[10/16/25 14:51:53] INFO       R3:         train_challenge1_multi_release.py:220
+                             Metadata                                           
+                             injection                                          
+                             complete                                           
+    Extracting response times from metadata...
+[10/16/25 14:51:54] INFO       R3: Got     train_challenge1_multi_release.py:241
+                             metadata                                           
+                             DataFrame                                          
+                             with 28758                                         
+                             rows                                               
+                    INFO       R3:         train_challenge1_multi_release.py:242
+                             Metadata                                           
+                             columns:                                           
+                             ['i_window_in                                      
+                             _trial',                                           
+                             'i_start_in_t                                      
+                             rial',                                             
+                             'i_stop_in_tr                                      
+                             ial',                                              
+                             'target',                                          
+                             'rt_from_stim                                      
+                             ulus',                                             
+                             'rt_from_tria                                      
+                             lstart',                                           
+                             'stimulus_ons                                      
+                             et',                                               
+                             'response_ons                                      
+                             et',                                               
+                             'correct',                                         
+                             'response_typ                                      
+                             e',                                                
+                             'subject',                                         
+                             'run',                                             
+                             'task',                                            
+                             'age', 'sex',                                      
+                             'release_numb                                      
+                             er',                                               
+                             'ehq_total',                                       
+                             'commercial_u                                      
+                             se',                                               
+                             'full_pheno',                                      
+                             'p_factor',                                        
+                             'attention',                                       
+                             'internalizin                                      
+                             g',                                                
+                             'externalizin                                      
+                             g',                                                
+                             'restingstate                                      
+                             ',                                                 
+                             'despicableme                                      
+                             ',                                                 
+                             'funwithfract                                      
+                             als',                                              
+                             'thepresent',                                      
+                             'diaryofawimp                                      
+                             ykid',                                             
+                             'contrastchan                                      
+                             gedetection_1                                      
+                             ',                                                 
+                             'contrastchan                                      
+                             gedetection_2                                      
+                             ',                                                 
+                             'contrastchan                                      
+                             gedetection_3                                      
+                             ',                                                 
+                             'surroundsupp                                      
+                             _1',                                               
+                             'surroundsupp                                      
+                             _2',                                               
+                             'seqlearning6                                      
+                             target',                                           
+                             'seqlearning8                                      
+                             target',                                           
+                             'symbolsearch                                      
+                             ']                                                 
+    ✅ Response times extracted: 28752/28758 non-zero
+       Range: [0.010, 2.410]
+       Mean: 1.577, Std: 0.408
+
+✅ Total windows: 73401
+   Releases: {'R2', 'R1', 'R3'}
+
+📦 Loading validation data (R4)...
+
+📂 Loading releases: ['R4']
+                    INFO     Loading 1      train_challenge1_multi_release.py:95
+                             releases:                                          
+                             ['R4']                                             
+
+  [1/1] Loading R4...
+                    INFO     Loading        train_challenge1_multi_release.py:99
+                             release R4                                         
+                             (1/1)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 756
+[10/16/25 14:51:59] INFO       R4: Loaded  train_challenge1_multi_release.py:111
+                             756 datasets                                       
+    Checking for corrupted files in 756 datasets...
+                    INFO       R4:         train_challenge1_multi_release.py:118
+                             Checking 756                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/756 files... (50 valid)
+[10/16/25 14:52:03] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             50/756 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/756 files... (100 valid)
+[10/16/25 14:52:08] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             100/756 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/756 files... (150 valid)
+[10/16/25 14:52:13] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             150/756 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/756 files... (200 valid)
+[10/16/25 14:52:18] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             200/756 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/756 files... (250 valid)
+[10/16/25 14:52:23] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             250/756 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/756 files... (300 valid)
+[10/16/25 14:52:28] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             300/756 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 350/756 files... (350 valid)
+[10/16/25 14:52:33] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             350/756 - 350                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 400/756 files... (400 valid)
+[10/16/25 14:52:38] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             400/756 - 400                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 450/756 files... (450 valid)
+[10/16/25 14:52:43] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             450/756 - 450                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 500/756 files... (500 valid)
+[10/16/25 14:52:49] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             500/756 - 500                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 550/756 files... (550 valid)
+[10/16/25 14:52:55] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             550/756 - 550                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 600/756 files... (600 valid)
+[10/16/25 14:53:00] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             600/756 - 600                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 650/756 files... (650 valid)
+[10/16/25 14:53:06] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             650/756 - 650                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 700/756 files... (700 valid)
+[10/16/25 14:53:11] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             700/756 - 700                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 750/756 files... (750 valid)
+[10/16/25 14:53:16] INFO       R4:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             750/756 - 750                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 756 (skipped 0 corrupted) - 82.8s
+[10/16/25 14:53:17] INFO       R4:         train_challenge1_multi_release.py:147
+                             Complete -                                         
+                             756 valid, 0                                       
+                             corrupted,                                         
+                             82.8s                                              
+    Preprocessing 756 datasets...
+                    INFO       R4:         train_challenge1_multi_release.py:151
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 14:53:28] INFO       R4:         train_challenge1_multi_release.py:166
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 753/756
+                    INFO       R4: 753     train_challenge1_multi_release.py:174
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R4:         train_challenge1_multi_release.py:183
+                             Creating                                           
+                             windows from                                       
+                             events...                                          
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+Used Annotations descriptions: [np.str_('contrast_trial_start')]
+[10/16/25 14:53:29] ERROR    ============= train_challenge1_multi_release.py:519
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+                    ERROR    💥 FATAL      train_challenge1_multi_release.py:520
+                             ERROR -                                            
+                             Training                                           
+                             crashed!                                           
+                    ERROR    ============= train_challenge1_multi_release.py:521
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+                    ERROR    Error type:   train_challenge1_multi_release.py:522
+                             IndexError                                         
+                    ERROR    Error         train_challenge1_multi_release.py:523
+                             message:                                           
+                             index -1 is                                        
+                             out of bounds                                      
+                             for axis 0                                         
+                             with size 0                                        
+                    ERROR                  train_challenge1_multi_release.py:524
+                             Full                                               
+                             traceback:                                         
+                    ERROR    Traceback     train_challenge1_multi_release.py:525
+                             (most recent                                       
+                             call last):                                        
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             512, in                                            
+                             <module>                                           
+                                 result =                                       
+                             main()                                             
+                                                                                
+                             ^^^^^^                                             
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             472, in main                                       
+                                 val_datas                                      
+                             et =                                               
+                             MultiReleaseD                                      
+                             ataset(                                            
+                                                                                
+                                  ^^^^^^^^                                      
+                             ^^^^^^^^^^^^                                       
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             188, in                                            
+                             __init__                                           
+                                 windows_d                                      
+                             ataset =                                           
+                             create_window                                      
+                             s_from_events                                      
+                             (                                                  
+                                                                                
+                                      ^^^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^^^^^^^^^                                         
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/venv/lib/                                      
+                             python3.12/si                                      
+                             te-packages/b                                      
+                             raindecode/pr                                      
+                             eprocessing/w                                      
+                             indowers.py",                                      
+                              line 317, in                                      
+                             create_window                                      
+                             s_from_events                                      
+                                 list_of_w                                      
+                             indows_ds =                                        
+                             Parallel(n_jo                                      
+                             bs=n_jobs)(                                        
+                                                                                
+                                         ^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^^^^^^^^^                                         
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/venv/lib/                                      
+                             python3.12/si                                      
+                             te-packages/j                                      
+                             oblib/paralle                                      
+                             l.py", line                                        
+                             1986, in                                           
+                             __call__                                           
+                                 return                                         
+                             output if                                          
+                             self.return_g                                      
+                             enerator else                                      
+                             list(output)                                       
+                                                                                
+                                                                                
+                                                                                
+                                      ^^^^                                      
+                             ^^^^^^^^                                           
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/venv/lib/                                      
+                             python3.12/si                                      
+                             te-packages/j                                      
+                             oblib/paralle                                      
+                             l.py", line                                        
+                             1914, in                                           
+                             _get_sequenti                                      
+                             al_output                                          
+                                 res =                                          
+                             func(*args,                                        
+                             **kwargs)                                          
+                                       ^^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^^^^                                              
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/venv/lib/                                      
+                             python3.12/si                                      
+                             te-packages/b                                      
+                             raindecode/pr                                      
+                             eprocessing/w                                      
+                             indowers.py",                                      
+                              line 525, in                                      
+                             _create_windo                                      
+                             ws_from_event                                      
+                             s                                                  
+                                 if                                             
+                             stops[-1] +                                        
+                             trial_stop_of                                      
+                             fset_samples                                       
+                             > last_samp +                                      
+                             1:                                                 
+                                    ~~~~~^                                      
+                             ^^^                                                
+                             IndexError:                                        
+                             index -1 is                                        
+                             out of bounds                                      
+                             for axis 0                                         
+                             with size 0                                        
+                                                                                
+                    ERROR    ============= train_challenge1_multi_release.py:526
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+                    ERROR    Crash details train_challenge1_multi_release.py:527
+                             saved to:                                          
+                             logs/challeng                                      
+                             e1_crash_2025                                      
+                             1016_144908.l                                      
+                             og                                                 
+                    ERROR    ============= train_challenge1_multi_release.py:528
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+[W1016 14:53:32.953151740 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.081585623 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.135943610 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.183656260 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.365239074 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.452688553 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.516427756 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.749711916 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.801955870 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:32.902214784 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:33.939272402 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:33.093691303 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:53:35.834271419 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())

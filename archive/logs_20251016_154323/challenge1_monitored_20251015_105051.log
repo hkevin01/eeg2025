@@ -1,0 +1,26 @@
+/home/kevin/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py:61: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+================================================================================
+🚀 MONITORED TRAINING - Challenge 1
+================================================================================
+✅ Model loaded, backbone frozen
+✅ Loaded 136 participants with real labels
+Challenge 1: Age Prediction
+Age range: 5.2 - 21.7
+✅ Using 3000 samples with REAL labels
+   Age range: 6.4 - 14.0, mean: 10.3
+Train: 2400, Val: 600
+
+================================================================================
+🏋️  TRAINING WITH RESOURCE MONITORING
+================================================================================
+
+Epoch 1/3
+----------------------------------------
+Traceback (most recent call last):
+  File "/home/kevin/Projects/eeg2025/scripts/train_with_monitoring.py", line 316, in <module>
+    train_with_monitoring()
+  File "/home/kevin/Projects/eeg2025/scripts/train_with_monitoring.py", line 222, in train_with_monitoring
+    x = x.to(device)
+        ^^^^
+AttributeError: 'list' object has no attribute 'to'

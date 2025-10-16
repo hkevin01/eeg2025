@@ -1,0 +1,327 @@
+nohup: ignoring input
+2025-10-16 14:15:10,653 - INFO - ================================================================================
+2025-10-16 14:15:10,653 - INFO - 🚀 Challenge 2 Training Started
+2025-10-16 14:15:10,653 - INFO - Crash log: logs/challenge2_crash_20251016_141510.log
+2025-10-16 14:15:10,653 - INFO - ================================================================================
+================================================================================
+🎯 CHALLENGE 2: MULTI-RELEASE EXTERNALIZING PREDICTION
+================================================================================
+Training on: R1, R2, R3, R4
+Validation on: R5
+Expected improvement: 14x better generalization
+================================================================================
+[10/16/25 14:15:15] INFO     Starting main train_challenge2_multi_release.py:446
+                             training                                           
+                             pipeline...                                        
+
+📦 Loading training data (R1-R3)...
+
+📂 Loading releases: ['R1', 'R2', 'R3']
+                    INFO     Loading 3      train_challenge2_multi_release.py:85
+                             releases:                                          
+                             ['R1', 'R2',                                       
+                             'R3']                                              
+
+  [1/3] Loading R1...
+                    INFO     Loading        train_challenge2_multi_release.py:89
+                             release R1                                         
+                             (1/3)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 136
+[10/16/25 14:15:16] INFO       R1: Loaded  train_challenge2_multi_release.py:102
+                             136 datasets                                       
+    Checking for corrupted files in 136 datasets...
+                    INFO       R1:         train_challenge2_multi_release.py:109
+                             Checking 136                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/136 files... (50 valid)
+[10/16/25 14:15:21] INFO       R1:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             50/136 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/136 files... (100 valid)
+[10/16/25 14:15:26] INFO       R1:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             100/136 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 136 (skipped 0 corrupted) - 15.3s
+[10/16/25 14:15:30] INFO       R1:         train_challenge2_multi_release.py:138
+                             Complete -                                         
+                             136 valid, 0                                       
+                             corrupted,                                         
+                             15.3s                                              
+    Creating windows from continuous data...
+                    INFO       R1:         train_challenge2_multi_release.py:145
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 57648
+                    INFO       R1: Created train_challenge2_multi_release.py:166
+                             57648 windows                                      
+    Windows: 57648
+
+  [2/3] Loading R2...
+[10/16/25 14:17:11] INFO     Loading        train_challenge2_multi_release.py:89
+                             release R2                                         
+                             (2/3)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 150
+                    INFO       R2: Loaded  train_challenge2_multi_release.py:102
+                             150 datasets                                       
+    Checking for corrupted files in 150 datasets...
+                    INFO       R2:         train_challenge2_multi_release.py:109
+                             Checking 150                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/150 files... (50 valid)
+[10/16/25 14:17:16] INFO       R2:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             50/150 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/150 files... (100 valid)
+[10/16/25 14:17:20] INFO       R2:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             100/150 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/150 files... (150 valid)
+[10/16/25 14:17:24] INFO       R2:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             150/150 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 150 (skipped 0 corrupted) - 13.9s
+                    INFO       R2:         train_challenge2_multi_release.py:138
+                             Complete -                                         
+                             150 valid, 0                                       
+                             corrupted,                                         
+                             13.9s                                              
+    Creating windows from continuous data...
+                    INFO       R2:         train_challenge2_multi_release.py:145
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 65619
+[10/16/25 14:17:25] INFO       R2: Created train_challenge2_multi_release.py:166
+                             65619 windows                                      
+    Windows: 65619
+
+  [3/3] Loading R3...
+[10/16/25 14:19:12] INFO     Loading        train_challenge2_multi_release.py:89
+                             release R3                                         
+                             (3/3)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 184
+                    INFO       R3: Loaded  train_challenge2_multi_release.py:102
+                             184 datasets                                       
+    Checking for corrupted files in 184 datasets...
+                    INFO       R3:         train_challenge2_multi_release.py:109
+                             Checking 184                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/184 files... (50 valid)
+[10/16/25 14:19:17] INFO       R3:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             50/184 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/184 files... (100 valid)
+[10/16/25 14:19:22] INFO       R3:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             100/184 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/184 files... (150 valid)
+[10/16/25 14:19:27] INFO       R3:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             150/184 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 184 (skipped 0 corrupted) - 17.8s
+[10/16/25 14:19:30] INFO       R3:         train_challenge2_multi_release.py:138
+                             Complete -                                         
+                             184 valid, 0                                       
+                             corrupted,                                         
+                             17.8s                                              
+    Creating windows from continuous data...
+                    INFO       R3:         train_challenge2_multi_release.py:145
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 79058
+                    INFO       R3: Created train_challenge2_multi_release.py:166
+                             79058 windows                                      
+    Windows: 79058
+
+✅ Total windows: 202325
+   Releases: {'R3', 'R2', 'R1'}
+   Externalizing scores: 202325 windows
+   Range: [-0.387, 0.620]
+   Mean: 0.142, Std: 0.439
+
+📦 Loading validation data (R4)...
+
+📂 Loading releases: ['R4']
+[10/16/25 14:21:36] INFO     Loading 1      train_challenge2_multi_release.py:85
+                             releases:                                          
+                             ['R4']                                             
+
+  [1/1] Loading R4...
+                    INFO     Loading        train_challenge2_multi_release.py:89
+                             release R4                                         
+                             (1/1)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 322
+[10/16/25 14:21:37] INFO       R4: Loaded  train_challenge2_multi_release.py:102
+                             322 datasets                                       
+    Checking for corrupted files in 322 datasets...
+                    INFO       R4:         train_challenge2_multi_release.py:109
+                             Checking 322                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/322 files... (50 valid)
+[10/16/25 14:21:41] INFO       R4:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             50/322 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/322 files... (100 valid)
+[10/16/25 14:21:45] INFO       R4:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             100/322 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/322 files... (150 valid)
+[10/16/25 14:21:49] INFO       R4:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             150/322 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/322 files... (200 valid)
+[10/16/25 14:21:54] INFO       R4:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             200/322 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/322 files... (250 valid)
+[10/16/25 14:21:58] INFO       R4:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             250/322 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/322 files... (300 valid)
+[10/16/25 14:22:02] INFO       R4:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             300/322 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 322 (skipped 0 corrupted) - 28.6s
+[10/16/25 14:22:04] INFO       R4:         train_challenge2_multi_release.py:138
+                             Complete -                                         
+                             322 valid, 0                                       
+                             corrupted,                                         
+                             28.6s                                              
+    Creating windows from continuous data...
+                    INFO       R4:         train_challenge2_multi_release.py:145
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 128697
+[10/16/25 14:22:05] INFO       R4: Created train_challenge2_multi_release.py:166
+                             128697                                             
+                             windows                                            
+    Windows: 128697
+
+✅ Total windows: 128697
+   Releases: {'R4'}
+   Externalizing scores: 128697 windows
+   Range: [0.297, 0.297]
+   Mean: 0.297, Std: 0.000
+
+📊 Dataset sizes:
+   Train: 202325 windows
+   Val:   128697 windows
+
+================================================================================
+🔥 Training Multi-Release Model
+================================================================================
+   Parameters: 64,001
+
+================================================================================
+Epoch 1/50
+================================================================================
+Train NRMSE: 0.8766
+Val NRMSE:   0.0000
+✅ Best model saved (NRMSE: 0.0000)
+
+================================================================================
+Epoch 2/50
+================================================================================

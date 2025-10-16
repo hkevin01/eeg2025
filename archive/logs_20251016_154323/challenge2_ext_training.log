@@ -1,0 +1,126 @@
+/home/kevin/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py:61: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/home/kevin/.local/lib/python3.12/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_challenge2_externalizing.py:83: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(eeg_files[0], preload=True, verbose=False)
+================================================================================
+🎯 CHALLENGE 2: EXTERNALIZING FACTOR PREDICTION
+================================================================================
+Competition: https://eeg2025.github.io/
+Metric: NRMSE (target < 0.5)
+Device: CPU
+================================================================================
+
+📂 Loading dataset...
+
+📋 Loading externalizing scores...
+   Participants with externalizing scores: 132
+🔍 Finding RestingState EEG files...
+   ✅ sub-NDARAC904DMU: 201 segments
+   ✅ sub-NDARAG143ARJ: 192 segments
+   ✅ sub-NDARAM704GKZ: 172 segments
+   ✅ sub-NDARAN385MDH: 174 segments
+   ✅ sub-NDARAP359UM6: 188 segments
+   ✅ sub-NDARAW320CGR: 213 segments
+   ✅ sub-NDARBD879MBX: 214 segments
+   ✅ sub-NDARBH024NH2: 206 segments
+   ✅ sub-NDARBK082PDD: 175 segments
+   ✅ sub-NDARBM173BJG: 214 segments
+   ✅ sub-NDARBX121UM9: 177 segments
+   ✅ sub-NDARBX400RTC: 189 segments
+
+📊 Total segments: 2315
+   Externalizing: mean=0.126, std=0.670
+   Train segments: 1852
+   Val segments: 463
+
+================================================================================
+🔥 Training Externalizing Prediction Model
+================================================================================
+   Parameters: 239,617
+   Input shape: (batch, 129, 200)
+   Output shape: (batch, 1)
+
+Epoch  1/40
+  Train: Loss=0.1584, NRMSE=0.5941
+  Val:   Loss=0.0290, NRMSE=0.2578
+  Val:   Corr=0.9700, MAE=0.132, RMSE=0.172
+  🎯 Below competition target (NRMSE < 0.5)!
+  💾 New best model! NRMSE=0.2578
+
+Epoch  2/40
+  Train: Loss=0.0508, NRMSE=0.3360
+  Val:   Loss=0.0176, NRMSE=0.2009
+  Val:   Corr=0.9860, MAE=0.103, RMSE=0.134
+  🎯 Below competition target (NRMSE < 0.5)!
+  💾 New best model! NRMSE=0.2009
+
+Epoch  3/40
+  Train: Loss=0.0367, NRMSE=0.2857
+  Val:   Loss=0.0088, NRMSE=0.1414
+  Val:   Corr=0.9924, MAE=0.077, RMSE=0.094
+  🎯 Below competition target (NRMSE < 0.5)!
+  💾 New best model! NRMSE=0.1414
+
+Epoch  4/40
+  Train: Loss=0.0299, NRMSE=0.2581
+  Val:   Loss=0.0049, NRMSE=0.1041
+  Val:   Corr=0.9950, MAE=0.053, RMSE=0.069
+  🎯 Below competition target (NRMSE < 0.5)!
+  💾 New best model! NRMSE=0.1041
+
+Epoch  5/40
+  Train: Loss=0.0255, NRMSE=0.2383
+  Val:   Loss=0.0061, NRMSE=0.1179
+  Val:   Corr=0.9958, MAE=0.058, RMSE=0.079
+  🎯 Below competition target (NRMSE < 0.5)!
+  ⏳ Patience: 1/10
+
+Epoch  6/40
+  Train: Loss=0.0240, NRMSE=0.2311
+  Val:   Loss=0.0059, NRMSE=0.1168
+  Val:   Corr=0.9949, MAE=0.060, RMSE=0.078
+  🎯 Below competition target (NRMSE < 0.5)!
+  ⏳ Patience: 2/10
+
+Epoch  7/40
+  Train: Loss=0.0223, NRMSE=0.2230
+  Val:   Loss=0.0043, NRMSE=0.0997
+  Val:   Corr=0.9958, MAE=0.049, RMSE=0.066
+  🎯 Below competition target (NRMSE < 0.5)!
+  💾 New best model! NRMSE=0.0997
+
+Epoch  8/40
+  Train: Loss=0.0195, NRMSE=0.2082
+  Val:   Loss=0.0028, NRMSE=0.0808
+  Val:   Corr=0.9972, MAE=0.039, RMSE=0.054
+  🎯 Below competition target (NRMSE < 0.5)!
+  💾 New best model! NRMSE=0.0808
+
+Epoch  9/40
+  Train: Loss=0.0179, NRMSE=0.1994
+  Val:   Loss=0.0042, NRMSE=0.0984
+  Val:   Corr=0.9966, MAE=0.047, RMSE=0.066
+  🎯 Below competition target (NRMSE < 0.5)!
+  ⏳ Patience: 1/10

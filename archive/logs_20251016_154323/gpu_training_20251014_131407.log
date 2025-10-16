@@ -1,0 +1,57 @@
+🚀 Safe GPU Training Script
+============================================================
+
+✅ GPU detected: AMD Radeon RX 5600 XT
+   Total memory: 5.98 GB
+   Compute capability: 10.3
+   ROCm version: 6.2.41133-dd7f95766
+
+📊 Configuration:
+   Device: cuda:0
+   Mixed precision: True
+
+============================================================
+
+📂 Loading EEG data from: /home/kevin/Projects/eeg2025/data/raw/hbn
+   Found 3 subjects
+Loading subjects:   0%|          | 0/3 [00:00<?, ?it/s]/home/kevin/.local/lib/python3.12/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
+/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:102: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(set_file, preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:102: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(set_file, preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:102: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(set_file, preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:102: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(set_file, preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:102: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(set_file, preload=True, verbose=False)
+/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:102: RuntimeWarning: The data contains 'boundary' events, indicating data discontinuities. Be cautious of filtering and epoching around these events.
+  raw = mne.io.read_raw_eeglab(set_file, preload=True, verbose=False)
+Loading subjects: 100%|██████████| 3/3 [00:16<00:00,  5.34s/it]Loading subjects: 100%|██████████| 3/3 [00:16<00:00,  5.34s/it]
+/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:312: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler() if device.type == 'cuda' and gpu_config.get('mixed_precision') else None
+
+✅ Loaded 3162 windows
+   Window shape: (129, 1000)
+
+📦 Data loader:
+   Total windows: 3162
+   Batch size: 4
+   Batches per epoch: 791
+
+============================================================
+🧠 Creating model...
+   Input shape: (129, 1000)
+   Model parameters: 549,570
+   Estimated memory: ~2.1 MB
+
+============================================================
+🏋️  Starting training...
+============================================================
+
+📈 Epoch 1/5
+Training:   0%|          | 0/791 [00:00<?, ?it/s]/home/kevin/Projects/eeg2025/scripts/train_gpu_safe.py:213: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast():
+/home/kevin/.local/lib/python3.12/site-packages/torch/nn/modules/linear.py:125: UserWarning: Attempting to use hipBLASLt on an unsupported architecture! Overriding blas backend to hipblas (Triggered internally at ../aten/src/ATen/Context.cpp:296.)
+  return F.linear(input, self.weight, self.bias)

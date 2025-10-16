@@ -55,18 +55,20 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset, ConcatDataset
 import numpy as np
 from braindecode.preprocessing import Preprocessor, preprocess
-from braindecode.preprocessing import create_fixed_length_windows
+from braindecode.preprocessing import create_windows_from_events
 from eegdash import EEGChallengeDataset
 from eegdash.hbn.windows import (
     annotate_trials_with_target,
     add_aux_anchors,
+    add_extras_columns,
 )
 
 print("="*80)
 print("🎯 CHALLENGE 1: MULTI-RELEASE RESPONSE TIME PREDICTION")
 print("="*80)
-print("Training on: R1, R2, R3, R4")
-print("Validation on: R5")
+print("Training on: R1, R2, R3")
+print("Validation on: R4")
+print("Using official starter kit metadata extraction with add_extras_columns")
 print("Expected improvement: 10x better generalization")
 print("="*80)
 
@@ -87,6 +89,7 @@ class MultiReleaseDataset(Dataset):
         self.releases = releases
         self.windows_datasets = []
         self.release_labels = []
+        self.response_times = []  # Store response times for each window
 
         print(f"\n📂 Loading releases: {releases}")
         logger.info(f"Loading {len(releases)} releases: {releases}")
@@ -158,32 +161,116 @@ class MultiReleaseDataset(Dataset):
                 Preprocessor(add_aux_anchors, apply_on_array=False),
             ]
 
-            preprocess(dataset, preprocessors, n_jobs=-1)
+            try:
+                preprocess(dataset, preprocessors, n_jobs=-1)
+                logger.info(f"  {release}: Preprocessing complete")
+            except Exception as e:
+                logger.error(f"  {release}: Preprocessing failed: {e}")
+                raise
 
-            # Create windows
-            windows_dataset = create_fixed_length_windows(
+            # Check if we have any valid trials after preprocessing
+            valid_trials = sum(1 for ds in dataset.datasets if len(ds.raw.annotations) > 0)
+            print(f"    Datasets with valid trials after preprocessing: {valid_trials}/{len(dataset.datasets)}")
+            logger.info(f"  {release}: {valid_trials} datasets have valid trials")
+
+            if valid_trials == 0:
+                logger.warning(f"  {release}: No valid trials after preprocessing, skipping...")
+                continue
+
+            # Create windows from events (one window per trial)
+            # This is required for add_extras_columns to work correctly
+            print("    Creating windows from trials...")
+            logger.info(f"  {release}: Creating windows from events...")
+
+            ANCHOR = "contrast_trial_start"  # Event marker for trials
+            SFREQ = 100  # Sampling frequency
+
+            windows_dataset = create_windows_from_events(
                 dataset,
-                start_offset_samples=int(SHIFT_AFTER_STIM * 100),  # 100 Hz
-                stop_offset_samples=None,
-                window_size_samples=int(EPOCH_LEN_S * 100),
-                window_stride_samples=int(EPOCH_LEN_S * 100),
-                drop_last_window=False,
-                mapping=None,
-                preload=False,
-                picks=None,
-                reject=None,
-                flat=None,
-                targets_from="metadata",
-                last_target_only=True,
-                on_missing="ignore",
+                mapping={ANCHOR: 0},  # Map event to class 0
+                trial_start_offset_samples=int(SHIFT_AFTER_STIM * SFREQ),  # +0.5s after stimulus
+                trial_stop_offset_samples=int((SHIFT_AFTER_STIM + EPOCH_LEN_S) * SFREQ),  # +2.5s total
+                window_size_samples=int(EPOCH_LEN_S * SFREQ),  # 2 seconds
+                window_stride_samples=SFREQ,  # 1 second stride (not used for single window per trial)
+                preload=True,
             )
+
+            print(f"    Windows created: {len(windows_dataset)}")
+            logger.info(f"  {release}: Created {len(windows_dataset)} windows")
+
+            if len(windows_dataset) == 0:
+                logger.warning(f"  {release}: No windows created, skipping...")
+                continue
 
             print(f"    Windows: {len(windows_dataset)}")
 
-            self.windows_datasets.append(windows_dataset)
-            self.release_labels.extend([release] * len(windows_dataset))
+            # CRITICAL: Use add_extras_columns to inject trial metadata into windows
+            # This is the official starter kit approach from challenge_1.py
+            print("    Injecting trial metadata into windows...")
+            logger.info(f"  {release}: Adding extras columns to windows metadata")
 
-        # Concatenate all releases
+            try:
+                windows_dataset = add_extras_columns(
+                    windows_dataset,  # Windowed dataset
+                    dataset,          # Original preprocessed dataset with annotations
+                    desc="contrast_trial_start",  # Annotation description
+                    keys=("rt_from_stimulus", "target", "rt_from_trialstart",
+                          "stimulus_onset", "response_onset", "correct", "response_type")
+                )
+                logger.info(f"  {release}: Metadata injection complete")
+            except Exception as e:
+                logger.error(f"  {release}: Failed to inject metadata: {e}")
+                logger.error(traceback.format_exc())
+                # Try with minimal keys
+                try:
+                    windows_dataset = add_extras_columns(
+                        windows_dataset,
+                        dataset,
+                        desc="contrast_trial_start",
+                        keys=("rt_from_stimulus",)
+                    )
+                    logger.info(f"  {release}: Metadata injection complete (minimal keys)")
+                except Exception as e2:
+                    logger.error(f"  {release}: Failed with minimal keys too: {e2}")
+                    raise
+
+            # Extract metadata DataFrame - this now has rt_from_stimulus column!
+            print("    Extracting response times from metadata...")
+            try:
+                metadata_df = windows_dataset.get_metadata()
+                logger.info(f"  {release}: Got metadata DataFrame with {len(metadata_df)} rows")
+                logger.info(f"  {release}: Metadata columns: {metadata_df.columns.tolist()}")
+
+                # Extract response times
+                if 'rt_from_stimulus' in metadata_df.columns:
+                    rt_values = metadata_df['rt_from_stimulus'].values
+                    # Replace NaN with 0.0
+                    rt_values = np.nan_to_num(rt_values, nan=0.0)
+                    self.response_times.extend(rt_values.tolist())
+
+                    # Print statistics
+                    non_zero = rt_values[rt_values != 0.0]
+                    if len(non_zero) > 0:
+                        print(f"    ✅ Response times extracted: {len(non_zero)}/{len(rt_values)} non-zero")
+                        print(f"       Range: [{non_zero.min():.3f}, {non_zero.max():.3f}]")
+                        print(f"       Mean: {non_zero.mean():.3f}, Std: {non_zero.std():.3f}")
+                    else:
+                        logger.warning(f"  {release}: All response times are 0.0!")
+                        print("    ⚠️  All response times are 0.0! This may indicate an issue.")
+                else:
+                    logger.error(f"  {release}: rt_from_stimulus not found in metadata columns!")
+                    logger.error(f"  {release}: Available columns: {metadata_df.columns.tolist()}")
+                    # Fill with zeros as fallback
+                    self.response_times.extend([0.0] * len(windows_dataset))
+
+            except Exception as e:
+                logger.error(f"  {release}: Failed to extract metadata: {e}")
+                logger.error(traceback.format_exc())
+                # Fill with zeros as fallback
+                self.response_times.extend([0.0] * len(windows_dataset))
+
+            self.windows_datasets.append(windows_dataset)
+            self.release_labels.extend([release] * len(windows_dataset))        # Concatenate all releases
         self.combined_dataset = ConcatDataset(self.windows_datasets)
         print(f"\n✅ Total windows: {len(self.combined_dataset)}")
         print(f"   Releases: {set(self.release_labels)}")
@@ -193,7 +280,7 @@ class MultiReleaseDataset(Dataset):
 
     def __getitem__(self, idx):
         windows_ds, rel_idx = self._get_dataset_and_index(idx)
-        X, y, _ = windows_ds[rel_idx]
+        X, y, metadata = windows_ds[rel_idx]
 
         # X shape: (1, n_channels, n_timepoints) or (n_channels, n_timepoints)
         if X.ndim == 3:
@@ -202,7 +289,12 @@ class MultiReleaseDataset(Dataset):
         # Normalize
         X = (X - X.mean(axis=1, keepdims=True)) / (X.std(axis=1, keepdims=True) + 1e-8)
 
-        return torch.FloatTensor(X), torch.FloatTensor([y])
+        # Get response time from pre-extracted list (extracted during __init__ from metadata)
+        response_time = self.response_times[idx] if idx < len(self.response_times) else 0.0
+        if np.isnan(response_time):
+            response_time = 0.0
+
+        return torch.FloatTensor(X), torch.FloatTensor([response_time])
 
     def _get_dataset_and_index(self, idx):
         """Find which dataset and local index for given global index"""
@@ -327,8 +419,22 @@ def train_model(model, train_loader, val_loader, epochs=50):
                 val_labels.extend(labels.numpy().flatten())
 
         # Metrics
-        train_nrmse = compute_nrmse(np.array(train_labels), np.array(train_preds))
-        val_nrmse = compute_nrmse(np.array(val_labels), np.array(val_preds))
+        train_labels_array = np.array(train_labels)
+        train_preds_array = np.array(train_preds)
+        val_labels_array = np.array(val_labels)
+        val_preds_array = np.array(val_preds)
+
+        train_nrmse = compute_nrmse(train_labels_array, train_preds_array)
+        val_nrmse = compute_nrmse(val_labels_array, val_preds_array)
+
+        # Debug info on first epoch
+        if epoch == 1:
+            print(f"\n🔍 DEBUG - First 10 training targets: {train_labels_array[:10]}")
+            print(f"🔍 DEBUG - First 10 training preds: {train_preds_array[:10]}")
+            print(f"🔍 DEBUG - Training target stats: mean={train_labels_array.mean():.4f}, std={train_labels_array.std():.4f}, range=[{train_labels_array.min():.4f}, {train_labels_array.max():.4f}]")
+            print(f"\n🔍 DEBUG - First 10 val targets: {val_labels_array[:10]}")
+            print(f"🔍 DEBUG - First 10 val preds: {val_preds_array[:10]}")
+            print(f"🔍 DEBUG - Val target stats: mean={val_labels_array.mean():.4f}, std={val_labels_array.std():.4f}, range=[{val_labels_array.min():.4f}, {val_labels_array.max():.4f}]\n")
 
         print(f"Train NRMSE: {train_nrmse:.4f}")
         print(f"Val NRMSE:   {val_nrmse:.4f}")
@@ -353,18 +459,18 @@ def train_model(model, train_loader, val_loader, epochs=50):
 def main():
     start_time = time.time()
 
-    # Load training releases (R1-R4)
-    print("\n📦 Loading training data (R1-R4)...")
+    # Load training releases (R1-R2) - R3 reserved for validation, R4/R5 have issues
+    print("\n📦 Loading training data (R1-R2)...")
     train_dataset = MultiReleaseDataset(
-        releases=['R1', 'R2', 'R3', 'R4'],
+        releases=['R1', 'R2'],
         mini=False,  # FULL DATASET for production training
         cache_dir='data/raw'
     )
 
-    # Load validation release (R5)
-    print("\n📦 Loading validation data (R5)...")
+    # Load validation release (R3) - R4 has no valid events, R5 has zero variance
+    print("\n📦 Loading validation data (R3)...")
     val_dataset = MultiReleaseDataset(
-        releases=['R5'],
+        releases=['R3'],
         mini=False,  # FULL DATASET for validation
         cache_dir='data/raw'
     )

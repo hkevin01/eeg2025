@@ -1,0 +1,118 @@
+================================================================================
+🎲 ENSEMBLE TRAINING - CHALLENGE 1 (3 Models)
+================================================================================
+/home/kevin/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py:61: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+================================================================================
+🎯 CHALLENGE 1: RESPONSE TIME PREDICTION (IMPROVED)
+================================================================================
+Improvements: Cross-validation, Data augmentation, Better architecture
+================================================================================
+
+📂 Loading dataset...
+
+�� Loading CCD data...
+   Found 20 subjects
+/home/kevin/.local/lib/python3.12/site-packages/matplotlib/projections/__init__.py:63: UserWarning: Unable to import Axes3D. This may be due to multiple versions of Matplotlib being installed (e.g. as a system package and as a pip package). As a result, the 3D projection is not available.
+  warnings.warn("Unable to import Axes3D. This may be due to multiple versions of "
+   ✅ sub-NDARAH793FBF/sub-NDARAH793FBF_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARAH793FBF/sub-NDARAH793FBF_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAH793FBF/sub-NDARAH793FBF_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAJ689BVN/sub-NDARAJ689BVN_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARAJ689BVN/sub-NDARAJ689BVN_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAJ689BVN/sub-NDARAJ689BVN_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAP785CTE/sub-NDARAP785CTE_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAP785CTE/sub-NDARAP785CTE_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAP785CTE/sub-NDARAP785CTE_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARAU708TL8/sub-NDARAU708TL8_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARAU708TL8/sub-NDARAU708TL8_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARAU708TL8/sub-NDARAU708TL8_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBE091BGD/sub-NDARBE091BGD_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBE091BGD/sub-NDARBE091BGD_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBE091BGD/sub-NDARBE091BGD_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBE103DHM/sub-NDARBE103DHM_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBE103DHM/sub-NDARBE103DHM_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBE103DHM/sub-NDARBE103DHM_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBF851NH6/sub-NDARBF851NH6_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBF851NH6/sub-NDARBF851NH6_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBF851NH6/sub-NDARBF851NH6_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBH228RDW/sub-NDARBH228RDW_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBH228RDW/sub-NDARBH228RDW_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBH228RDW/sub-NDARBH228RDW_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBJ674TVU/sub-NDARBJ674TVU_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBJ674TVU/sub-NDARBJ674TVU_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARBJ674TVU/sub-NDARBJ674TVU_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBM433VER/sub-NDARBM433VER_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARBM433VER/sub-NDARBM433VER_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARBM433VER/sub-NDARBM433VER_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCA740UC8/sub-NDARCA740UC8_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARCA740UC8/sub-NDARCA740UC8_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCA740UC8/sub-NDARCA740UC8_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU633GCZ/sub-NDARCU633GCZ_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU633GCZ/sub-NDARCU633GCZ_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARCU633GCZ/sub-NDARCU633GCZ_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCU736GZ1/sub-NDARCU736GZ1_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU736GZ1/sub-NDARCU736GZ1_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARCU736GZ1/sub-NDARCU736GZ1_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCU744XWL/sub-NDARCU744XWL_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARCU744XWL/sub-NDARCU744XWL_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARCU744XWL/sub-NDARCU744XWL_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARDC843HHM/sub-NDARDC843HHM_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARDC843HHM/sub-NDARDC843HHM_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARDC843HHM/sub-NDARDC843HHM_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARDH086ZKK/sub-NDARDH086ZKK_task-contrastChangeDetection_run-2_eeg.bdf: 25 trials
+   ✅ sub-NDARDH086ZKK/sub-NDARDH086ZKK_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+   ✅ sub-NDARDH086ZKK/sub-NDARDH086ZKK_task-contrastChangeDetection_run-3_eeg.bdf: 25 trials
+   ✅ sub-NDARDL305BT8/sub-NDARDL305BT8_task-contrastChangeDetection_run-1_eeg.bdf: 25 trials
+
+📊 Total segments: 420
+   Response Time: mean=3.545s, std=1.552s
+   Range: [0.100, 4.980]s
+   Total samples: 420
+
+🎲 Training 3 models with different seeds...
+================================================================================
+
+📍 Model 1/3 (seed=42)
+   🔥 Training... ✓ (5.1s)
+   📊 Best NRMSE: 1.1054
+   ⚠️  Above target
+   💾 Saved: checkpoints/ensemble/response_time_model_seed42.pth
+
+📍 Model 2/3 (seed=123)
+   🔥 Training... ✓ (5.3s)
+   📊 Best NRMSE: 1.0477
+   ⚠️  Above target
+   💾 Saved: checkpoints/ensemble/response_time_model_seed123.pth
+
+📍 Model 3/3 (seed=456)
+   🔥 Training... ✓ (5.5s)
+   📊 Best NRMSE: 1.0576
+   ⚠️  Above target
+   💾 Saved: checkpoints/ensemble/response_time_model_seed456.pth
+
+================================================================================
+📊 ENSEMBLE RESULTS
+================================================================================
+
+Individual Model Performance:
+   Model 1 (seed=42): 1.1054 ⚠️
+   Model 2 (seed=123): 1.0477 ⚠️
+   Model 3 (seed=456): 1.0576 ⚠️
+
+📈 Ensemble Statistics:
+   Mean NRMSE: 1.0703
+   Std NRMSE:  0.0252
+   Best NRMSE: 1.0477
+
+⏱️  Total time: 0.4 minutes
+
+💾 Results saved to: results/challenge1_ensemble.txt
+
+🏆 BEST MODEL: seed=123, NRMSE=1.0477
+
+ℹ️  For ensemble inference, load all 3 models and average predictions
+
+================================================================================
+✅ ENSEMBLE TRAINING COMPLETE!
+================================================================================

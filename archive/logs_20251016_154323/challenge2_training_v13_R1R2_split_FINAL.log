@@ -1,0 +1,202 @@
+nohup: ignoring input
+2025-10-16 15:31:49,340 - INFO - ================================================================================
+2025-10-16 15:31:49,340 - INFO - 🚀 Challenge 2 Training Started
+2025-10-16 15:31:49,340 - INFO - Crash log: logs/challenge2_crash_20251016_153149.log
+2025-10-16 15:31:49,340 - INFO - ================================================================================
+================================================================================
+🎯 CHALLENGE 2: MULTI-RELEASE EXTERNALIZING PREDICTION
+================================================================================
+Training on: R1, R2, R3
+Validation on: R4
+Expected improvement: 14x better generalization
+================================================================================
+[10/16/25 15:31:54] INFO     Starting main train_challenge2_multi_release.py:453
+                             training                                           
+                             pipeline...                                        
+
+📦 Loading R1+R2 data (each release has different constant value)...
+⚠️  R1=0.325, R2=0.620, R3=-0.387, R4=0.297, R5=0.297
+⚠️  Need multiple releases to get variance!
+
+📂 Loading releases: ['R1', 'R2']
+                    INFO     Loading 2      train_challenge2_multi_release.py:85
+                             releases:                                          
+                             ['R1', 'R2']                                       
+
+  [1/2] Loading R1...
+                    INFO     Loading        train_challenge2_multi_release.py:89
+                             release R1                                         
+                             (1/2)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 136
+[10/16/25 15:31:55] INFO       R1: Loaded  train_challenge2_multi_release.py:102
+                             136 datasets                                       
+    Checking for corrupted files in 136 datasets...
+                    INFO       R1:         train_challenge2_multi_release.py:109
+                             Checking 136                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/136 files... (50 valid)
+[10/16/25 15:31:59] INFO       R1:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             50/136 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/136 files... (100 valid)
+[10/16/25 15:32:03] INFO       R1:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             100/136 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 136 (skipped 0 corrupted) - 11.6s
+[10/16/25 15:32:06] INFO       R1:         train_challenge2_multi_release.py:138
+                             Complete -                                         
+                             136 valid, 0                                       
+                             corrupted,                                         
+                             11.6s                                              
+    Creating windows from continuous data...
+                    INFO       R1:         train_challenge2_multi_release.py:145
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 57648
+                    INFO       R1: Created train_challenge2_multi_release.py:166
+                             57648 windows                                      
+    Windows: 57648
+
+  [2/2] Loading R2...
+[10/16/25 15:33:39] INFO     Loading        train_challenge2_multi_release.py:89
+                             release R2                                         
+                             (2/2)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 150
+[10/16/25 15:33:40] INFO       R2: Loaded  train_challenge2_multi_release.py:102
+                             150 datasets                                       
+    Checking for corrupted files in 150 datasets...
+                    INFO       R2:         train_challenge2_multi_release.py:109
+                             Checking 150                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/150 files... (50 valid)
+[10/16/25 15:33:44] INFO       R2:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             50/150 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/150 files... (100 valid)
+[10/16/25 15:33:48] INFO       R2:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             100/150 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/150 files... (150 valid)
+[10/16/25 15:33:52] INFO       R2:         train_challenge2_multi_release.py:122
+                             Progress                                           
+                             150/150 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 150 (skipped 0 corrupted) - 12.4s
+                    INFO       R2:         train_challenge2_multi_release.py:138
+                             Complete -                                         
+                             150 valid, 0                                       
+                             corrupted,                                         
+                             12.4s                                              
+    Creating windows from continuous data...
+                    INFO       R2:         train_challenge2_multi_release.py:145
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 65619
+                    INFO       R2: Created train_challenge2_multi_release.py:166
+                             65619 windows                                      
+    Windows: 65619
+
+✅ Total windows: 123267
+   Releases: {'R1', 'R2'}
+   Externalizing scores: 123267 windows
+   Range: [0.325, 0.620]
+   Mean: 0.482, Std: 0.147
+
+📊 Splitting R1+R2 dataset:
+   Total: 123267 windows
+   Train: 98613 windows (80%)
+   Val:   24654 windows (20%)
+
+================================================================================
+🔥 Training Multi-Release Model
+================================================================================
+   Parameters: 64,001
+
+================================================================================
+Epoch 1/50
+================================================================================
+Train NRMSE: 0.9960
+Val NRMSE:   0.7554
+✅ Best model saved (NRMSE: 0.7554)
+
+================================================================================
+Epoch 2/50
+================================================================================
+
+🔍 DEBUG - First 10 training targets: [0.325 0.325 0.62  0.325 0.62  0.62  0.62  0.62  0.325 0.62 ]
+🔍 DEBUG - First 10 training preds: [0.62687933 0.46831998 0.65578437 0.4139706  0.4282327  0.42250058
+ 0.5311952  0.40260866 0.41356078 0.39595547]
+🔍 DEBUG - Training target stats: mean=0.4821, std=0.1472, range=[0.3250, 0.6200]
+
+🔍 DEBUG - First 10 val targets: [0.62  0.62  0.325 0.62  0.62  0.325 0.325 0.62  0.325 0.62 ]
+🔍 DEBUG - First 10 val preds: [0.59789026 0.47263193 0.49227488 0.4982828  0.58819914 0.3468034
+ 0.39916214 0.59315306 0.42365664 0.57471997]
+🔍 DEBUG - Val target stats: mean=0.4818, std=0.1472, range=[0.3250, 0.6200]
+
+Train NRMSE: 0.7344
+Val NRMSE:   0.6145
+✅ Best model saved (NRMSE: 0.6145)
+
+================================================================================
+Epoch 3/50
+================================================================================
+Train NRMSE: 0.6741
+Val NRMSE:   0.6524
+
+================================================================================
+Epoch 4/50
+================================================================================
+Train NRMSE: 0.6390
+Val NRMSE:   0.5857
+✅ Best model saved (NRMSE: 0.5857)
+
+================================================================================
+Epoch 5/50
+================================================================================

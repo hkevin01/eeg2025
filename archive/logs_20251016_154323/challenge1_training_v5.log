@@ -1,0 +1,641 @@
+nohup: ignoring input
+2025-10-16 13:34:41,538 - INFO - ================================================================================
+2025-10-16 13:34:41,538 - INFO - 🚀 Challenge 1 Training Started
+2025-10-16 13:34:41,538 - INFO - Crash log: logs/challenge1_crash_20251016_133441.log
+2025-10-16 13:34:41,538 - INFO - ================================================================================
+================================================================================
+🎯 CHALLENGE 1: MULTI-RELEASE RESPONSE TIME PREDICTION
+================================================================================
+Training on: R1, R2, R3, R4
+Validation on: R5
+Expected improvement: 10x better generalization
+================================================================================
+[10/16/25 13:34:48] INFO     Starting main train_challenge1_multi_release.py:441
+                             training                                           
+                             pipeline...                                        
+
+📦 Loading training data (R1-R4)...
+
+📂 Loading releases: ['R1', 'R2', 'R3', 'R4']
+                    INFO     Loading 4      train_challenge1_multi_release.py:92
+                             releases:                                          
+                             ['R1', 'R2',                                       
+                             'R3', 'R4']                                        
+
+  [1/4] Loading R1...
+                    INFO     Loading        train_challenge1_multi_release.py:96
+                             release R1                                         
+                             (1/4)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 293
+[10/16/25 13:34:50] INFO       R1: Loaded  train_challenge1_multi_release.py:108
+                             293 datasets                                       
+    Checking for corrupted files in 293 datasets...
+                    INFO       R1:         train_challenge1_multi_release.py:115
+                             Checking 293                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/293 files... (50 valid)
+[10/16/25 13:34:56] INFO       R1:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             50/293 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/293 files... (100 valid)
+[10/16/25 13:35:01] INFO       R1:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             100/293 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/293 files... (150 valid)
+[10/16/25 13:35:07] INFO       R1:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             150/293 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/293 files... (200 valid)
+[10/16/25 13:35:13] INFO       R1:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             200/293 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/293 files... (250 valid)
+[10/16/25 13:35:20] INFO       R1:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             250/293 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 293 (skipped 0 corrupted) - 37.0s
+[10/16/25 13:35:25] INFO       R1:         train_challenge1_multi_release.py:144
+                             Complete -                                         
+                             293 valid, 0                                       
+                             corrupted,                                         
+                             37.0s                                              
+    Preprocessing 293 datasets...
+                    INFO       R1:         train_challenge1_multi_release.py:148
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 13:35:41] INFO       R1:         train_challenge1_multi_release.py:163
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 293/293
+                    INFO       R1: 293     train_challenge1_multi_release.py:171
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R1:         train_challenge1_multi_release.py:179
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 62336
+                    INFO       R1: Created train_challenge1_multi_release.py:199
+                             62336 windows                                      
+    Windows: 62336
+
+  [2/4] Loading R2...
+                    INFO     Loading        train_challenge1_multi_release.py:96
+                             release R2                                         
+                             (2/4)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 301
+[10/16/25 13:35:43] INFO       R2: Loaded  train_challenge1_multi_release.py:108
+                             301 datasets                                       
+    Checking for corrupted files in 301 datasets...
+                    INFO       R2:         train_challenge1_multi_release.py:115
+                             Checking 301                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/301 files... (50 valid)
+[10/16/25 13:35:50] INFO       R2:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             50/301 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/301 files... (100 valid)
+[10/16/25 13:35:59] INFO       R2:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             100/301 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/301 files... (150 valid)
+[10/16/25 13:36:08] INFO       R2:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             150/301 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/301 files... (200 valid)
+[10/16/25 13:36:16] INFO       R2:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             200/301 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/301 files... (250 valid)
+[10/16/25 13:36:24] INFO       R2:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             250/301 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/301 files... (300 valid)
+[10/16/25 13:36:32] INFO       R2:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             300/301 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 301 (skipped 0 corrupted) - 50.7s
+                    INFO       R2:         train_challenge1_multi_release.py:144
+                             Complete -                                         
+                             301 valid, 0                                       
+                             corrupted,                                         
+                             50.7s                                              
+    Preprocessing 301 datasets...
+                    INFO       R2:         train_challenge1_multi_release.py:148
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 13:36:37] INFO       R2:         train_challenge1_multi_release.py:163
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 301/301
+                    INFO       R2: 301     train_challenge1_multi_release.py:171
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R2:         train_challenge1_multi_release.py:179
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 68218
+[10/16/25 13:36:38] INFO       R2: Created train_challenge1_multi_release.py:199
+                             68218 windows                                      
+    Windows: 68218
+
+  [3/4] Loading R3...
+                    INFO     Loading        train_challenge1_multi_release.py:96
+                             release R3                                         
+                             (3/4)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 388
+[10/16/25 13:36:40] INFO       R3: Loaded  train_challenge1_multi_release.py:108
+                             388 datasets                                       
+    Checking for corrupted files in 388 datasets...
+                    INFO       R3:         train_challenge1_multi_release.py:115
+                             Checking 388                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/388 files... (50 valid)
+[10/16/25 13:36:51] INFO       R3:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             50/388 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/388 files... (100 valid)
+[10/16/25 13:36:59] INFO       R3:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             100/388 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/388 files... (150 valid)
+[10/16/25 13:37:08] INFO       R3:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             150/388 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/388 files... (200 valid)
+[10/16/25 13:37:16] INFO       R3:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             200/388 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/388 files... (250 valid)
+[10/16/25 13:37:23] INFO       R3:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             250/388 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/388 files... (300 valid)
+[10/16/25 13:37:32] INFO       R3:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             300/388 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 350/388 files... (350 valid)
+[10/16/25 13:37:42] INFO       R3:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             350/388 - 350                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 388 (skipped 0 corrupted) - 70.5s
+[10/16/25 13:37:48] INFO       R3:         train_challenge1_multi_release.py:144
+                             Complete -                                         
+                             388 valid, 0                                       
+                             corrupted,                                         
+                             70.5s                                              
+    Preprocessing 388 datasets...
+                    INFO       R3:         train_challenge1_multi_release.py:148
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 13:37:55] INFO       R3:         train_challenge1_multi_release.py:163
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 388/388
+                    INFO       R3: 388     train_challenge1_multi_release.py:171
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R3:         train_challenge1_multi_release.py:179
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 83472
+                    INFO       R3: Created train_challenge1_multi_release.py:199
+                             83472 windows                                      
+    Windows: 83472
+
+  [4/4] Loading R4...
+                    INFO     Loading        train_challenge1_multi_release.py:96
+                             release R4                                         
+                             (4/4)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 756
+[10/16/25 13:38:00] INFO       R4: Loaded  train_challenge1_multi_release.py:108
+                             756 datasets                                       
+    Checking for corrupted files in 756 datasets...
+                    INFO       R4:         train_challenge1_multi_release.py:115
+                             Checking 756                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/756 files... (50 valid)
+[10/16/25 13:38:07] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             50/756 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/756 files... (100 valid)
+[10/16/25 13:38:14] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             100/756 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/756 files... (150 valid)
+[10/16/25 13:38:21] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             150/756 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/756 files... (200 valid)
+[10/16/25 13:38:28] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             200/756 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/756 files... (250 valid)
+[10/16/25 13:38:35] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             250/756 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/756 files... (300 valid)
+[10/16/25 13:38:44] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             300/756 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 350/756 files... (350 valid)
+[10/16/25 13:38:53] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             350/756 - 350                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 400/756 files... (400 valid)
+[10/16/25 13:39:01] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             400/756 - 400                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 450/756 files... (450 valid)
+[10/16/25 13:39:09] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             450/756 - 450                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 500/756 files... (500 valid)
+[10/16/25 13:39:18] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             500/756 - 500                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 550/756 files... (550 valid)
+[10/16/25 13:39:26] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             550/756 - 550                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 600/756 files... (600 valid)
+[10/16/25 13:39:34] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             600/756 - 600                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 650/756 files... (650 valid)
+[10/16/25 13:39:41] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             650/756 - 650                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 700/756 files... (700 valid)
+[10/16/25 13:39:50] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             700/756 - 700                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 750/756 files... (750 valid)
+[10/16/25 13:39:59] INFO       R4:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             750/756 - 750                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 756 (skipped 0 corrupted) - 125.0s
+[10/16/25 13:40:00] INFO       R4:         train_challenge1_multi_release.py:144
+                             Complete -                                         
+                             756 valid, 0                                       
+                             corrupted,                                         
+                             125.0s                                             
+    Preprocessing 756 datasets...
+                    INFO       R4:         train_challenge1_multi_release.py:148
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 13:40:11] INFO       R4:         train_challenge1_multi_release.py:163
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 753/756
+                    INFO       R4: 753     train_challenge1_multi_release.py:171
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R4:         train_challenge1_multi_release.py:179
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 129627
+[10/16/25 13:40:12] INFO       R4: Created train_challenge1_multi_release.py:199
+                             129627                                             
+                             windows                                            
+    Windows: 129627
+
+✅ Total windows: 343653
+   Releases: {'R2', 'R1', 'R3', 'R4'}
+
+📦 Loading validation data (R5)...
+
+📂 Loading releases: ['R5']
+                    INFO     Loading 1      train_challenge1_multi_release.py:92
+                             releases:                                          
+                             ['R5']                                             
+
+  [1/1] Loading R5...
+                    INFO     Loading        train_challenge1_multi_release.py:96
+                             release R5                                         
+                             (1/1)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 745
+[10/16/25 13:40:16] INFO       R5: Loaded  train_challenge1_multi_release.py:108
+                             745 datasets                                       
+    Checking for corrupted files in 745 datasets...
+                    INFO       R5:         train_challenge1_multi_release.py:115
+                             Checking 745                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/745 files... (50 valid)
+[10/16/25 13:40:23] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             50/745 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/745 files... (100 valid)
+[10/16/25 13:40:31] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             100/745 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/745 files... (150 valid)
+[10/16/25 13:40:38] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             150/745 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/745 files... (200 valid)
+[10/16/25 13:40:44] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             200/745 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/745 files... (250 valid)
+[10/16/25 13:40:49] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             250/745 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 300/745 files... (300 valid)
+[10/16/25 13:40:53] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             300/745 - 300                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 350/745 files... (350 valid)
+[10/16/25 13:40:58] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             350/745 - 350                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 400/745 files... (400 valid)
+[10/16/25 13:41:03] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             400/745 - 400                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 450/745 files... (450 valid)
+[10/16/25 13:41:07] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             450/745 - 450                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 500/745 files... (500 valid)
+[10/16/25 13:41:12] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             500/745 - 500                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 550/745 files... (550 valid)
+[10/16/25 13:41:17] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             550/745 - 550                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 600/745 files... (600 valid)
+[10/16/25 13:41:21] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             600/745 - 600                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 650/745 files... (650 valid)
+[10/16/25 13:41:27] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             650/745 - 650                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 700/745 files... (700 valid)
+[10/16/25 13:41:31] INFO       R5:         train_challenge1_multi_release.py:128
+                             Progress                                           
+                             700/745 - 700                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 745 (skipped 0 corrupted) - 83.4s
+[10/16/25 13:41:35] INFO       R5:         train_challenge1_multi_release.py:144
+                             Complete -                                         
+                             745 valid, 0                                       
+                             corrupted,                                         
+                             83.4s                                              
+    Preprocessing 745 datasets...
+                    INFO       R5:         train_challenge1_multi_release.py:148
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 13:41:47] INFO       R5:         train_challenge1_multi_release.py:163
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 744/745
+                    INFO       R5: 744     train_challenge1_multi_release.py:171
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R5:         train_challenge1_multi_release.py:179
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 110500
+[10/16/25 13:41:48] INFO       R5: Created train_challenge1_multi_release.py:199
+                             110500                                             
+                             windows                                            
+    Windows: 110500
+
+✅ Total windows: 110500
+   Releases: {'R5'}
+
+📊 Dataset sizes:
+   Train: 343653 windows
+   Val:   110500 windows
+
+================================================================================
+🔥 Training Multi-Release Model
+================================================================================
+   Parameters: 74,753
+
+================================================================================
+Epoch 1/50
+================================================================================
+[W1016 13:46:48.642378954 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:46:50.405735372 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:46:52.090949822 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:46:53.754876180 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:46:55.623959471 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:46:57.177877563 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:46:58.848834667 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:47:00.267952134 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:47:02.941537153 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:47:03.662639417 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:47:06.944174029 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 13:47:08.932941596 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+Train NRMSE: 0.0000
+Val NRMSE:   0.0000
+✅ Best model saved (NRMSE: 0.0000)
+
+================================================================================
+Epoch 2/50
+================================================================================
+/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/joblib/externals/loky/backend/resource_tracker.py:359: UserWarning: resource_tracker: There appear to be 6 leaked semlock objects to clean up at shutdown
+  warnings.warn(
+/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/joblib/externals/loky/backend/resource_tracker.py:359: UserWarning: resource_tracker: There appear to be 5 leaked folder objects to clean up at shutdown
+  warnings.warn(

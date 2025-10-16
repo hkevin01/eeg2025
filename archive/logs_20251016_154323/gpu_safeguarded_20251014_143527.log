@@ -1,0 +1,21 @@
+🛡️  GPU Training with Maximum Safeguards
+======================================================================
+
+======================================================================
+📂 Loading Minimal Dataset
+======================================================================
+
+============================================================
+📂 Production EEG Dataset Loader
+============================================================
+Data directory: /home/kevin/Projects/eeg2025/data/raw/hbn
+Cache directory: /home/kevin/Projects/eeg2025/data/raw/cache
+
+Found 2 subjects
+Loading and preprocessing...
+Loading subjects:   0%|          | 0/2 [00:00<?, ?it/s]Loading subjects: 100%|██████████| 2/2 [00:00<00:00, 9709.04it/s]
+
+✅ Dataset ready!
+   Total windows: 0
+   Total subjects: 0
+❌ No data loaded!

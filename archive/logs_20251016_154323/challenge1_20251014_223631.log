@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/kevin/Projects/eeg2025/scripts/train_challenge1.py", line 16, in <module>
+    from src.training.challenge1_trainer import Challenge1Trainer, Challenge1Model, Challenge1Config
+ModuleNotFoundError: No module named 'src'

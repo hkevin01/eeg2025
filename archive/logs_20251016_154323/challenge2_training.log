@@ -1,0 +1,217 @@
+nohup: ignoring input
+================================================================================
+🎯 CHALLENGE 2: MULTI-RELEASE EXTERNALIZING PREDICTION
+================================================================================
+Training on: R1, R2, R3, R4
+Validation on: R5
+Expected improvement: 14x better generalization
+================================================================================
+
+📦 Loading training data (R1-R4)...
+
+📂 Loading releases: ['R1', 'R2', 'R3', 'R4']
+
+  Loading R1...
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 293
+Downloading sub-NDARAC904DMU_task-DiaryOfAWimpyKid_events.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-DiaryOfAWimpyKid_events.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.2B/s]
+Downloading sub-NDARAC904DMU_task-seqLearning8target_events.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-seqLearning8target_events.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.1B/s]
+Downloading task-surroundSupp_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-surroundSupp_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.0B/s]
+Downloading task-FunwithFractals_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-FunwithFractals_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.6B/s]
+Downloading task-symbolSearch_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-symbolSearch_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.7B/s]
+Downloading task-ThePresent_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-ThePresent_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.2B/s]
+Downloading task-seqLearning6target_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-seqLearning6target_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.6B/s]
+Downloading task-contrastChangeDetection_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-contrastChangeDetection_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.8B/s]
+Downloading task-DespicableMe_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-DespicableMe_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.1B/s]
+Downloading task-DiaryOfAWimpyKid_events.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-DiaryOfAWimpyKid_events.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.1B/s]
+Downloading sub-NDARAC904DMU_task-surroundSupp_run-1_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-surroundSupp_run-1_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.3B/s]
+Downloading sub-NDARAC904DMU_task-symbolSearch_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-symbolSearch_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.0B/s]
+Downloading sub-NDARAC904DMU_task-surroundSupp_run-2_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-surroundSupp_run-2_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.1B/s]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.4B/s]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-2_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-2_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.5B/s]
+Downloading sub-NDARAC904DMU_task-FunwithFractals_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-FunwithFractals_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.1B/s]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-3_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-3_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.4B/s]
+Downloading sub-NDARAC904DMU_task-RestingState_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-RestingState_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.1B/s]
+Downloading sub-NDARAC904DMU_task-seqLearning8target_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-seqLearning8target_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.4B/s]
+Downloading sub-NDARAC904DMU_task-DespicableMe_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-DespicableMe_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.3B/s]
+Downloading sub-NDARAC904DMU_task-DiaryOfAWimpyKid_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-DiaryOfAWimpyKid_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.3B/s]
+Downloading sub-NDARAC904DMU_task-ThePresent_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-ThePresent_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 11.1B/s]
+Downloading task-surroundSupp_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-surroundSupp_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.6B/s]
+Downloading task-contrastChangeDetection_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-contrastChangeDetection_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.1B/s]
+Downloading task-seqLearning8target_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-seqLearning8target_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.2B/s]
+Downloading task-DespicableMe_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-DespicableMe_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.6B/s]
+Downloading task-ThePresent_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-ThePresent_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.4B/s]
+Downloading task-FunwithFractals_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-FunwithFractals_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.1B/s]
+Downloading task-RestingState_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-RestingState_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.8B/s]
+Downloading task-seqLearning6target_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-seqLearning6target_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.0B/s]
+Downloading task-DiaryOfAWimpyKid_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading task-DiaryOfAWimpyKid_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 21.9B/s]
+Downloading sub-NDARAC904DMU_task-surroundSupp_run-1_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-surroundSupp_run-1_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.5B/s]
+Downloading sub-NDARAC904DMU_task-FunwithFractals_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-FunwithFractals_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.6B/s]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-2_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-2_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.2B/s]
+Downloading sub-NDARAC904DMU_task-seqLearning8target_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-seqLearning8target_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.7B/s]
+Downloading sub-NDARAC904DMU_task-ThePresent_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-ThePresent_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 15.6B/s]
+Downloading sub-NDARAC904DMU_task-RestingState_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-RestingState_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.4B/s]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-3_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-3_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.3B/s]
+Downloading sub-NDARAC904DMU_task-surroundSupp_run-2_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-surroundSupp_run-2_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 10.1B/s]
+Downloading sub-NDARAC904DMU_task-DiaryOfAWimpyKid_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-DiaryOfAWimpyKid_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 19.3B/s]
+Downloading sub-NDARAC904DMU_task-symbolSearch_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-symbolSearch_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.4B/s]
+Downloading sub-NDARAC904DMU_task-DespicableMe_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-DespicableMe_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.6B/s]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.0B/s]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:09<00:00, 9.72s/B]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:09<00:00, 9.72s/B]
+Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:06<00:00, 6.91s/B]Downloading sub-NDARAC904DMU_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:06<00:00, 6.91s/B]
+Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-1_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-1_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 7.91B/s]
+Downloading sub-NDARBK082PDD_task-FunwithFractals_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARBK082PDD_task-FunwithFractals_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 9.55B/s]
+Downloading sub-NDARBK082PDD_task-DespicableMe_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARBK082PDD_task-DespicableMe_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 8.49B/s]
+Downloading sub-NDARBK082PDD_task-DiaryOfAWimpyKid_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARBK082PDD_task-DiaryOfAWimpyKid_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.6B/s]
+Downloading sub-NDARBK082PDD_task-surroundSupp_run-1_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARBK082PDD_task-surroundSupp_run-1_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 10.1B/s]
+Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-3_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:04<00:00, 4.89s/B]Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:04<00:00, 4.89s/B]
+Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-3_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:02<00:00, 2.19s/B]Downloading sub-NDARBK082PDD_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:02<00:00, 2.19s/B]
+Downloading sub-NDARCA153NKE_task-contrastChangeDetection_run-1_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCA153NKE_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:02<00:00, 2.94s/B]Downloading sub-NDARCA153NKE_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:02<00:00, 2.94s/B]
+Downloading sub-NDARCA153NKE_task-contrastChangeDetection_run-1_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCA153NKE_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:05<00:00, 5.11s/B]Downloading sub-NDARCA153NKE_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:05<00:00, 5.11s/B]
+Downloading sub-NDARCN669XPR_task-DespicableMe_eeg.json:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-DespicableMe_eeg.json: 100%|██████████| 1.00/1.00 [00:00<00:00, 12.4B/s]
+Downloading sub-NDARCN669XPR_task-FunwithFractals_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-FunwithFractals_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 16.2B/s]
+Downloading sub-NDARCN669XPR_task-surroundSupp_run-1_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-surroundSupp_run-1_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 9.21B/s]
+Downloading sub-NDARCN669XPR_task-surroundSupp_run-2_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-surroundSupp_run-2_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 8.01B/s]
+Downloading sub-NDARCN669XPR_task-DiaryOfAWimpyKid_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-DiaryOfAWimpyKid_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 11.5B/s]
+Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-3_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-3_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 15.6B/s]
+Downloading sub-NDARCN669XPR_task-ThePresent_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-ThePresent_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.4B/s]
+Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-1_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-1_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 20.1B/s]
+Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 15.8B/s]
+Downloading sub-NDARCN669XPR_task-RestingState_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-RestingState_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 16.7B/s]
+Downloading sub-NDARCN669XPR_task-symbolSearch_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-symbolSearch_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 11.5B/s]
+Downloading sub-NDARCN669XPR_task-seqLearning8target_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-seqLearning8target_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.3B/s]
+Downloading sub-NDARCN669XPR_task-DespicableMe_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-DespicableMe_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 6.86B/s]
+Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_eeg.bdf: 100%|██████████| 1.00/1.00 [00:01<00:00, 1.34s/B]Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_eeg.bdf: 100%|██████████| 1.00/1.00 [00:01<00:00, 1.34s/B]
+Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_eeg.bdf: 100%|██████████| 1.00/1.00 [00:00<00:00, 1.12B/s]Downloading sub-NDARCN669XPR_task-contrastChangeDetection_run-2_eeg.bdf: 100%|██████████| 1.00/1.00 [00:00<00:00, 1.12B/s]
+Downloading sub-NDARCW071AU5_task-FunwithFractals_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW071AU5_task-FunwithFractals_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 12.1B/s]
+Downloading sub-NDARCW071AU5_task-ThePresent_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW071AU5_task-ThePresent_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 14.7B/s]
+Downloading sub-NDARCW071AU5_task-seqLearning6target_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW071AU5_task-seqLearning6target_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 11.1B/s]
+Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 14.9B/s]
+Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:00<00:00, 1.08B/s]Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:00<00:00, 1.08B/s]
+Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:01<00:00, 1.13s/B]Downloading sub-NDARCW071AU5_task-contrastChangeDetection_run-3_eeg.bdf: 100%|██████████| 1.00/1.00 [00:01<00:00, 1.13s/B]
+Downloading sub-NDARCW094JCG_task-symbolSearch_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-symbolSearch_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 9.36B/s]
+Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 8.58B/s]
+Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-2_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-2_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 18.9B/s]
+Downloading sub-NDARCW094JCG_task-DiaryOfAWimpyKid_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-DiaryOfAWimpyKid_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 17.8B/s]
+Downloading sub-NDARCW094JCG_task-ThePresent_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-ThePresent_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 16.5B/s]
+Downloading sub-NDARCW094JCG_task-FunwithFractals_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-FunwithFractals_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 12.5B/s]
+Downloading sub-NDARCW094JCG_task-seqLearning6target_channels.tsv:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-seqLearning6target_channels.tsv: 100%|██████████| 1.00/1.00 [00:00<00:00, 11.7B/s]
+Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:04<00:00, 4.51s/B]Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:04<00:00, 4.51s/B]
+Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_eeg.bdf:   0%|          | 0.00/1.00 [00:00<?, ?B/s]Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:08<00:00, 8.60s/B]Downloading sub-NDARCW094JCG_task-contrastChangeDetection_run-1_eeg.bdf: 100%|██████████| 1.00/1.00 [00:08<00:00, 8.60s/B]
+[10/16/25 08:14:21] ERROR    Error while reading BIDS file:    data_utils.py:167
+                             data/raw/ds005505-bdf/sub-NDARDL5                  
+                             11UND/eeg/sub-NDARDL511UND_task-c                  
+                             ontrastChangeDetection_run-3_eeg.                  
+                             bdf                                                
+                             This may be due to a missing or                    
+                             corrupted file.                                    
+                             Please check the file and try                      
+                             again.                                             
+                             Usually erasing the local cache                    
+                             and re-downloading helps.                          
+                             `rm                                                
+                             data/raw/ds005505-bdf/sub-NDARDL5                  
+                             11UND/eeg/sub-NDARDL511UND_task-c                  
+                             ontrastChangeDetection_run-3_eeg.                  
+                             bdf`                                               
+                    ERROR    Exception: list index out of      data_utils.py:174
+                             range                                              
+                    ERROR    Traceback (most recent call       data_utils.py:175
+                             last):                                             
+                               File                                             
+                             "/home/kevin/Projects/eeg2025/ven                  
+                             v/lib/python3.12/site-packages/ee                  
+                             gdash/data_utils.py", line 158,                    
+                             in _ensure_raw                                     
+                                 self._raw =                                    
+                             mne_bids.read_raw_bids(                            
+                                             ^^^^^^^^^^^^^^^^^                  
+                             ^^^^^^                                             
+                               File "<decorator-gen-396>",                      
+                             line 10, in read_raw_bids                          
+                               File                                             
+                             "/home/kevin/Projects/eeg2025/ven                  
+                             v/lib/python3.12/site-packages/mn                  
+                             e_bids/read.py", line 1039, in                     
+                             read_raw_bids                                      
+                                 raw = _read_raw(                               
+                                       ^^^^^^^^^^                               
+                               File                                             
+                             "/home/kevin/Projects/eeg2025/ven                  
+                             v/lib/python3.12/site-packages/mn                  
+                             e_bids/read.py", line 71, in                       
+                             _read_raw                                          
+                                 raw = reader(raw_path,                         
+                             **kwargs)                                          
+                                       ^^^^^^^^^^^^^^^^^^^^^^^                  
+                             ^^^^^^^^                                           
+                               File                                             
+                             "/home/kevin/Projects/eeg2025/ven                  
+                             v/lib/python3.12/site-packages/mn                  
+                             e/io/edf/edf.py", line 1834, in                    
+                             read_raw_bdf                                       
+                                 return RawEDF(                                 
+                                        ^^^^^^^                                 
+                               File "<decorator-gen-280>",                      
+                             line 12, in __init__                               
+                               File                                             
+                             "/home/kevin/Projects/eeg2025/ven                  
+                             v/lib/python3.12/site-packages/mn                  
+                             e/io/edf/edf.py", line 213, in                     
+                             __init__                                           
+                                 tal_data[0],                                   
+                                 ~~~~~~~~^^^                                    
+                             IndexError: list index out of                      
+                             range                                              
+                                                                                
+Traceback (most recent call last):
+  File "/home/kevin/Projects/eeg2025/scripts/train_challenge2_multi_release.py", line 321, in <module>
+    main()
+  File "/home/kevin/Projects/eeg2025/scripts/train_challenge2_multi_release.py", line 278, in main
+    train_dataset = MultiReleaseExternalizingDataset(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kevin/Projects/eeg2025/scripts/train_challenge2_multi_release.py", line 79, in __init__
+    windows_dataset = create_fixed_length_windows(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/braindecode/preprocessing/windowers.py", line 424, in create_fixed_length_windows
+    lengths = np.array([ds.raw.n_times for ds in concat_ds.datasets])
+                        ^^^^^^
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/eegdash/data_utils.py", line 206, in raw
+    self._ensure_raw()
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/eegdash/data_utils.py", line 176, in _ensure_raw
+    raise e
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/eegdash/data_utils.py", line 158, in _ensure_raw
+    self._raw = mne_bids.read_raw_bids(
+                ^^^^^^^^^^^^^^^^^^^^^^^
+  File "<decorator-gen-396>", line 10, in read_raw_bids
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/mne_bids/read.py", line 1039, in read_raw_bids
+    raw = _read_raw(
+          ^^^^^^^^^^
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/mne_bids/read.py", line 71, in _read_raw
+    raw = reader[ext](raw_path, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/mne/io/edf/edf.py", line 1834, in read_raw_bdf
+    return RawEDF(
+           ^^^^^^^
+  File "<decorator-gen-280>", line 12, in __init__
+  File "/home/kevin/Projects/eeg2025/venv/lib/python3.12/site-packages/mne/io/edf/edf.py", line 213, in __init__
+    tal_data[0],
+    ~~~~~~~~^^^
+IndexError: list index out of range
+[W1016 08:14:22.425506668 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())

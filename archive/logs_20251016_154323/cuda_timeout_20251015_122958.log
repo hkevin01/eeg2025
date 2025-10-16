@@ -1,0 +1,56 @@
+🚀 CUDA TEST WITH TIMEOUT PROTECTION
+Start time: 2025-10-15 12:29:58
+
+==================================================
+STEP 1: Import PyTorch
+==================================================
+Time: 12:29:58
+Timeout: 30 seconds
+Starting...
+Importing PyTorch...
+PyTorch version: 2.5.1+rocm6.2
+ROCm/HIP version: 6.2.41133-dd7f95766
+⚠️  AMD GPU detected - some operations may behave differently
+✅ STEP 1 COMPLETED SUCCESSFULLY
+
+==================================================
+STEP 2: Check CUDA
+==================================================
+Time: 12:30:00
+Timeout: 15 seconds
+Starting...
+Checking CUDA availability...
+CUDA available: True
+CUDA version: None
+GPU count: 1
+GPU 0: AMD Radeon RX 5600 XT
+  Memory: 6.0 GB
+✅ STEP 2 COMPLETED SUCCESSFULLY
+
+==================================================
+STEP 3: Basic GPU Operation
+==================================================
+Time: 12:30:02
+Timeout: 20 seconds
+Starting...
+Testing basic GPU memory allocation...
+Creating tiny tensor (1KB)...
+✅ GPU tensor created: torch.Size([16, 16])
+Testing basic operation...
+✅ Basic operation completed: torch.Size([16, 16])
+Cleaning up...
+✅ Cleanup completed
+✅ STEP 3 COMPLETED SUCCESSFULLY
+
+==================================================
+STEP 4: FFT Operations
+==================================================
+Time: 12:30:03
+Timeout: 45 seconds
+Starting...
+Testing CPU FFT first...
+Signal shape: torch.Size([128])
+CPU FFT...
+✅ CPU FFT: torch.Size([128]) -> torch.Size([65]), time: 9.26 ms
+Attempting GPU FFT with timeout protection...
+Moving signal to GPU...

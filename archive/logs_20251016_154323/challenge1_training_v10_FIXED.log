@@ -1,0 +1,357 @@
+nohup: ignoring input
+2025-10-16 14:41:38,955 - INFO - ================================================================================
+2025-10-16 14:41:38,955 - INFO - 🚀 Challenge 1 Training Started
+2025-10-16 14:41:38,955 - INFO - Crash log: logs/challenge1_crash_20251016_144138.log
+2025-10-16 14:41:38,955 - INFO - ================================================================================
+================================================================================
+🎯 CHALLENGE 1: MULTI-RELEASE RESPONSE TIME PREDICTION
+================================================================================
+Training on: R1, R2, R3
+Validation on: R4
+Using official starter kit metadata extraction with add_extras_columns
+Expected improvement: 10x better generalization
+================================================================================
+[10/16/25 14:41:44] INFO     Starting main train_challenge1_multi_release.py:521
+                             training                                           
+                             pipeline...                                        
+
+📦 Loading training data (R1-R3)...
+
+📂 Loading releases: ['R1', 'R2', 'R3']
+                    INFO     Loading 3      train_challenge1_multi_release.py:95
+                             releases:                                          
+                             ['R1', 'R2',                                       
+                             'R3']                                              
+
+  [1/3] Loading R1...
+[10/16/25 14:41:45] INFO     Loading        train_challenge1_multi_release.py:99
+                             release R1                                         
+                             (1/3)                                              
+╭────────────────────── EEG 2025 Competition Data Notice ──────────────────────╮
+│ This object loads the HBN dataset that has been preprocessed for the EEG     │
+│ Challenge:                                                                   │
+│   * Downsampled from 500Hz to 100Hz                                          │
+│   * Bandpass filtered (0.5-50 Hz)                                            │
+│                                                                              │
+│ For full preprocessing applied for competition details, see:                 │
+│   https://github.com/eeg2025/downsample-datasets                             │
+│                                                                              │
+│ The HBN dataset have some preprocessing applied by the HBN team:             │
+│   * Re-reference (Cz Channel)                                                │
+│                                                                              │
+│ IMPORTANT: The data accessed via `EEGChallengeDataset` is NOT identical to   │
+│ what you get from EEGDashDataset directly.                                   │
+│ If you are participating in the competition, always use                      │
+│ `EEGChallengeDataset` to ensure consistency with the challenge data.         │
+╰──────────────────────── Source: EEGChallengeDataset ─────────────────────────╯
+    Datasets: 293
+[10/16/25 14:41:47] INFO       R1: Loaded  train_challenge1_multi_release.py:111
+                             293 datasets                                       
+    Checking for corrupted files in 293 datasets...
+                    INFO       R1:         train_challenge1_multi_release.py:118
+                             Checking 293                                       
+                             files for                                          
+                             corruption...                                      
+    Checked 50/293 files... (50 valid)
+[10/16/25 14:41:54] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             50/293 - 50                                        
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 100/293 files... (100 valid)
+[10/16/25 14:42:00] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             100/293 - 100                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 150/293 files... (150 valid)
+[10/16/25 14:42:06] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             150/293 - 150                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 200/293 files... (200 valid)
+[10/16/25 14:42:13] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             200/293 - 200                                      
+                             valid, 0                                           
+                             corrupted                                          
+    Checked 250/293 files... (250 valid)
+[10/16/25 14:42:19] INFO       R1:         train_challenge1_multi_release.py:131
+                             Progress                                           
+                             250/293 - 250                                      
+                             valid, 0                                           
+                             corrupted                                          
+    ✅ Valid datasets: 293 (skipped 0 corrupted) - 39.6s
+[10/16/25 14:42:24] INFO       R1:         train_challenge1_multi_release.py:147
+                             Complete -                                         
+                             293 valid, 0                                       
+                             corrupted,                                         
+                             39.6s                                              
+    Preprocessing 293 datasets...
+                    INFO       R1:         train_challenge1_multi_release.py:151
+                             Starting                                           
+                             preprocessing                                      
+                             ...                                                
+[10/16/25 14:42:39] INFO       R1:         train_challenge1_multi_release.py:166
+                             Preprocessing                                      
+                             complete                                           
+    Datasets with valid trials after preprocessing: 293/293
+                    INFO       R1: 293     train_challenge1_multi_release.py:174
+                             datasets have                                      
+                             valid trials                                       
+    Creating windows from trials...
+                    INFO       R1:         train_challenge1_multi_release.py:182
+                             Creating                                           
+                             fixed-length                                       
+                             windows...                                         
+    Windows created: 62336
+                    INFO       R1: Created train_challenge1_multi_release.py:202
+                             62336 windows                                      
+    Windows: 62336
+    Injecting trial metadata into windows...
+                    INFO       R1: Adding  train_challenge1_multi_release.py:213
+                             extras                                             
+                             columns to                                         
+                             windows                                            
+                             metadata                                           
+                    ERROR      R1: Failed  train_challenge1_multi_release.py:225
+                             to inject                                          
+                             metadata:                                          
+                             Trial                                              
+                             mismatch: 1                                        
+                             vs 22                                              
+                    ERROR    Traceback     train_challenge1_multi_release.py:226
+                             (most recent                                       
+                             call last):                                        
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             216, in                                            
+                             __init__                                           
+                                 windows_d                                      
+                             ataset =                                           
+                             add_extras_co                                      
+                             lumns(                                             
+                                                                                
+                                      ^^^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^                                                 
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/venv/lib/                                      
+                             python3.12/si                                      
+                             te-packages/e                                      
+                             egdash/hbn/wi                                      
+                             ndows.py",                                         
+                             line 370, in                                       
+                             add_extras_co                                      
+                             lumns                                              
+                                 assert                                         
+                             n_trials ==                                        
+                             len(per_trial                                      
+                             ), (                                               
+                                        ^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^^^^^^^^^^                                        
+                             AssertionErro                                      
+                             r: Trial                                           
+                             mismatch: 1                                        
+                             vs 22                                              
+                                                                                
+                    ERROR      R1: Failed  train_challenge1_multi_release.py:237
+                             with minimal                                       
+                             keys too:                                          
+                             Trial                                              
+                             mismatch: 1                                        
+                             vs 22                                              
+                    ERROR    ============= train_challenge1_multi_release.py:529
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+                    ERROR    💥 FATAL      train_challenge1_multi_release.py:530
+                             ERROR -                                            
+                             Training                                           
+                             crashed!                                           
+                    ERROR    ============= train_challenge1_multi_release.py:531
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+                    ERROR    Error type:   train_challenge1_multi_release.py:532
+                             AssertionErro                                      
+                             r                                                  
+                    ERROR    Error         train_challenge1_multi_release.py:533
+                             message:                                           
+                             Trial                                              
+                             mismatch: 1                                        
+                             vs 22                                              
+                    ERROR                  train_challenge1_multi_release.py:534
+                             Full                                               
+                             traceback:                                         
+                    ERROR    Traceback     train_challenge1_multi_release.py:535
+                             (most recent                                       
+                             call last):                                        
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             216, in                                            
+                             __init__                                           
+                                 windows_d                                      
+                             ataset =                                           
+                             add_extras_co                                      
+                             lumns(                                             
+                                                                                
+                                      ^^^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^                                                 
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/venv/lib/                                      
+                             python3.12/si                                      
+                             te-packages/e                                      
+                             egdash/hbn/wi                                      
+                             ndows.py",                                         
+                             line 370, in                                       
+                             add_extras_co                                      
+                             lumns                                              
+                                 assert                                         
+                             n_trials ==                                        
+                             len(per_trial                                      
+                             ), (                                               
+                                        ^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^^^^^^^^^^                                        
+                             AssertionErro                                      
+                             r: Trial                                           
+                             mismatch: 1                                        
+                             vs 22                                              
+                                                                                
+                             During                                             
+                             handling of                                        
+                             the above                                          
+                             exception,                                         
+                             another                                            
+                             exception                                          
+                             occurred:                                          
+                                                                                
+                             Traceback                                          
+                             (most recent                                       
+                             call last):                                        
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             522, in                                            
+                             <module>                                           
+                                 result =                                       
+                             main()                                             
+                                                                                
+                             ^^^^^^                                             
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             474, in main                                       
+                                 train_dat                                      
+                             aset =                                             
+                             MultiReleaseD                                      
+                             ataset(                                            
+                                                                                
+                                    ^^^^^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^                                                  
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/scripts/t                                      
+                             rain_challeng                                      
+                             e1_multi_rele                                      
+                             ase.py", line                                      
+                             229, in                                            
+                             __init__                                           
+                                 windows_d                                      
+                             ataset =                                           
+                             add_extras_co                                      
+                             lumns(                                             
+                                                                                
+                                      ^^^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^                                                 
+                               File                                             
+                             "/home/kevin/                                      
+                             Projects/eeg2                                      
+                             025/venv/lib/                                      
+                             python3.12/si                                      
+                             te-packages/e                                      
+                             egdash/hbn/wi                                      
+                             ndows.py",                                         
+                             line 370, in                                       
+                             add_extras_co                                      
+                             lumns                                              
+                                 assert                                         
+                             n_trials ==                                        
+                             len(per_trial                                      
+                             ), (                                               
+                                        ^^                                      
+                             ^^^^^^^^^^^^^                                      
+                             ^^^^^^^^^^^                                        
+                             AssertionErro                                      
+                             r: Trial                                           
+                             mismatch: 1                                        
+                             vs 22                                              
+                                                                                
+                    ERROR    ============= train_challenge1_multi_release.py:536
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+                    ERROR    Crash details train_challenge1_multi_release.py:537
+                             saved to:                                          
+                             logs/challeng                                      
+                             e1_crash_2025                                      
+                             1016_144138.l                                      
+                             og                                                 
+                    ERROR    ============= train_challenge1_multi_release.py:538
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             =============                                      
+                             ==                                                 
+[W1016 14:42:41.440933380 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.447312409 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.565628797 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.640897397 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.696610304 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.759863873 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.795323659 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.797216099 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:41.887956193 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:42.145745677 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:42.345356127 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:42.363101990 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+[W1016 14:42:44.649278872 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
