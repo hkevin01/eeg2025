@@ -92,3 +92,12 @@ submission_complete.zip
 submission_package/
 archive/*.pt
 archive/*.zip
+
+# Documentation - keep markdown but ignore generated files
+*.html
+*.pdf
+!README.pdf
+!METHOD_DESCRIPTION.pdf
+
+# Challenge 2 improvement tracking
+docs/CHALLENGE2_*.md

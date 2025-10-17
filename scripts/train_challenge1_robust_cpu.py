@@ -3,8 +3,8 @@
 Challenge 1: Robust Multi-Release Training (GPU Optimized)
 ==========================================================
 
-Phase 1 Improvements (Memory Optimized):
-1. Train on R1 only first (avoid OOM with 3 releases)
+Phase 1 Improvements:
+1. Multi-release training: R1+R2+R3 (80/20 split)
 2. Huber loss: Robust to outliers
 3. Residual reweighting: Downweight noisy samples after epoch 5
 
@@ -67,77 +67,27 @@ except Exception as e:
         raise
 
 from eegdash import EEGChallengeDataset
-from eegdash.hbn.windows import annotate_trials_with_target, add_extras_columns, add_aux_anchors
+from eegdash.hbn.windows import add_extras_columns
 
 # ============================================================================
 # GPU/Device Setup - Auto-detect best available device
 # ============================================================================
 
 def get_optimal_device():
-    """
-    Smart device selection with GPU fallback to CPU.
-    Enables parallel processing on both GPU and CPU.
-    """
+    """Force CPU mode (ROCm has compatibility issues with braindecode)"""
 
-    # Try CUDA/ROCm (NVIDIA/AMD GPU)
-    if torch.cuda.is_available():
-        try:
-            # Test GPU with a simple operation
-            device = torch.device('cuda')
-            test_tensor = torch.zeros(10, device=device)
-            _ = test_tensor + 1  # Simple operation to verify GPU works
-
-            device_name = torch.cuda.get_device_name(0)
-            gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1e9
-
-            logger.info("🚀 GPU ENABLED")
-            logger.info(f"   Device: {device_name}")
-            logger.info(f"   CUDA/ROCm: {torch.version.cuda}")
-            logger.info(f"   Memory: {gpu_mem:.2f} GB")
-            logger.info("   Mixed Precision: Enabled (AMP)")
-
-            return device, True
-
-        except Exception as e:
-            logger.warning(f"⚠️  GPU test failed: {e}")
-            logger.warning("   Falling back to CPU...")
-
-    # Try MPS (Apple Silicon)
-    if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-        try:
-            device = torch.device('mps')
-            test_tensor = torch.zeros(10, device=device)
-            _ = test_tensor + 1
-
-            logger.info("🚀 GPU ENABLED (Apple Silicon MPS)")
-            logger.info("   Mixed Precision: Enabled")
-            return device, True
-
-        except Exception as e:
-            logger.warning(f"⚠️  MPS test failed: {e}")
-            logger.warning("   Falling back to CPU...")
-
-    # CPU fallback with parallel processing optimization
+    # Force CPU due to ROCm torch.arange bug in braindecode
     device = torch.device('cpu')
-    cpu_cores = os.cpu_count()
+    logger.info("⚙️  Using CPU mode (ROCm compatibility)")
+    logger.info(f"   CPU cores: {os.cpu_count()}")
+    logger.info("   Optimizations: Multi-threading enabled")
 
-    logger.info("⚙️  CPU MODE")
-    logger.info(f"   Cores: {cpu_cores}")
-    logger.info("   Parallel Processing: Enabled")
-    logger.info("   Thread Optimization: Enabled")
-
-    # Enable aggressive CPU parallelization
-    torch.set_num_threads(cpu_cores)
-    torch.set_num_interop_threads(cpu_cores)
-
-    # Set environment variables for better CPU performance
-    os.environ['OMP_NUM_THREADS'] = str(cpu_cores)
-    os.environ['MKL_NUM_THREADS'] = str(cpu_cores)
-    os.environ['OPENBLAS_NUM_THREADS'] = str(cpu_cores)
+    # Enable CPU optimizations
+    torch.set_num_threads(os.cpu_count())
 
     return device, False
 
-# Get device with smart fallback
+# Get device
 DEVICE, USE_GPU = get_optimal_device()
 USE_AMP = USE_GPU  # Mixed precision only on GPU
 
@@ -147,8 +97,8 @@ print("="*80)
 print(f"Device: {DEVICE}")
 print(f"Mixed Precision (AMP): {USE_AMP}")
 print("")
-print("Phase 1 Improvements (Memory Optimized):")
-print("  ✅ Train on R1 only (avoid OOM)")
+print("Phase 1 Improvements:")
+print("  ✅ Multi-release: R1+R2+R3 (80/20 split)")
 print("  ✅ Huber loss: Robust to outliers")
 print("  ✅ Residual reweighting: After epoch 5")
 print("")
@@ -202,64 +152,30 @@ class MultiReleaseDataset(Dataset):
 
                 # Replace dataset.datasets with only valid ones for downstream processing
                 dataset.datasets = valid_ds
-                print(f"    → Preprocessing {len(valid_ds)} files...", flush=True)
 
-                # Preprocessing - CRITICAL: annotate_trials_with_target MUST come before add_aux_anchors
-                EPOCH_LEN_S = 2.0  # 2 second windows
+                # Preprocessing
                 preprocessors = [
                     Preprocessor('set_eeg_reference', ref_channels='average', ch_type='eeg'),
                     Preprocessor(lambda data: np.clip(data, -800e-6, 800e-6), apply_on_array=True),
-                    Preprocessor(
-                        annotate_trials_with_target,
-                        apply_on_array=False,
-                        target_field="rt_from_stimulus",
-                        epoch_length=EPOCH_LEN_S,
-                        require_stimulus=True,
-                        require_response=True,
-                    ),
-                    Preprocessor(add_aux_anchors, apply_on_array=False),  # Add anchor events based on annotations
                 ]
                 preprocess(dataset, preprocessors)
-                print(f"    → Creating windows...", flush=True)
 
-                # Create windows with EXPLICIT event mapping (prevents NaN errors)
-                # This approach is from the working train_challenge1_multi_release.py
-                ANCHOR = "contrast_trial_start"  # Event marker added by add_aux_anchors
-                SFREQ = 100  # Sampling frequency
-                SHIFT_AFTER_STIM = 0.5  # Start 0.5s after stimulus
-
+                # Create windows (always on CPU - braindecode doesn't need GPU here)
+                # Data will be moved to GPU during training in the DataLoader
                 windows_ds = create_windows_from_events(
                     dataset,
-                    mapping={ANCHOR: 0},  # Map specific event to class 0
-                    trial_start_offset_samples=int(SHIFT_AFTER_STIM * SFREQ),
-                    trial_stop_offset_samples=int((SHIFT_AFTER_STIM + EPOCH_LEN_S) * SFREQ),
-                    window_size_samples=int(EPOCH_LEN_S * SFREQ),  # 200 samples = 2 seconds
-                    window_stride_samples=SFREQ,  # 1 second stride (not used for single window per trial)
+                    trial_start_offset_samples=0,
+                    trial_stop_offset_samples=0,
                     picks='eeg',
-                    preload=True,
+                    preload=True
                 )
-                print(f"    → Extracting metadata...", flush=True)
 
-                # Get response times directly from metadata (annotated by annotate_trials_with_target)
-                # The annotate_trials_with_target adds 'response_time' to the annotations
-                try:
-                    # Try to get metadata directly
-                    metadata = windows_ds.get_metadata()
-                    if 'response_time' not in metadata.columns:
-                        # If response_time not in metadata, try add_extras_columns
-                        result = add_extras_columns(
-                            windows_ds,
-                            dataset,
-                            desc="contrast_trial_start"
-                        )
-                        if result is not None:
-                            windows_ds = result
-                        metadata = windows_ds.get_metadata()
+                # Extract targets with add_extras_columns
+                add_extras_columns(windows_ds)
 
-                    response_times = metadata['response_time'].values
-                except Exception as e:
-                    print(f"      Warning: Could not extract response times: {e}")
-                    raise
+                # Get response times
+                metadata = windows_ds.get_metadata()
+                response_times = metadata['response_time'].values
 
                 # Store
                 self.windows_datasets.append(windows_ds)
@@ -271,7 +187,6 @@ class MultiReleaseDataset(Dataset):
             except Exception as e:
                 print(f"✗ Error: {e}")
                 logger.error(f"Failed to load {release}: {e}")
-                logger.error(traceback.format_exc())
                 continue
 
         # Combine
@@ -383,66 +298,36 @@ def nrmse_score(pred, target):
 # ============================================================================
 
 def train_epoch(model, train_loader, optimizer, scaler, device, epoch, warmup_epochs=5):
-    """
-    Training epoch with residual reweighting and AMP.
-    Includes GPU error recovery with automatic CPU fallback.
-    """
+    """Training epoch with residual reweighting and AMP"""
     model.train()
     total_loss = 0.0
     n_samples = 0
 
-    global DEVICE, USE_AMP  # Allow fallback to CPU if GPU fails
-
     for batch_idx, (inputs, targets) in enumerate(train_loader):
-        try:
-            # Move to device
-            inputs = inputs.to(device, non_blocking=True)
-            targets = targets.to(device, non_blocking=True)
+        # Move to device
+        inputs = inputs.to(device, non_blocking=True)
+        targets = targets.to(device, non_blocking=True)
 
-            optimizer.zero_grad(set_to_none=True)  # More efficient than zero_grad()
+        optimizer.zero_grad(set_to_none=True)  # More efficient than zero_grad()
 
-            # Mixed precision training (use new API)
-            if USE_AMP:
-                with autocast('cuda'):
-                    outputs = model(inputs).squeeze()
-
-                    # Loss computation
-                    if epoch < warmup_epochs:
-                        # Warmup: Standard Huber loss
-                        loss = huber_loss(outputs, targets, delta=1.0)
-                    else:
-                        # After warmup: Residual-based reweighting
-                        with torch.no_grad():
-                            residuals = (outputs - targets).abs()
-                            residual_std = residuals.std().clamp(min=1e-6)
-                            z_scores = (residuals / residual_std).clamp(max=3.0)
-                            weights = torch.exp(-z_scores / 2.0)  # Downweight large residuals
-
-                        # Weighted Huber loss
-                        err = outputs - targets
-                        abs_err = err.abs()
-                        delta = 1.0
-                        quad = torch.clamp(abs_err, max=delta)
-                        lin = abs_err - quad
-                        loss = (weights * (0.5 * quad**2 + delta * lin)).mean()
-
-                # Backward with gradient scaling
-                scaler.scale(loss).backward()
-                scaler.step(optimizer)
-                scaler.update()
-            else:
-                # No AMP (CPU or MPS)
+        # Mixed precision training (use new API)
+        if USE_AMP:
+            with autocast('cuda'):
                 outputs = model(inputs).squeeze()
 
+                # Loss computation
                 if epoch < warmup_epochs:
+                    # Warmup: Standard Huber loss
                     loss = huber_loss(outputs, targets, delta=1.0)
                 else:
+                    # After warmup: Residual-based reweighting
                     with torch.no_grad():
                         residuals = (outputs - targets).abs()
                         residual_std = residuals.std().clamp(min=1e-6)
                         z_scores = (residuals / residual_std).clamp(max=3.0)
-                        weights = torch.exp(-z_scores / 2.0)
+                        weights = torch.exp(-z_scores / 2.0)  # Downweight large residuals
 
+                    # Weighted Huber loss
                     err = outputs - targets
                     abs_err = err.abs()
                     delta = 1.0
@@ -450,63 +335,37 @@ def train_epoch(model, train_loader, optimizer, scaler, device, epoch, warmup_ep
                     lin = abs_err - quad
                     loss = (weights * (0.5 * quad**2 + delta * lin)).mean()
 
-                loss.backward()
-                optimizer.step()
+            # Backward with gradient scaling
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            # No AMP (CPU or MPS)
+            outputs = model(inputs).squeeze()
 
-            total_loss += loss.item() * len(targets)
-            n_samples += len(targets)
-
-        except RuntimeError as e:
-            # GPU error detected (OOM, CUDA error, etc.)
-            if 'CUDA' in str(e) or 'out of memory' in str(e).lower():
-                logger.error(f"💥 GPU Error detected: {e}")
-                logger.warning("🔄 Attempting CPU fallback for this batch...")
-
-                # Move batch to CPU
-                try:
-                    inputs_cpu = inputs.cpu()
-                    targets_cpu = targets.cpu()
-
-                    # Forward pass on CPU
-                    outputs = model.cpu()(inputs_cpu).squeeze()
-
-                    # Compute loss on CPU
-                    if epoch < warmup_epochs:
-                        loss = huber_loss(outputs, targets_cpu, delta=1.0)
-                    else:
-                        with torch.no_grad():
-                            residuals = (outputs - targets_cpu).abs()
-                            residual_std = residuals.std().clamp(min=1e-6)
-                            z_scores = (residuals / residual_std).clamp(max=3.0)
-                            weights = torch.exp(-z_scores / 2.0)
-
-                        err = outputs - targets_cpu
-                        abs_err = err.abs()
-                        delta = 1.0
-                        quad = torch.clamp(abs_err, max=delta)
-                        lin = abs_err - quad
-                        loss = (weights * (0.5 * quad**2 + delta * lin)).mean()
-
-                    loss.backward()
-                    optimizer.step()
-
-                    total_loss += loss.item() * len(targets_cpu)
-                    n_samples += len(targets_cpu)
-
-                    # Move model back to original device
-                    model.to(device)
-
-                    logger.warning("✅ Batch processed on CPU successfully")
-
-                except Exception as cpu_error:
-                    logger.error(f"❌ CPU fallback also failed: {cpu_error}")
-                    # Skip this batch
-                    continue
+            if epoch < warmup_epochs:
+                loss = huber_loss(outputs, targets, delta=1.0)
             else:
-                # Non-GPU error, re-raise
-                raise
+                with torch.no_grad():
+                    residuals = (outputs - targets).abs()
+                    residual_std = residuals.std().clamp(min=1e-6)
+                    z_scores = (residuals / residual_std).clamp(max=3.0)
+                    weights = torch.exp(-z_scores / 2.0)
 
-    return total_loss / n_samples if n_samples > 0 else 0.0
+                err = outputs - targets
+                abs_err = err.abs()
+                delta = 1.0
+                quad = torch.clamp(abs_err, max=delta)
+                lin = abs_err - quad
+                loss = (weights * (0.5 * quad**2 + delta * lin)).mean()
+
+            loss.backward()
+            optimizer.step()
+
+        total_loss += loss.item() * len(targets)
+        n_samples += len(targets)
+
+    return total_loss / n_samples
 
 
 @torch.no_grad()
@@ -618,11 +477,11 @@ def main():
     # Create weights directory
     Path("weights").mkdir(exist_ok=True)
 
-    # Load R1 ONLY to avoid OOM (will train on R1+R2+R3 later after optimizing memory)
-    print("\n📦 Loading R1 release only (memory optimization)...")
+    # Load ALL releases and split 80/20
+    print("\n📦 Loading ALL releases (R1+R2+R3)...")
     all_dataset = MultiReleaseDataset(
-        releases=['R1'],  # Start with R1 only
-        mini=True,  # Use mini dataset to test first
+        releases=['R1', 'R2', 'R3'],
+        mini=False,
         cache_dir='data/raw'
     )
 

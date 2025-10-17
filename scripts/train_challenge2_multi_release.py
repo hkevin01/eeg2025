@@ -51,18 +51,16 @@ logger.info("="*80)
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset, ConcatDataset, random_split
+from torch.utils.data import DataLoader, Dataset, random_split
 import numpy as np
-from braindecode.preprocessing import Preprocessor, preprocess
-from braindecode.preprocessing import create_fixed_length_windows
 from eegdash import EEGChallengeDataset
 
 print("="*80)
-print("🎯 CHALLENGE 2: MULTI-RELEASE EXTERNALIZING PREDICTION")
+print("🎯 CHALLENGE 2: MULTI-RELEASE EXTERNALIZING PREDICTION - EXPANDED DATA")
 print("="*80)
-print("Training on: R1, R2, R3")
-print("Validation on: R4")
-print("Expected improvement: 14x better generalization")
+print("Training on: R2, R3, R4 (ALL available full releases)")
+print("Validation on: R5")
+print("Expected improvement: Maximum generalization across releases")
 print("="*80)
 
 
@@ -140,32 +138,42 @@ class MultiReleaseExternalizingDataset(Dataset):
             # Simple preprocessing - just filter valid epochs
             # No need for trial annotation for resting state
 
-            # Create fixed windows (2 second windows)
-            print(f"    Creating windows from continuous data...")
-            logger.info(f"  {release}: Creating fixed-length windows...")
+            # Manual windowing: create fixed-length windows from continuous EEG data
+            print("    Creating windows from continuous data...")
+            logger.info(f"  {release}: Creating fixed-length windows (manual)...")
+
+            window_size = 200  # 2 seconds @ 100 Hz
+            window_stride = 100  # 50% overlap
+            windows_created = 0
 
             try:
-                windows_dataset = create_fixed_length_windows(
-                    dataset,
-                    start_offset_samples=0,
-                    stop_offset_samples=None,
-                    window_size_samples=200,  # 2 seconds @ 100 Hz
-                    window_stride_samples=100,  # 50% overlap
-                    drop_last_window=False,
-                    mapping=None,
-                    preload=False,
-                    picks=None,
-                    reject=None,
-                    flat=None,
-                    targets_from="metadata",
-                    last_target_only=False,
-                    on_missing="ignore",
-                )
+                for ds_idx, ds in enumerate(valid_datasets):
+                    # Get externalizing score
+                    externalizing_score = ds.description.get("externalizing", None)
+                    if externalizing_score is None or np.isnan(externalizing_score):
+                        continue  # Skip if no score available
 
-                print(f"    Windows created: {len(windows_dataset)}")
-                logger.info(f"  {release}: Created {len(windows_dataset)} windows")
+                    # Get raw EEG data
+                    raw_data = ds.raw.get_data()  # (n_channels, n_timepoints)
+                    n_channels, n_timepoints = raw_data.shape
 
-                if len(windows_dataset) == 0:
+                    # Create sliding windows
+                    start_idx = 0
+                    while start_idx + window_size <= n_timepoints:
+                        window_data = raw_data[:, start_idx:start_idx+window_size]
+
+                        # Store window, externalizing score, and release label
+                        self.windows_datasets.append(window_data)
+                        self.externalizing_scores.append(externalizing_score)
+                        self.release_labels.append(release)
+                        windows_created += 1
+
+                        start_idx += window_stride
+
+                print(f"    Windows created: {windows_created}")
+                logger.info(f"  {release}: Created {windows_created} windows from {len(valid_datasets)} datasets")
+
+                if windows_created == 0:
                     logger.warning(f"  {release}: No windows created, skipping...")
                     continue
 
@@ -173,37 +181,8 @@ class MultiReleaseExternalizingDataset(Dataset):
                 logger.error(f"  {release}: Failed to create windows: {e}")
                 raise
 
-            print(f"    Windows: {len(windows_dataset)}")
-
-            # For each window, get the externalizing score from its parent dataset
-            # Each window in windows_dataset has i_dataset which tells us which original dataset it came from
-            for win_idx in range(len(windows_dataset)):
-                # Get the window metadata to find which dataset it came from
-                _, _, win_metadata = windows_dataset[win_idx]
-
-                # Try to get dataset index from metadata
-                if isinstance(win_metadata, list) and len(win_metadata) > 0:
-                    dataset_ind = win_metadata[0].get('i_dataset', 0) if isinstance(win_metadata[0], dict) else 0
-                elif isinstance(win_metadata, dict):
-                    dataset_ind = win_metadata.get('i_dataset', 0)
-                else:
-                    dataset_ind = 0
-
-                # Get externalizing score from that dataset's description
-                try:
-                    orig_dataset = dataset.datasets[dataset_ind]
-                    externalizing_score = orig_dataset.description.get('externalizing', 0.0)
-                    if np.isnan(externalizing_score):
-                        externalizing_score = 0.0
-                except (IndexError, AttributeError, KeyError):
-                    externalizing_score = 0.0
-
-                self.externalizing_scores.append(externalizing_score)
-
-            self.windows_datasets.append(windows_dataset)
-            self.release_labels.extend([release] * len(windows_dataset))        # Concatenate
-        self.combined_dataset = ConcatDataset(self.windows_datasets)
-        print(f"\n✅ Total windows: {len(self.combined_dataset)}")
+        # All windows are already in self.windows_datasets, self.externalizing_scores, self.release_labels
+        print(f"\n✅ Total windows: {len(self.windows_datasets)}")
         print(f"   Releases: {set(self.release_labels)}")
 
         # Print externalizing score stats
@@ -211,37 +190,21 @@ class MultiReleaseExternalizingDataset(Dataset):
             print(f"   Externalizing scores: {len(self.externalizing_scores)} windows")
             print(f"   Range: [{min(self.externalizing_scores):.3f}, {max(self.externalizing_scores):.3f}]")
             print(f"   Mean: {np.mean(self.externalizing_scores):.3f}, Std: {np.std(self.externalizing_scores):.3f}")
+
     def __len__(self):
-        return len(self.combined_dataset)
+        return len(self.windows_datasets)
 
     def __getitem__(self, idx):
-        windows_ds, rel_idx = self._get_dataset_and_index(idx)
-        X, y, metadata = windows_ds[rel_idx]
+        # Get window data (already stored as numpy array)
+        X = self.windows_datasets[idx]  # (n_channels, n_timepoints)
 
-        # X shape: (1, n_channels, n_timepoints) or (n_channels, n_timepoints)
-        if X.ndim == 3:
-            X = X.squeeze(0)
-
-        # Normalize
+        # Normalize per-channel
         X = (X - X.mean(axis=1, keepdims=True)) / (X.std(axis=1, keepdims=True) + 1e-8)
 
-        # Get externalizing score from pre-computed list
-        # (stored during initialization, one score per window)
-        externalizing = self.externalizing_scores[idx] if idx < len(self.externalizing_scores) else 0.0
+        # Get externalizing score
+        externalizing = self.externalizing_scores[idx]
 
         return torch.FloatTensor(X), torch.FloatTensor([externalizing])
-
-    def _get_dataset_and_index(self, idx):
-        """Find which dataset and local index"""
-        if idx < 0:
-            idx = len(self) + idx
-
-        dataset_idx = 0
-        while idx >= len(self.windows_datasets[dataset_idx]):
-            idx -= len(self.windows_datasets[dataset_idx])
-            dataset_idx += 1
-
-        return self.windows_datasets[dataset_idx], idx
 
 
 class CompactExternalizingCNN(nn.Module):
@@ -396,23 +359,24 @@ def main():
 
     # CRITICAL: Each release has CONSTANT externalizing scores!
     # R1=0.325, R2=0.620, R3=-0.387, R4=0.297, R5=0.297
-    # Solution: Use R1+R2 combined (provides variance [0.325, 0.620])
-    # Split the combined dataset 80/20 for train/val
-    print("\n📦 Loading R1+R2 data (each release has different constant value)...")
-    print("⚠️  R1=0.325, R2=0.620, R3=-0.387, R4=0.297, R5=0.297")
-    print("⚠️  Need multiple releases to get variance!")
+    # Solution: Use R2+R3+R4 combined (provides variance across multiple distributions)
+    # Split the combined dataset 80/20 for train/val, reserve R5 for final validation
+    print("\n📦 Loading R2+R3+R4 data (maximum available releases)...")
+    print("⚠️  R2=0.620, R3=-0.387, R4=0.297")
+    print("⚠️  Using all 3 releases for maximum variance and generalization!")
+    print("⚠️  R5 reserved for final cross-release validation")
     full_dataset = MultiReleaseExternalizingDataset(
-        releases=['R1', 'R2'],
+        releases=['R2', 'R3', 'R4'],
         mini=False,  # FULL DATASET
         cache_dir='data/raw'
     )
 
-    # Split R1+R2 into train (80%) and validation (20%)
+    # Split R2+R3+R4 into train (80%) and validation (20%)
     total_size = len(full_dataset)
     train_size = int(0.8 * total_size)
     val_size = total_size - train_size
 
-    print(f"\n📊 Splitting R1+R2 dataset:")
+    print("\n📊 Splitting R2+R3+R4 dataset:")
     print(f"   Total: {total_size} windows")
     print(f"   Train: {train_size} windows (80%)")
     print(f"   Val:   {val_size} windows (20%)")
@@ -437,11 +401,11 @@ def main():
     print("✅ TRAINING COMPLETE")
     print("="*80)
     print(f"Best validation NRMSE: {best_nrmse:.4f}")
-    print(f"Target: < 0.5 (competitive)")
-    print(f"Previous (R5 only): 0.08 validation → 1.14 test (14x degradation)")
-    print(f"Expected (R1-R5): ~0.15 validation → ~0.5 test (2x better!)")
+    print("Target: < 0.5 (competitive)")
+    print("Previous (R1+R2): 0.29 validation")
+    print("Expected (R2+R3+R4): Better generalization with 3 releases!")
     print(f"Time: {elapsed/60:.1f} minutes")
-    print(f"Model saved: weights_challenge_2_multi_release.pt")
+    print("Model saved: weights_challenge_2_multi_release.pt")
     print("="*80)
 
     logger.info("✅ Training completed successfully!")

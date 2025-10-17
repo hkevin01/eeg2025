@@ -48,13 +48,18 @@ from torch.utils.data import DataLoader, Dataset, random_split, ConcatDataset
 from torch.amp import autocast, GradScaler
 import numpy as np
 try:
-    from braindecode.preprocessing import Preprocessor, preprocess, create_fixed_length_windows
+    from braindecode.preprocessing import Preprocessor, preprocess, create_windows_from_events
 except Exception as e:
-    logger.error("Failed to import braindecode preprocessing: %s", e)
-    logger.error("Please install braindecode[mne] or check compatibility. Example: pip install braindecode[mne]==0.7.2")
-    raise
+    try:
+        from braindecode.datautil.windowers import create_windows_from_events  # type: ignore
+        from braindecode.preprocessing import Preprocessor, preprocess
+    except Exception:
+        logger.error("Failed to import braindecode preprocessing or create_windows_from_events: %s", e)
+        logger.error("Please install braindecode[mne] or check compatibility. Example: pip install braindecode[mne]==0.7.2")
+        raise
 
 from eegdash import EEGChallengeDataset
+from eegdash.hbn.windows import add_extras_columns
 
 # ============================================================================
 # Model - CompactExternalizingCNN (inlined from submission.py)
@@ -116,71 +121,13 @@ class CompactExternalizingCNN(nn.Module):
 # ============================================================================
 
 def get_optimal_device():
-    """Auto-detect and return best available device"""
+    """Force CPU mode (ROCm has compatibility issues with braindecode)"""
 
-def get_optimal_device():
-    """
-    Smart device selection with GPU fallback to CPU.
-    Enables parallel processing on both GPU and CPU.
-    """
-
-    # Try CUDA/ROCm (NVIDIA/AMD GPU)
-    if torch.cuda.is_available():
-        try:
-            # Test GPU with a simple operation
-            device = torch.device('cuda')
-            test_tensor = torch.zeros(10, device=device)
-            _ = test_tensor + 1  # Simple operation to verify GPU works
-
-            device_name = torch.cuda.get_device_name(0)
-            gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1e9
-
-            logger.info("🚀 GPU ENABLED")
-            logger.info(f"   Device: {device_name}")
-            logger.info(f"   CUDA/ROCm: {torch.version.cuda}")
-            logger.info(f"   Memory: {gpu_mem:.1f} GB")
-            logger.info("   Mixed Precision: Enabled (AMP)")
-
-            return torch.device('cuda'), True
-
-        except Exception as e:
-            logger.warning(f"⚠️  GPU test failed: {e}")
-            logger.warning("   Falling back to CPU...")
-
-    # Try MPS (Apple Silicon)
-    if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-        try:
-            device = torch.device('mps')
-            test_tensor = torch.zeros(10, device=device)
-            _ = test_tensor + 1
-
-            logger.info("🚀 GPU ENABLED (Apple Silicon MPS)")
-            logger.info("   Mixed Precision: Enabled")
-            return torch.device('mps'), True
-
-        except Exception as e:
-            logger.warning(f"⚠️  MPS test failed: {e}")
-            logger.warning("   Falling back to CPU...")
-
-    # CPU fallback with parallel processing optimization
     import multiprocessing
     cpu_count = multiprocessing.cpu_count()
-
-    logger.info("⚙️  CPU MODE")
-    logger.info(f"   Cores: {cpu_count}")
-    logger.info("   Parallel Processing: Enabled")
-    logger.info("   Thread Optimization: Enabled")
-
-    # Enable aggressive CPU parallelization
+    logger.info("⚙️  Using CPU mode (ROCm compatibility)")
+    logger.info(f"   Cores: {cpu_count} | Multi-threading enabled")
     torch.set_num_threads(cpu_count)
-    torch.set_num_interop_threads(cpu_count)
-
-    # Set environment variables for better CPU performance
-    import os
-    os.environ['OMP_NUM_THREADS'] = str(cpu_count)
-    os.environ['MKL_NUM_THREADS'] = str(cpu_count)
-    os.environ['OPENBLAS_NUM_THREADS'] = str(cpu_count)
-
     return torch.device('cpu'), False
 
 DEVICE, USE_GPU = get_optimal_device()
@@ -236,24 +183,20 @@ class MultiReleaseDataset(Dataset):
                 ]
                 preprocess(dataset, preprocessors)
 
-                # Create fixed-length windows for resting state data (2 second windows)
-                # Challenge 2 uses continuous resting state data, not event-based trials
-                SFREQ = 100  # Hz
-                WINDOW_SIZE_S = 2.0  # 2 seconds
-                WINDOW_STRIDE_S = 2.0  # Non-overlapping windows
-
-                windows_ds = create_fixed_length_windows(
+                # Create windows (always on CPU - braindecode doesn't need GPU here)
+                # Data will be moved to GPU during training in the DataLoader
+                windows_ds = create_windows_from_events(
                     dataset,
-                    start_offset_samples=0,
-                    stop_offset_samples=None,  # Use full recording
-                    window_size_samples=int(WINDOW_SIZE_S * SFREQ),  # 200 samples
-                    window_stride_samples=int(WINDOW_STRIDE_S * SFREQ),  # 200 samples
-                    drop_last_window=False,  # Keep incomplete last window
+                    trial_start_offset_samples=0,
+                    trial_stop_offset_samples=0,
                     picks='eeg',
                     preload=True
                 )
 
-                # Get externalizing scores from metadata (no add_extras_columns needed for resting state)
+                # Extract targets with add_extras_columns
+                add_extras_columns(windows_ds)
+
+                # Get externalizing scores
                 metadata = windows_ds.get_metadata()
                 ext_scores = metadata['externalizing_behavior'].values
 
@@ -325,104 +268,49 @@ def huber_loss(pred, target, delta=1.0):
 # ============================================================================
 
 def train_epoch(model, loader, optimizer, scaler, device, epoch, use_gpu):
-    """
-    Train one epoch with residual reweighting after warmup.
-    Includes GPU error recovery with automatic CPU fallback.
-    """
+    """Train one epoch with residual reweighting after warmup"""
     model.train()
     total_loss = 0.0
-    n_batches = 0
 
     residuals = []
 
     for inputs, targets in loader:
-        try:
-            inputs = inputs.to(device, non_blocking=use_gpu)
-            targets = targets.to(device, non_blocking=use_gpu)
+        inputs = inputs.to(device, non_blocking=use_gpu)
+        targets = targets.to(device, non_blocking=use_gpu)
 
-            # Forward (use new autocast API)
-            with autocast('cuda', enabled=use_gpu):
-                outputs = model(inputs).squeeze()
+        # Forward (use new autocast API)
+        with autocast('cuda', enabled=use_gpu):
+            outputs = model(inputs).squeeze()
 
-                if epoch < 5:
-                    # Warmup: standard Huber loss
-                    loss = huber_loss(outputs, targets, delta=1.0)
-                else:
-                    # After warmup: compute residuals for reweighting
-                    res = (outputs - targets).abs()
-                    residuals.append(res.detach())
-
-                    # Compute Huber loss components
-                    err = outputs - targets
-                    abs_err = err.abs()
-                    quadratic = torch.clamp(abs_err, max=1.0)
-                    linear = abs_err - quadratic
-                    huber_comp = 0.5 * quadratic.pow(2) + linear
-
-                    loss = huber_comp.mean()
-
-            # Backward
-            optimizer.zero_grad(set_to_none=True)
-
-            if use_gpu:
-                scaler.scale(loss).backward()
-                scaler.step(optimizer)
-                scaler.update()
+            if epoch < 5:
+                # Warmup: standard Huber loss
+                loss = huber_loss(outputs, targets, delta=1.0)
             else:
-                loss.backward()
-                optimizer.step()
+                # After warmup: compute residuals for reweighting
+                res = (outputs - targets).abs()
+                residuals.append(res.detach())
 
-            total_loss += loss.item()
-            n_batches += 1
+                # Compute Huber loss components
+                err = outputs - targets
+                abs_err = err.abs()
+                quadratic = torch.clamp(abs_err, max=1.0)
+                linear = abs_err - quadratic
+                huber_comp = 0.5 * quadratic.pow(2) + linear
 
-        except RuntimeError as e:
-            # GPU error detected (OOM, CUDA error, etc.)
-            if 'CUDA' in str(e) or 'out of memory' in str(e).lower():
-                logger.error(f"💥 GPU Error detected: {e}")
-                logger.warning("🔄 Attempting CPU fallback for this batch...")
+                loss = huber_comp.mean()
 
-                # Move batch to CPU
-                try:
-                    inputs_cpu = inputs.cpu()
-                    targets_cpu = targets.cpu()
+        # Backward
+        optimizer.zero_grad(set_to_none=True)
 
-                    # Forward pass on CPU
-                    outputs = model.cpu()(inputs_cpu).squeeze()
+        if use_gpu:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
 
-                    # Compute loss on CPU
-                    if epoch < 5:
-                        loss = huber_loss(outputs, targets_cpu, delta=1.0)
-                    else:
-                        res = (outputs - targets_cpu).abs()
-                        residuals.append(res.detach())
-
-                        err = outputs - targets_cpu
-                        abs_err = err.abs()
-                        quadratic = torch.clamp(abs_err, max=1.0)
-                        linear = abs_err - quadratic
-                        huber_comp = 0.5 * quadratic.pow(2) + linear
-                        loss = huber_comp.mean()
-
-                    # Backward on CPU
-                    optimizer.zero_grad(set_to_none=True)
-                    loss.backward()
-                    optimizer.step()
-
-                    total_loss += loss.item()
-                    n_batches += 1
-
-                    # Move model back to original device
-                    model.to(device)
-
-                    logger.warning("✅ Batch processed on CPU successfully")
-
-                except Exception as cpu_error:
-                    logger.error(f"❌ CPU fallback also failed: {cpu_error}")
-                    # Skip this batch
-                    continue
-            else:
-                # Non-GPU error, re-raise
-                raise
+        total_loss += loss.item()
 
     # Reweighting stats
     if epoch >= 5 and len(residuals) > 0:
@@ -432,7 +320,7 @@ def train_epoch(model, loader, optimizer, scaler, device, epoch, use_gpu):
         weights = torch.exp(-z / 2.0)
         logger.info(f"   Reweighting: mean={weights.mean():.3f}, min={weights.min():.3f}")
 
-    return total_loss / n_batches if n_batches > 0 else 0.0
+    return total_loss / len(loader)
 
 def validate(model, loader, device, mean, std, use_gpu):
     """Validate and compute NRMSE"""
@@ -540,10 +428,10 @@ def main():
         print("Phase 1: Multi-Release + Huber + Residual Reweighting")
         print("="*80)
 
-        # Load R1 only to avoid OOM
+        # Load dataset
         dataset = MultiReleaseDataset(
-            releases=['R1'],  # Start with R1 only
-            mini=True,  # Use mini for testing
+            releases=['R1', 'R2', 'R3'],
+            mini=False,
             cache_dir='data/raw'
         )
 
