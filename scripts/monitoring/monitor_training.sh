@@ -1,31 +1,21 @@
 #!/bin/bash
-# Simple training monitor
-
-cd /home/kevin/Projects/eeg2025
-
-echo "📊 Training Monitor"
-echo "===================="
-
-# Check if training is running
-if ps aux | grep -q "[t]rain_foundation_cpu"; then
-    echo "✅ Training is RUNNING"
-    PID=$(ps aux | grep "[t]rain_foundation_cpu" | awk '{print $2}')
-    echo "   PID: $PID"
+echo "=== Challenge 2 Training Monitor ==="
+echo ""
+echo "Process Status:"
+if ps aux | grep -q "[t]rain_challenge2_multi_release.py"; then
+    echo "  ✅ Training is RUNNING"
+    ps aux | grep "[t]rain_challenge2_multi_release.py" | awk '{printf "  PID: %s, CPU: %s%%, MEM: %s%%\n", $2, $3, $4}'
 else
-    echo "⭕ Training is NOT running"
+    echo "  ⚠️  Training has STOPPED or COMPLETED"
 fi
 
 echo ""
-echo "📁 Recent Logs:"
-echo "----------------"
-ls -lt logs/foundation_cpu_*.log 2>/dev/null | head -3
+echo "Log File Size:"
+ls -lh logs/challenge2_r234_final.log 2>/dev/null | awk '{print "  "$9": "$5}'
 
 echo ""
-echo "📝 Latest Log (last 40 lines):"
-echo "--------------------------------"
-tail -40 logs/foundation_cpu_*.log 2>/dev/null | tail -40
+echo "Latest Progress (last 20 lines with metrics):"
+tail -100 logs/challenge2_r234_final.log | grep -E "Epoch|NRMSE|Best|Complete|Windows|Total|Checked|Train |Val " | tail -20
 
 echo ""
-echo "💾 Checkpoints:"
-echo "---------------"
-ls -lht checkpoints/foundation_*.pth 2>/dev/null | head -5 || echo "No checkpoints yet"
+echo "=== To watch live: tail -f logs/challenge2_r234_final.log ==="
