@@ -1,44 +1,92 @@
 #!/bin/bash
-# Monitor training progress
+# Monitor training progress for both challenges
 
-LOG_DIR="/home/kevin/Projects/eeg2025/logs"
-CHECKPOINT_DIR="/home/kevin/Projects/eeg2025/checkpoints"
-
-echo "🔍 Training Monitor"
-echo "=" 
+echo "╔══════════════════════════════════════════════════════════════════╗"
+echo "║              📊 PHASE 1 TRAINING MONITOR                         ║"
+echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Find latest log
-LATEST_LOG=$(ls -t $LOG_DIR/training_*.log 2>/dev/null | head -1)
-
-if [ -z "$LATEST_LOG" ]; then
-    echo "❌ No training log found!"
-    exit 1
-fi
-
-echo "📋 Latest log: $(basename $LATEST_LOG)"
+# Check if processes are running
+echo "🔍 Checking running processes..."
 echo ""
 
-# Check if training is running
-if ps aux | grep -v grep | grep "train_foundation_cpu.py" > /dev/null; then
-    echo "✅ Training is RUNNING"
+C1_PID=$(ps aux | grep "train_challenge1_robust_gpu.py" | grep -v grep | awk '{print $2}')
+C2_PID=$(ps aux | grep "train_challenge2_robust_gpu.py" | grep -v grep | awk '{print $2}')
+
+if [ -n "$C1_PID" ]; then
+    echo "✅ Challenge 1: Running (PID: $C1_PID)"
 else
-    echo "⚠️  Training process not found"
+    echo "❌ Challenge 1: Not running"
 fi
 
-echo ""
-echo "📊 Recent progress:"
-echo "─────────────────────────────────────────────"
-tail -30 "$LATEST_LOG" | grep -E "(Epoch|Loss|Acc|saved|Complete)" || tail -15 "$LATEST_LOG"
-echo "─────────────────────────────────────────────"
-
-echo ""
-echo "💾 Checkpoints:"
-if [ -d "$CHECKPOINT_DIR" ]; then
-    ls -lh "$CHECKPOINT_DIR"/*.pth 2>/dev/null || echo "   No checkpoints yet"
+if [ -n "$C2_PID" ]; then
+    echo "✅ Challenge 2: Running (PID: $C2_PID)"
 else
-    echo "   Checkpoint directory not created yet"
+    echo "❌ Challenge 2: Not running"
 fi
 
 echo ""
-echo "🔄 To view live updates: tail -f $LATEST_LOG"
+echo "══════════════════════════════════════════════════════════════════"
+echo "CHALLENGE 1: Response Time Prediction"
+echo "══════════════════════════════════════════════════════════════════"
+echo ""
+
+if [ -f "logs/train_c1_robust_final.log" ]; then
+    # Check for epoch progress
+    EPOCH_LINE=$(grep -E "Epoch [0-9]+/[0-9]+" logs/train_c1_robust_final.log | tail -1)
+    
+    if [ -n "$EPOCH_LINE" ]; then
+        echo "📈 Latest Progress:"
+        echo "$EPOCH_LINE"
+        echo ""
+        
+        # Show last few epochs
+        echo "Recent Epochs:"
+        grep -E "Epoch [0-9]+/[0-9]+" logs/train_c1_robust_final.log | tail -5
+    else
+        # Still loading data
+        echo "⏳ Status: Loading datasets..."
+        echo ""
+        echo "Last 10 lines:"
+        tail -10 logs/train_c1_robust_final.log
+    fi
+else
+    echo "❌ Log file not found: logs/train_c1_robust_final.log"
+fi
+
+echo ""
+echo "══════════════════════════════════════════════════════════════════"
+echo "CHALLENGE 2: Externalizing Behavior Prediction"
+echo "══════════════════════════════════════════════════════════════════"
+echo ""
+
+if [ -f "logs/train_c2_robust_final.log" ]; then
+    # Check for epoch progress
+    EPOCH_LINE=$(grep -E "Epoch [0-9]+/[0-9]+" logs/train_c2_robust_final.log | tail -1)
+    
+    if [ -n "$EPOCH_LINE" ]; then
+        echo "📈 Latest Progress:"
+        echo "$EPOCH_LINE"
+        echo ""
+        
+        # Show last few epochs
+        echo "Recent Epochs:"
+        grep -E "Epoch [0-9]+/[0-9]+" logs/train_c2_robust_final.log | tail -5
+    else
+        # Still loading data
+        echo "⏳ Status: Loading datasets..."
+        echo ""
+        echo "Last 10 lines:"
+        tail -10 logs/train_c2_robust_final.log
+    fi
+else
+    echo "❌ Log file not found: logs/train_c2_robust_final.log"
+fi
+
+echo ""
+echo "══════════════════════════════════════════════════════════════════"
+echo "Commands:"
+echo "  Monitor C1: tail -f logs/train_c1_robust_final.log"
+echo "  Monitor C2: tail -f logs/train_c2_robust_final.log"
+echo "  Re-run this: bash scripts/monitor_training.sh"
+echo "══════════════════════════════════════════════════════════════════"
