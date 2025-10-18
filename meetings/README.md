@@ -62,10 +62,10 @@ Create new meeting notes using this format:
 
 ## 🗂️ Archive Old Meetings
 
-When meetings are complete, move notes to `docs/archive/meetings/` with date:
+When meetings are complete, move notes to `archive/meetings/` with date:
 ```bash
 mkdir -p docs/archive/meetings
-mv meeting_notes_2025-10-18.md docs/archive/meetings/
+mv meeting_notes_2025-10-18.md archive/meetings/
 ```
 
 ---
