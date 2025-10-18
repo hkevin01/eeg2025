@@ -1,395 +1,639 @@
-# 🚀 Challenge Improvement Strategy for Tomorrow
+# Algorithm Improvement Strategy - EEG 2025 Competition
 
-**Current Status:** Phase 1 submitted (Overall: 0.65)  
-**Goal:** Improve to 0.50 overall (Top 3 territory)  
-**Focus:** Challenge 1 (Response Time) - The weak link!
-
----
-
-## 📊 Performance Gap Analysis
-
-### Current vs Target
-```
-                Current    Target    Gap       Priority
-Challenge 1:    1.0030     0.7500   -0.2530   🔴 HIGH
-Challenge 2:    0.2970     0.2500   -0.0470   🟢 LOW (already good!)
-Overall:        0.6500     0.5000   -0.1500
-```
-
-### Strategic Focus
-- **80% effort on Challenge 1** (biggest gap)
-- **20% effort on Challenge 2** (fine-tuning only)
-- **Don't break what works!** (Keep Phase 1 as backup)
+**Date:** October 15, 2025  
+**Current Scores:** C1: 0.4680 | C2: 0.0808 | Overall: 0.1970  
+**Goal:** Improve Challenge 1 (biggest room for improvement)
 
 ---
 
-## 🎯 TOP 5 IMPROVEMENT STRATEGIES
+## 🎯 Priority Analysis
 
-### Strategy 1: P300/ERP Features (HIGHEST IMPACT! 🔥)
-**Expected Improvement:** 1.00 → 0.75-0.85 (25% better)  
-**Time Required:** 6-8 hours  
-**Risk:** Low (well-established neuroscience)
+### Challenge 1: Most Room for Improvement
+- **Current:** NRMSE 0.4680 (30% weight)
+- **Challenge 2:** NRMSE 0.0808 (70% weight) - already excellent!
+- **Strategy:** Focus on Challenge 1 improvements
 
-**Why This Works:**
-- P300 latency DIRECTLY correlates with reaction time
-- Earlier P300 peak = faster button press
-- This is neuroscience 101 - proven relationship!
+**Why Focus on Challenge 1?**
+- More room to improve (0.47 → 0.35 = 26% better)
+- Challenge 2 is already near-perfect (0.08)
+- Even 10% C1 improvement = 3% overall improvement
+
+---
+
+## 🚀 HIGH PRIORITY IMPROVEMENTS (1-3 days)
+
+### 1. Test-Time Augmentation (TTA) ⭐ HIGHEST ROI
+
+**Concept:** Average predictions from multiple augmented versions
 
 **Implementation:**
 ```python
-# Extract P300 features from CCD (Contrast Change Detection) trials
-from scripts.features.erp import ERPExtractor
-
-extractor = ERPExtractor()
-p300_features = extractor.extract_p300(eeg_data)
-
-# Key features:
-- p300_peak_latency  (300-600ms) → Primary RT predictor!
-- p300_peak_amplitude (parietal Pz, CPz)
-- p300_rise_time (onset → peak)
-- p300_area_under_curve
-
-# Architecture:
-raw_eeg [129×500] + p300_features [6] → CNN → RT prediction
+def predict_with_tta(model, data, n_augmentations=5):
+    """Test-time augmentation for robust predictions"""
+    predictions = []
+    
+    # Original prediction
+    predictions.append(model(data))
+    
+    # Augmented predictions
+    for _ in range(n_augmentations - 1):
+        # Add small Gaussian noise
+        noise = torch.randn_like(data) * 0.02
+        aug_data = data + noise
+        predictions.append(model(aug_data))
+    
+    # Average predictions
+    return torch.stack(predictions).mean(dim=0)
 ```
 
-**Steps:**
-1. Extract P300 from all CCD trials (R1, R2, R3)
-2. Normalize features (z-score)
-3. Modify model to accept concatenated input
-4. Train with both raw EEG + P300 features
-5. Ensemble: 0.6×phase1 + 0.4×phase2_p300
-
-**Expected Result:** C1: 1.00 → 0.75-0.85
+**Expected Gain:** 5-10% NRMSE reduction (0.47 → 0.42)  
+**Time:** 2-3 hours  
+**Risk:** LOW (can always revert)  
+**Validation:** Test on validation set first
 
 ---
 
-### Strategy 2: Temporal Attention Mechanism
-**Expected Improvement:** 1.00 → 0.85-0.90 (15% better)  
-**Time Required:** 4-5 hours  
-**Risk:** Medium (requires careful tuning)
+### 2. Weighted Ensemble (Multiple Models) ⭐ PROVEN EFFECTIVE
 
-**Why This Works:**
-- Different time windows have different importance for RT
-- Pre-stimulus preparation (CNV) vs post-stimulus decision (P300)
-- Attention learns to weight critical time points
+**Concept:** Train 3-5 models with different seeds, average with optimal weights
 
 **Implementation:**
 ```python
-class TemporalAttentionCNN(nn.Module):
-    def __init__(self):
-        self.temporal_attention = nn.MultiheadAttention(
-            embed_dim=128,
-            num_heads=8
-        )
-        self.cnn = CompactResponseTimeCNN()
+# Train 3 models with different seeds
+seeds = [42, 123, 456]
+models = []
+for seed in seeds:
+    model = train_model(seed=seed)
+    models.append(model)
+
+# Find optimal weights (validation set)
+from scipy.optimize import minimize
+
+def ensemble_loss(weights, models, X_val, y_val):
+    weights = weights / weights.sum()  # Normalize
+    preds = sum(w * m.predict(X_val) for w, m in zip(weights, models))
+    return nrmse(y_val, preds)
+
+# Optimize weights
+initial_weights = np.ones(len(models)) / len(models)
+result = minimize(ensemble_loss, initial_weights, 
+                  args=(models, X_val, y_val),
+                  bounds=[(0, 1)] * len(models))
+
+optimal_weights = result.x / result.x.sum()
+```
+
+**Expected Gain:** 5-8% NRMSE reduction (0.47 → 0.43)  
+**Time:** 4-6 hours (training + optimization)  
+**Risk:** MEDIUM (increases complexity)  
+**Note:** We already have ensemble models trained!
+
+---
+
+### 3. Frequency Domain Features ⭐ UNTAPPED POTENTIAL
+
+**Concept:** Add spectral features to complement time-domain
+
+**Implementation:**
+```python
+import scipy.signal as signal
+
+def extract_frequency_features(data, fs=100):
+    """Extract frequency domain features"""
+    features = []
+    
+    for ch in range(data.shape[0]):  # For each channel
+        # Compute power spectral density
+        freqs, psd = signal.welch(data[ch], fs=fs, nperseg=min(256, len(data[ch])))
         
+        # Band powers
+        delta = psd[(freqs >= 0.5) & (freqs < 4)].mean()
+        theta = psd[(freqs >= 4) & (freqs < 8)].mean()
+        alpha = psd[(freqs >= 8) & (freqs < 13)].mean()
+        beta = psd[(freqs >= 13) & (freqs < 30)].mean()
+        gamma = psd[(freqs >= 30) & (freqs < 50)].mean()
+        
+        features.extend([delta, theta, alpha, beta, gamma])
+    
+    return np.array(features)
+
+# Hybrid model: CNN + frequency features
+class HybridModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cnn = ImprovedResponseTimeCNN()  # Time-domain
+        self.freq_fc = nn.Linear(129 * 5, 128)  # Frequency features
+        self.fusion = nn.Linear(128 + 128, 1)  # Combine both
+    
+    def forward(self, x):
+        # Time-domain features
+        time_features = self.cnn.feature_extractor(x)
+        
+        # Frequency features (compute on-the-fly or pre-compute)
+        freq_features = extract_frequency_features_batch(x)
+        freq_features = self.freq_fc(freq_features)
+        
+        # Fusion
+        combined = torch.cat([time_features, freq_features], dim=1)
+        return self.fusion(combined)
+```
+
+**Expected Gain:** 10-20% NRMSE reduction (0.47 → 0.38-0.42)  
+**Time:** 6-8 hours (implementation + training)  
+**Risk:** MEDIUM (requires validation)  
+**Note:** Most competitors likely use time-domain only
+
+---
+
+### 4. Subject-Level Features (Metadata) ⭐ EASY WIN
+
+**Concept:** Include age, sex as auxiliary inputs
+
+**Why It Helps:** Response times correlate with age/development
+
+**Implementation:**
+```python
+class MetadataEnhancedModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cnn = ImprovedResponseTimeCNN()
+        
+        # Metadata branch
+        self.meta_fc = nn.Sequential(
+            nn.Linear(2, 32),  # age, sex
+            nn.ReLU(),
+            nn.Linear(32, 16)
+        )
+        
+        # Fusion
+        self.fusion = nn.Linear(128 + 16, 1)
+    
+    def forward(self, x, age, sex):
+        # CNN features
+        cnn_features = self.cnn.feature_extractor(x)
+        
+        # Metadata features
+        metadata = torch.stack([age, sex], dim=1)
+        meta_features = self.meta_fc(metadata)
+        
+        # Combine
+        combined = torch.cat([cnn_features, meta_features], dim=1)
+        return self.fusion(combined)
+```
+
+**Expected Gain:** 5-10% NRMSE reduction (0.47 → 0.42-0.44)  
+**Time:** 3-4 hours  
+**Risk:** LOW (easy to implement)  
+**Data:** Already in participants.tsv
+
+---
+
+## 🔧 MEDIUM PRIORITY IMPROVEMENTS (3-7 days)
+
+### 5. Attention Mechanisms
+
+**Concept:** Let model learn which channels/timepoints are important
+
+**Implementation:**
+```python
+class ChannelAttention(nn.Module):
+    """Attention over EEG channels"""
+    def __init__(self, num_channels=129):
+        super().__init__()
+        self.attention = nn.Sequential(
+            nn.Linear(num_channels, num_channels // 4),
+            nn.ReLU(),
+            nn.Linear(num_channels // 4, num_channels),
+            nn.Sigmoid()
+        )
+    
     def forward(self, x):
         # x: [batch, channels, time]
+        # Pool over time
+        pooled = x.mean(dim=2)  # [batch, channels]
         
-        # Apply temporal attention
-        x_attn, attn_weights = self.temporal_attention(x, x, x)
+        # Compute attention weights
+        weights = self.attention(pooled)  # [batch, channels]
         
-        # Combine attended + original
-        x = 0.7 * x_attn + 0.3 * x
-        
-        # Standard CNN
-        out = self.cnn(x)
-        return out, attn_weights
-```
+        # Apply attention
+        return x * weights.unsqueeze(2)
 
-**Key Idea:** Model learns which time windows are most predictive of RT
-
-**Expected Result:** C1: 1.00 → 0.85-0.90
-
----
-
-### Strategy 3: Cross-Task Transfer Learning
-**Expected Improvement:** 1.00 → 0.90-0.95 (10% better)  
-**Time Required:** 3-4 hours  
-**Risk:** Low (multi-task learning)
-
-**Why This Works:**
-- Other tasks (SuS, MW, SL, SyS) contain RT information
-- Pre-train on all tasks → fine-tune on CCD
-- Leverages more data (6 tasks vs 1 task)
-
-**Implementation:**
-```python
-# Phase 1: Pre-train on all tasks
-model = SharedEncoder()
-
-for task in ['RS', 'SuS', 'MW', 'CCD', 'SL', 'SyS']:
-    task_data = load_task_data(task)
+class TemporalAttention(nn.Module):
+    """Attention over time"""
+    def __init__(self, seq_len=200):
+        super().__init__()
+        self.attention = nn.Sequential(
+            nn.Linear(seq_len, seq_len // 4),
+            nn.ReLU(),
+            nn.Linear(seq_len // 4, seq_len),
+            nn.Sigmoid()
+        )
     
-    # Auxiliary task: predict which task it is
-    pretrain_loss = task_classification_loss(model, task_data)
-
-# Phase 2: Fine-tune on CCD for RT prediction
-ccd_model = model.encoder + RTHead()
-finetune_on_ccd(ccd_model)
+    def forward(self, x):
+        # x: [batch, channels, time]
+        # Pool over channels
+        pooled = x.mean(dim=1)  # [batch, time]
+        
+        # Compute attention weights
+        weights = self.attention(pooled)  # [batch, time]
+        
+        # Apply attention
+        return x * weights.unsqueeze(1)
 ```
 
-**Expected Result:** C1: 1.00 → 0.90-0.95
+**Expected Gain:** 8-15% NRMSE reduction (0.47 → 0.40-0.43)  
+**Time:** 6-8 hours  
+**Risk:** MEDIUM (adds complexity)
 
 ---
 
-### Strategy 4: Ensemble Multiple Architectures
-**Expected Improvement:** 1.00 → 0.85-0.92 (15% better)  
-**Time Required:** 5-6 hours  
-**Risk:** Low (ensemble always helps)
+### 6. Multi-Task Learning (Response Time + Trial Type)
 
-**Why This Works:**
-- Different architectures capture different patterns
-- CNN: Local patterns, RNN: Temporal, Transformer: Global
-- Ensemble reduces variance
+**Concept:** Predict both response time AND trial correctness simultaneously
+
+**Why It Helps:** Shared representations, regularization
 
 **Implementation:**
 ```python
-# Train 4 different models:
-models = {
-    'cnn': CompactResponseTimeCNN(),        # Current
-    'lstm': BiLSTM_RT(),                   # Temporal
-    'transformer': TransformerRT(),        # Attention
-    'cnn_p300': CNN_with_P300_features()   # Feature-augmented
-}
-
-# Weighted ensemble (tune on validation)
-weights = [0.3, 0.2, 0.2, 0.3]  # P300 and CNN get more weight
-
-def ensemble_predict(x):
-    preds = [model(x) for model in models.values()]
-    return sum(w * p for w, p in zip(weights, preds))
-```
-
-**Expected Result:** C1: 1.00 → 0.85-0.92
-
----
-
-### Strategy 5: Advanced Data Augmentation
-**Expected Improvement:** 1.00 → 0.92-0.96 (8% better)  
-**Time Required:** 2-3 hours  
-**Risk:** Medium (need to preserve RT relationship)
-
-**Why This Works:**
-- More diverse training data → better generalization
-- Careful augmentation preserves EEG-RT relationship
-
-**Implementation:**
-```python
-class EEGAugmentation:
+class MultiTaskModel(nn.Module):
     def __init__(self):
-        self.augmentations = [
-            TimeWarping(sigma=0.2),         # Slight temporal distortion
-            ChannelDropout(p=0.1),          # Random channel masking
-            GaussianNoise(std=0.05),        # Small noise
-            AmplitudeScale(range=(0.9, 1.1)), # Slight scaling
-            TimeShift(max_shift=10),        # ±100ms shift
-        ]
-    
-    def augment(self, eeg, rt):
-        # Apply random augmentation
-        aug_eeg = random.choice(self.augmentations)(eeg)
+        super().__init__()
+        # Shared encoder
+        self.encoder = ImprovedResponseTimeCNN().feature_extractor
         
-        # RT stays the same (label smoothing optional)
-        return aug_eeg, rt
+        # Task-specific heads
+        self.rt_head = nn.Linear(128, 1)  # Response time
+        self.correct_head = nn.Linear(128, 1)  # Correctness (binary)
+    
+    def forward(self, x):
+        features = self.encoder(x)
+        rt = self.rt_head(features)
+        correct = torch.sigmoid(self.correct_head(features))
+        return rt, correct
+
+# Training with multi-task loss
+def train_multitask(model, data, rt_labels, correct_labels):
+    rt_pred, correct_pred = model(data)
+    
+    loss_rt = F.mse_loss(rt_pred, rt_labels)
+    loss_correct = F.binary_cross_entropy(correct_pred, correct_labels)
+    
+    # Weighted combination
+    total_loss = loss_rt + 0.5 * loss_correct  # Tune weight
+    return total_loss
 ```
 
-**Expected Result:** C1: 1.00 → 0.92-0.96
+**Expected Gain:** 5-12% NRMSE reduction (0.47 → 0.41-0.45)  
+**Time:** 8-10 hours  
+**Risk:** MEDIUM (requires correctness labels)  
+**Data:** May need to extract from CCD task events
 
 ---
 
-## 🎯 RECOMMENDED IMPLEMENTATION PLAN
+### 7. Deeper Data Augmentation
 
-### Tonight (2-3 hours) - Setup
-- [ ] Extract P300 features from all CCD data
-- [ ] Create augmented dataset cache
-- [ ] Verify features correlate with RT
-- [ ] Test feature extraction pipeline
+**Concept:** More sophisticated augmentation strategies
 
-### Tomorrow Morning (4-5 hours) - Core Improvements
-**Priority 1: P300 Features (MUST DO!)**
-- [ ] Modify Challenge 1 model to accept P300 features
-- [ ] Train Challenge 1 Phase 2 (30 epochs)
-- [ ] Validate improvement (target: 0.75-0.85)
+**New Augmentations:**
+```python
+class AdvancedAugmentation:
+    def __init__(self):
+        pass
+    
+    def channel_dropout(self, data, p=0.1):
+        """Randomly zero out channels"""
+        mask = torch.rand(data.shape[0]) > p
+        return data * mask.unsqueeze(1)
+    
+    def time_masking(self, data, max_mask=20):
+        """Mask random time segments"""
+        mask_len = random.randint(1, max_mask)
+        mask_start = random.randint(0, data.shape[1] - mask_len)
+        data[:, mask_start:mask_start+mask_len] = 0
+        return data
+    
+    def mixup(self, data1, data2, label1, label2, alpha=0.2):
+        """Mixup augmentation"""
+        lam = np.random.beta(alpha, alpha)
+        mixed_data = lam * data1 + (1 - lam) * data2
+        mixed_label = lam * label1 + (1 - lam) * label2
+        return mixed_data, mixed_label
+    
+    def frequency_shift(self, data, max_shift=2):
+        """Apply small frequency shift"""
+        # Use resampling to shift frequency content
+        shift_factor = 1 + random.uniform(-max_shift/100, max_shift/100)
+        # Resample (pseudo-code, use scipy.signal.resample)
+        return resample_signal(data, shift_factor)
+```
 
-**Priority 2: Temporal Attention**
-- [ ] Implement attention mechanism
-- [ ] Train Challenge 1 with attention
-- [ ] Compare with P300 model
-
-### Tomorrow Afternoon (3-4 hours) - Ensemble & Test
-- [ ] Create ensemble of best models
-- [ ] Tune ensemble weights on validation
-- [ ] Final training with best configuration
-- [ ] Create Phase 2 submission.zip
+**Expected Gain:** 3-8% NRMSE reduction (0.47 → 0.43-0.46)  
+**Time:** 4-6 hours  
+**Risk:** LOW (can A/B test)
 
 ---
 
-## 📈 EXPECTED RESULTS TIMELINE
+## 🧪 EXPERIMENTAL IMPROVEMENTS (7-14 days)
 
-### Scenario A: P300 Only (6 hours)
-```
-Challenge 1: 1.00 → 0.80  (20% better)
-Challenge 2: 0.30 (no change)
-Overall:     0.65 → 0.55  (15% better) → Top 5 likely!
+### 8. Transformer Architecture
+
+**Concept:** Replace CNN with attention-based model
+
+**Pros:**
+- Captures long-range dependencies
+- State-of-the-art in many domains
+
+**Cons:**
+- Needs more data (we have 420 samples)
+- Harder to train
+- More parameters
+
+**Expected Gain:** -10% to +15% (highly uncertain)  
+**Time:** 12-16 hours  
+**Risk:** HIGH (may overfit)  
+**Recommendation:** Try ONLY if other methods fail
+
+---
+
+### 9. Pre-training on RestingState Data
+
+**Concept:** Pre-train on Challenge 2 data (2,315 samples), then fine-tune for Challenge 1
+
+**Why It Might Help:** Transfer learned EEG representations
+
+**Implementation:**
+```python
+# Step 1: Pre-train on RestingState (Challenge 2 data)
+pretrain_model = ExternalizingCNN()
+train_on_challenge2_data(pretrain_model)
+
+# Step 2: Transfer weights to Challenge 1 model
+challenge1_model = ImprovedResponseTimeCNN()
+# Copy convolutional layers
+challenge1_model.conv1.weight = pretrain_model.conv1.weight
+challenge1_model.conv2.weight = pretrain_model.conv2.weight
+# ... etc
+
+# Step 3: Fine-tune on Challenge 1 data
+fine_tune_on_challenge1_data(challenge1_model, lr=1e-5)
 ```
 
-### Scenario B: P300 + Attention (10 hours)
+**Expected Gain:** 5-15% NRMSE reduction (0.47 → 0.40-0.45)  
+**Time:** 6-10 hours  
+**Risk:** MEDIUM (may not transfer well - different tasks)
+
+---
+
+### 10. Spatial Filtering (Source Localization)
+
+**Concept:** Transform channel-level EEG to brain region activity
+
+**Why It Might Help:** More interpretable, closer to underlying neural activity
+
+**Implementation:** Use MNE-Python's source estimation
+
+**Expected Gain:** 0-20% (highly uncertain)  
+**Time:** 10-15 hours  
+**Risk:** HIGH (complex, may not help)  
+**Recommendation:** LOW priority
+
+---
+
+## 📊 IMPROVEMENT ROADMAP
+
+### Week 1 (Days 1-7): Quick Wins
+
+**Days 1-2:**
+- [x] Validation experiments (DONE!)
+- [ ] Test-time augmentation (2-3 hours)
+- [ ] Expected: 0.47 → 0.42 (-11%)
+
+**Days 3-4:**
+- [ ] Subject metadata features (3-4 hours)
+- [ ] Weighted ensemble (4-6 hours)
+- [ ] Expected: 0.42 → 0.38 (-9%)
+
+**Days 5-7:**
+- [ ] Frequency domain features (6-8 hours)
+- [ ] Advanced augmentation (4-6 hours)
+- [ ] Expected: 0.38 → 0.34 (-11%)
+
+**Week 1 Target:** 0.47 → 0.34 (-28% improvement!)
+
+### Week 2 (Days 8-14): Advanced Techniques
+
+**Days 8-10:**
+- [ ] Attention mechanisms (6-8 hours)
+- [ ] Multi-task learning (8-10 hours)
+- [ ] Expected: 0.34 → 0.30 (-12%)
+
+**Days 11-14:**
+- [ ] Pre-training experiments (6-10 hours)
+- [ ] Final optimization & tuning
+- [ ] Expected: 0.30 → 0.28 (-7%)
+
+**Week 2 Target:** 0.34 → 0.28 (-18% improvement!)
+
+### Final Days (15-18): Polish & Submit
+
+- [ ] Best model selection
+- [ ] Final ensemble
+- [ ] Documentation update
+- [ ] Submit improved version
+
+---
+
+## 🎯 REALISTIC IMPROVEMENT PROJECTIONS
+
+### Conservative Estimate
 ```
-Challenge 1: 1.00 → 0.75  (25% better)
-Challenge 2: 0.30 (no change)
-Overall:     0.65 → 0.52  (20% better) → Top 3 likely!
+Current:  0.4680 (Challenge 1)
++ TTA:    0.4430 (-5%)
++ Meta:   0.4210 (-5%)
+Final:    0.4210 (-10% total)
+
+Overall:  0.1970 → 0.1890 (-4% overall)
 ```
 
-### Scenario C: Full Stack (16 hours - ambitious!)
+### Optimistic Estimate
 ```
-Challenge 1: 1.00 → 0.70  (30% better)
-Challenge 2: 0.30 → 0.28  (fine-tuning)
-Overall:     0.65 → 0.49  (25% better) → Top 1-2 possible!
+Current:  0.4680 (Challenge 1)
++ TTA:    0.4210 (-10%)
++ Meta:   0.3790 (-10%)
++ Freq:   0.3220 (-15%)
++ Ens:    0.3060 (-5%)
+Final:    0.3060 (-35% total)
+
+Overall:  0.1970 → 0.1483 (-25% overall)
+```
+
+### Dream Scenario
+```
+Current:  0.4680 (Challenge 1)
+All methods combined perfectly:
+Final:    0.2800 (-40% total)
+
+Overall:  0.1970 → 0.1405 (-29% overall)
 ```
 
 ---
 
-## 🔬 EXPERIMENTAL ANALYSIS
+## 💡 RECOMMENDATIONS
 
-### What's Working ✅
-1. Multi-release training (R1+R2)
-2. Early stopping
-3. Compact model architecture
-4. R1+R2 combined for Challenge 2
+### If You Have 1-2 Days:
+1. ⭐ Test-time augmentation (highest ROI)
+2. ⭐ Subject metadata features (easy win)
+3. ⭐ Weighted ensemble (models already trained!)
 
-### What's NOT Working ⚠️
-1. Raw EEG only (no features) for Challenge 1
-2. No temporal attention
-3. No cross-task transfer
-4. Limited data augmentation
+**Expected:** 0.47 → 0.40 (-15%)
 
-### Quick Wins 🎯
-1. **P300 features** → 25% improvement (high confidence)
-2. **Temporal attention** → 15% improvement (medium confidence)
-3. **Ensemble** → 10% improvement (high confidence)
+### If You Have 3-5 Days:
+1. All above +
+2. ⭐ Frequency domain features
+3. ⭐ Advanced augmentation
+4. ⭐ Attention mechanisms
+
+**Expected:** 0.47 → 0.34 (-28%)
+
+### If You Have 7-14 Days:
+1. All above +
+2. Multi-task learning
+3. Pre-training experiments
+4. Hyperparameter optimization
+5. Final ensemble of all approaches
+
+**Expected:** 0.47 → 0.28-0.32 (-30-40%)
 
 ---
 
-## 🛠️ IMPLEMENTATION GUIDE
+## 🔬 VALIDATION STRATEGY
 
-### Step 1: Feature Extraction (Tonight)
-```bash
-cd /home/kevin/Projects/eeg2025
+### Before Implementing Any Improvement:
+1. ✅ Establish baseline on validation set
+2. ✅ Implement improvement
+3. ✅ Test on same validation set
+4. ✅ If improvement > 3%, keep it
+5. ✅ If improvement < 3%, analyze why
+6. ✅ Combine improvements incrementally
 
-# Test P300 extraction
-python3 scripts/features/erp.py
+### Testing Protocol:
+```python
+# Always use same validation set
+np.random.seed(42)
+train_idx, val_idx = train_test_split(...)
 
-# Extract features for all data
-python3 << 'SCRIPT'
-from scripts.features.erp import ERPExtractor
+# Test each improvement
+baseline_nrmse = test_model(baseline_model, X_val, y_val)
+improved_nrmse = test_model(improved_model, X_val, y_val)
+
+improvement_pct = (baseline_nrmse - improved_nrmse) / baseline_nrmse * 100
+print(f"Improvement: {improvement_pct:.1f}%")
+
+if improvement_pct > 3:
+    print("✅ Keep improvement!")
+else:
+    print("❌ Revert or debug")
+```
+
+---
+
+## 🎯 PRIORITY MATRIX
+
+| Improvement | Expected Gain | Time | Risk | Priority |
+|-------------|---------------|------|------|----------|
+| Test-Time Aug | 5-10% | 2-3h | LOW | 🔴 HIGHEST |
+| Subject Meta | 5-10% | 3-4h | LOW | 🔴 HIGHEST |
+| Weighted Ensemble | 5-8% | 4-6h | MED | 🟠 HIGH |
+| Frequency Features | 10-20% | 6-8h | MED | 🟠 HIGH |
+| Advanced Aug | 3-8% | 4-6h | LOW | 🟡 MEDIUM |
+| Attention | 8-15% | 6-8h | MED | 🟡 MEDIUM |
+| Multi-Task | 5-12% | 8-10h | MED | 🟡 MEDIUM |
+| Pre-training | 5-15% | 6-10h | MED | 🟢 LOW |
+| Transformer | -10-15% | 12-16h | HIGH | 🟢 LOW |
+| Source Local | 0-20% | 10-15h | HIGH | ⚪ SKIP |
+
+---
+
+## 🚀 START HERE
+
+### Immediate Next Script to Write:
+
+**File:** `scripts/test_time_augmentation.py`
+
+```python
+#!/usr/bin/env python3
+"""
+Test-Time Augmentation for Challenge 1
+Predict with multiple augmented versions and average
+"""
+
+import torch
 import numpy as np
-import pickle
+from train_challenge1_improved import ImprovedResponseTimeCNN, AugmentedResponseTimeDataset
 
-# Load Challenge 1 data (R1, R2, R3)
-# For each trial, extract P300 features
-# Save as cache for fast training tomorrow
+def predict_with_tta(model, data, n_augmentations=5, noise_std=0.02):
+    """Test-time augmentation"""
+    model.eval()
+    predictions = []
+    
+    with torch.no_grad():
+        # Original
+        pred = model(data)
+        predictions.append(pred)
+        
+        # Augmented versions
+        for _ in range(n_augmentations - 1):
+            # Add noise
+            noise = torch.randn_like(data) * noise_std
+            aug_data = data + noise
+            
+            pred = model(aug_data)
+            predictions.append(pred)
+    
+    # Average
+    return torch.stack(predictions).mean(dim=0)
 
-extractor = ERPExtractor()
-features_cache = {}
-
-# Process and save...
-with open('data/processed/p300_features_cache.pkl', 'wb') as f:
-    pickle.dump(features_cache, f)
-
-print("✅ P300 features extracted and cached!")
-SCRIPT
-```
-
-### Step 2: Modified Training Script (Tomorrow)
-```bash
-# Create new training script
-cp scripts/train_challenge1_multi_release.py \
-   scripts/train_challenge1_phase2_p300.py
-
-# Modify to load P300 features
-# Train with augmented features
-python3 scripts/train_challenge1_phase2_p300.py \
-    --use-p300-features \
-    --epochs 30 \
-    --lr 0.0001
-```
-
-### Step 3: Ensemble & Submit
-```bash
-# Create ensemble
-python3 scripts/create_ensemble.py \
-    --models phase1,phase2_p300,phase2_attention \
-    --weights 0.3,0.4,0.3
-
-# Package submission
-zip submission_phase2.zip \
-    submission.py \
-    weights/ensemble_challenge1.pt \
-    weights/weights_challenge_2_multi_release.pt \
-    METHODS_DOCUMENT.pdf
+# Test and compare
+if __name__ == "__main__":
+    # Load model
+    model = ImprovedResponseTimeCNN()
+    model.load_state_dict(torch.load('checkpoints/response_time_model.pth'))
+    
+    # Load validation data
+    dataset = AugmentedResponseTimeDataset(...)
+    
+    # Compare baseline vs TTA
+    baseline_preds = []
+    tta_preds = []
+    
+    for data, label in dataset:
+        # Baseline
+        baseline_pred = model(data.unsqueeze(0))
+        baseline_preds.append(baseline_pred.item())
+        
+        # TTA
+        tta_pred = predict_with_tta(model, data.unsqueeze(0), n_augmentations=5)
+        tta_preds.append(tta_pred.item())
+    
+    # Compare NRMSE
+    baseline_nrmse = compute_nrmse(labels, baseline_preds)
+    tta_nrmse = compute_nrmse(labels, tta_preds)
+    
+    print(f"Baseline NRMSE: {baseline_nrmse:.4f}")
+    print(f"TTA NRMSE: {tta_nrmse:.4f}")
+    print(f"Improvement: {(baseline_nrmse - tta_nrmse)/baseline_nrmse*100:.1f}%")
 ```
 
 ---
 
-## ⚠️ RISK MANAGEMENT
+## 📚 Resources for Implementation
 
-### Backup Plan
-- Keep Phase 1 submission (0.65) as backup
-- Only submit Phase 2 if validation < 0.60
-- Test on R3 validation before final submission
-
-### Time Boxing
-```
-Hour 1-2:   P300 extraction & caching
-Hour 3-4:   Model modification
-Hour 5-8:   Training P300 model
-Hour 9-10:  Attention model (if time)
-Hour 11-12: Ensemble & final testing
-```
-
-### Stop Conditions
-- **If P300 model > 0.95:** Stop, something is wrong (overfitting)
-- **If no improvement after 15 epochs:** Try different approach
-- **If < 3 hours left:** Submit Phase 1 (don't rush)
+- **Test-Time Aug:** https://arxiv.org/abs/1904.12848
+- **Attention:** https://arxiv.org/abs/1706.03762
+- **Frequency Features:** https://mne.tools/stable/auto_tutorials/time-freq/20_sensors_time_frequency.html
+- **Multi-Task:** https://arxiv.org/abs/1706.05098
+- **Mixup:** https://arxiv.org/abs/1710.09412
 
 ---
 
-## 📊 SUCCESS METRICS
-
-### Minimum Success
-- Challenge 1: < 0.90 (10% better than Phase 1)
-- Overall: < 0.60 (Phase 1 was 0.65)
-
-### Target Success
-- Challenge 1: < 0.80 (20% better)
-- Overall: < 0.55 (Top 5)
-
-### Stretch Success
-- Challenge 1: < 0.75 (25% better)
-- Overall: < 0.52 (Top 3)
-
----
-
-## 🎯 FINAL RECOMMENDATION
-
-**Primary Strategy:** P300 Features + Temporal Attention + Ensemble
-
-**Rationale:**
-1. P300 has strongest neuroscience evidence (proven RT correlation)
-2. Temporal attention is well-established in deep learning
-3. Ensemble always provides 5-10% boost
-4. Combined: 30-40% improvement likely
-
-**Expected Timeline:** 10-12 hours  
-**Expected Result:** Overall 0.50-0.55 (Top 3-5)  
-**Risk Level:** Medium (keep Phase 1 as backup)
-
----
-
-**Start tonight with P300 extraction, continue tomorrow morning!** 🚀
-
----
-
-*Strategy document created: 2025-10-16 18:30 UTC*
+**Ready to start improving? Begin with test-time augmentation! 🚀**

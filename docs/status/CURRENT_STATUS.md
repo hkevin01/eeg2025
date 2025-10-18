@@ -1,144 +1,57 @@
-# 🎯 CURRENT TRAINING STATUS
+# EEG Training - Current Status
 
-**Time:** 2025-10-16 16:33 UTC  
-**Update:** Challenge 2 performing BETTER than expected!
+**Date:** October 16, 2025 22:40
 
----
+## ✅ Problem Solved
 
-## ✅ Challenge 1: COMPLETE
-- **Best Val NRMSE:** 1.0030
-- **Status:** Model saved ✅
+**Issue:** `arange: cannot compute length` error
+**Root Cause:** NOT a GPU/ROCm issue - braindecode was inferring window sizes from corrupted event data (NaN durations)
 
-## 🔄 Challenge 2: RUNNING (Epoch 20/50)
-- **Best Val NRMSE:** 0.3827 ⭐⭐⭐ (EXCELLENT!)
-- **Current Epoch:** 20/50 (40% complete)
-- **ETA:** ~20 minutes
+## ��️ Solution Implemented
 
----
+### Challenge 1 (Response Time):
+- Added `add_aux_anchors` preprocessing
+- Use explicit event mapping: `{'contrast_trial_start': 0}`
+- Explicit window parameters (2s windows, 0.5s offset)
 
-## 📊 PROJECTED FINAL SCORE
+### Challenge 2 (Externalizing):
+- Changed to `create_fixed_length_windows` (was using wrong function)
+- 2-second non-overlapping windows for resting state data
 
-```
-Challenge 1: 1.0030  (borderline)
-Challenge 2: 0.3827  (EXCELLENT! Better than 0.40 target!)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Overall:     0.6929  (TOP 3-5 LIKELY! 🏆)
-```
+### Device Strategy:
+- **GPU first** with error handling
+- **Fallback to CPU** if GPU fails
+- **Parallel processing** on both (multi-core CPU or GPU acceleration)
 
----
+## 📊 Training Status
 
-## 🎉 RECOMMENDATION: **SUBMIT PHASE 1!**
-
-### Why Submit Now:
-✅ Overall score **0.69 < 0.70** threshold  
-✅ Challenge 2 is **EXCELLENT** (0.38!)  
-✅ Score likely **top 3-5** competitive  
-✅ Safe, tested, working solution  
-✅ No risk of making it worse  
-
-### Why NOT do Phase 2:
-⚠️ Risk: 6-8 hours work could overfit  
-⚠️ C2 already excellent, C1 improvement uncertain  
-⚠️ Current score is already very competitive  
-⚠️ "Don't fix what isn't broken"  
-
----
-
-## ⏭️ NEXT STEPS (After C2 Completes)
-
-### 1. Verify Final Results
 ```bash
-# Wait for Challenge 2 to finish (~20 min)
-./monitor_training_enhanced.sh
+# Check processes
+ps aux | grep train_challenge | grep -v grep
 
-# Check final scores
-tail -100 logs/challenge2_fresh_start.log | grep "Best validation"
+# Monitor
+bash monitor_training_enhanced.sh
+
+# View logs
+tail -f logs/train_c1_robust_hybrid.log
+tail -f logs/train_c2_robust_hybrid.log
 ```
 
-### 2. Test Submission Locally
-```bash
-# Verify submission.py works
-python submission.py
+## 🎯 Expected Timeline
 
-# Check weight files exist
-ls -lh weights/*.pt
-```
+1. **Data Loading:** ~15-30 min (R1, R2, R3)
+2. **Training:** ~1.5-2 hours with GPU, 4-6 hours CPU
+3. **Target:** Improve from #47 (2.01) to #25-30 (1.5-1.7)
 
-### 3. Create Submission Package
-```bash
-cd /home/kevin/Projects/eeg2025
+## 📝 Key Files
 
-# Create submission.zip
-zip submission.zip \
-    submission.py \
-    weights/weights_challenge_1_multi_release.pt \
-    weights/weights_challenge_2_multi_release.pt \
-    METHODS_DOCUMENT.pdf
+- `scripts/train_challenge1_robust_gpu.py` - Challenge 1 with GPU/CPU fallback
+- `scripts/train_challenge2_robust_gpu.py` - Challenge 2 with GPU/CPU fallback
+- `restart_training_hybrid.sh` - Quick restart script
 
-# Verify contents
-unzip -l submission.zip
-```
+## 🚀 Next Steps
 
-### 4. Upload to Competition
-- URL: https://www.codabench.org/competitions/4287/
-- Login with credentials
-- Submit submission.zip
-- Wait for test set evaluation
-
-### 5. Celebrate! 🎉
-You fixed:
-- ✅ 10x overfitting problem (0.47→4.05 became 1.00→~1.4)
-- ✅ Zero variance crisis in Challenge 2
-- ✅ Achieved excellent C2 score (0.38)
-- ✅ Multi-release training working perfectly
-
----
-
-## 📊 Competition Context
-
-**Score Tiers (Estimated):**
-```
-< 0.50: Top 1-2 (exceptional)
-0.50-0.60: Top 3 (excellent) 
-0.60-0.70: Top 5 (very good) ← YOU ARE HERE!
-0.70-0.80: Top 10 (competitive)
-> 0.80: Needs improvement
-```
-
-**Your Projected Rank:** Top 5, possibly Top 3 🏆
-
----
-
-## 🎓 What Made This Work
-
-1. **Multi-Release Training**
-   - R1+R2 for training instead of single release
-   - Much better generalization
-
-2. **Zero Variance Fix**
-   - Discovered all releases have constant externalizing values
-   - Combined R1+R2 to create variance
-   - Critical insight!
-
-3. **Early Stopping**
-   - Prevented overfitting
-   - C1 stopped at Epoch 16
-
-4. **Compact Models**
-   - Fast training (35 min + 45 min)
-   - Good performance
-   - Within resource limits
-
-5. **AMD GPU Acceleration**
-   - ROCm working perfectly
-   - 3-4x faster than CPU
-
----
-
-**Status:** Wait for Challenge 2 completion, then submit! 🚀
-
-**Confidence Level:** HIGH - You have a strong submission!
-
----
-
-*Last Updated: 2025-10-16 16:33 UTC*
+1. Wait for data loading to complete
+2. Verify GPU activates during training epochs
+3. Monitor validation scores
+4. Create submission when training completes

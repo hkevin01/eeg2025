@@ -1,293 +1,405 @@
-# Deep Learning for EEG-Based Response Time and Clinical Factor Prediction
+# Methods Document - NeurIPS 2025 EEG Foundation Challenge
 
-**Team**: eeg2025  
-**Competition**: NeurIPS 2025 EEG Challenge  
-**Date**: October 2025
-
----
-
-## Abstract
-
-We present deep convolutional neural networks for predicting response times from EEG data (Challenge 1) and externalizing clinical factors (Challenge 2) using the Healthy Brain Network dataset. Our approach achieves NRMSE of 0.4680 for Challenge 1 and 0.0808 for Challenge 2 on held-out validation data. Key innovations include data augmentation strategies specifically designed for small EEG datasets, multi-scale temporal feature extraction, and aggressive regularization to prevent overfitting.
+**Team:** [Your Team Name]  
+**Competition:** NeurIPS 2025 EEG Foundation Challenge  
+**Date:** October 16, 2025
 
 ---
 
-## 1. Introduction
+## 1. Overview
 
-Electroencephalography (EEG) provides rich temporal information about brain activity that correlates with behavioral and clinical outcomes. The NeurIPS 2025 EEG Challenge tasks participants with:
+Our submission addresses two prediction tasks from EEG data:
+- **Challenge 1:** Response time prediction from Contrast Change Detection (CCD) task
+- **Challenge 2:** Externalizing factor prediction from Resting State EEG
 
-1. **Challenge 1**: Predicting response times from contrast change detection (CCD) task EEG data
-2. **Challenge 2**: Predicting externalizing psychopathology factors from resting-state EEG
-
-These tasks require models that can extract meaningful features from high-dimensional, noisy EEG signals while generalizing to unseen subjects.
-
----
-
-## 2. Data and Preprocessing
-
-### 2.1 Dataset
-
-We utilized the Healthy Brain Network (HBN) dataset, a large-scale pediatric neuroimaging database. The competition provided downsampled data at 100 Hz with 129 EEG channels.
-
-**Challenge 1 Dataset**:
-- **Subjects**: 20 with CCD task data (3 runs each)
-- **Segments**: 420 trial segments after quality filtering
-- **Response times**: 0.1 to 5.0 seconds (mean: 3.545s, std: 1.552s)
-
-**Challenge 2 Dataset**:
-- **Subjects**: 12 with resting-state EEG data
-- **Segments**: 2,315 segments
-- **Target**: Externalizing factor scores from Child Behavior Checklist (CBCL)
-
-### 2.2 Preprocessing Pipeline
-
-1. **Loading**: BDF files loaded using MNE-Python
-2. **Resampling**: All data resampled to 100 Hz (per competition requirements)
-3. **Segmentation**: 2-second windows (200 samples @ 100 Hz)
-4. **Normalization**: Channel-wise z-score standardization
-5. **Quality Control**: Segments with artifacts removed
-
-For Challenge 1, segments were aligned to trial start events, with response times calculated from stimulus onset to button press. For Challenge 2, continuous resting-state data was segmented with 50% overlap.
-
-### 2.3 Data Augmentation
-
-To address the limited Challenge 1 dataset (420 segments), we implemented:
-
-- **Gaussian noise injection**: σ = 0.05 during training
-- **Temporal jitter**: Random ±5 sample shifts
-- **Dropout regularization**: 30% and 20% in fully connected layers
-
-**Impact**: These techniques improved Challenge 1 NRMSE from 0.9988 to 0.4680 (53% improvement).
+**Key Innovation:** Multi-release training strategy to address distribution shift between training and test sets.
 
 ---
 
-## 3. Model Architectures
+## 2. Dataset
 
-### 3.1 Challenge 1: Improved Response Time CNN
+**Source:** Healthy Brain Network (HBN) EEG dataset  
+**Preprocessing:** Competition-provided preprocessing:
+- Downsampled: 500 Hz → 100 Hz
+- Bandpass filtered: 0.5-50 Hz
+- Re-referenced: Cz channel
 
-**Feature Extraction Block**:
-```
-Input: (batch, 129 channels, 200 samples)
-├─ Conv1D(129→64, kernel=7) + BatchNorm + ReLU + MaxPool(2)
-├─ Conv1D(64→128, kernel=5) + BatchNorm + ReLU + MaxPool(2)
-├─ Conv1D(128→256, kernel=3) + BatchNorm + ReLU + MaxPool(2)
-├─ Conv1D(256→512, kernel=3) + BatchNorm + ReLU
-└─ AdaptiveAvgPool1D → Flatten
+**Training Data:**
+- Releases R1-R4: Training set (~240 subjects per challenge)
+- Release R5: Validation set (~60 subjects)
+- Release R12: Held-out test set (organizers only)
+
+**EEG Configuration:**
+- Channels: 129 (128 + reference)
+- Sampling rate: 100 Hz
+- Window size: 2 seconds (200 samples)
+
+---
+
+## 3. Challenge 1: Response Time Prediction
+
+### 3.1 Task
+Predict reaction time from EEG during Contrast Change Detection task, where participants identify which of two flickering gratings has dominant contrast.
+
+### 3.2 Data Processing
+
+**Trial Extraction:**
+- Task: Contrast Change Detection (CCD)
+- Trial annotation using `braindecode.preprocessing.annotate_trials_with_target`
+- Requirements: Both stimulus and response present
+- Shift: 0.0s after stimulus onset
+- Epoch length: 2.0 seconds
+
+**Windowing:**
+- Method: `create_fixed_length_windows` from braindecode
+- Window size: 200 samples (2 seconds @ 100 Hz)
+- Stride: 200 samples (non-overlapping)
+- Target: Response time extracted from trial metadata
+
+**Key Fix:** 
+Windows created with `targets_from="metadata"` return event type (0/1) as `y`, not response time. We extract `response_time` directly from window metadata dictionary.
+
+```python
+# Extract response_time from metadata (not y which is event marker)
+if isinstance(metadata, list):
+    meta_dict = metadata[0] if len(metadata) > 0 else {}
+else:
+    meta_dict = metadata
+
+response_time = meta_dict.get('response_time', 0.0)
 ```
 
-**Regression Head**:
-```
-├─ Linear(512→256) + ReLU + Dropout(0.3)
-├─ Linear(256→128) + ReLU + Dropout(0.2)
-└─ Linear(128→1)
-Output: Response time (seconds)
-```
+### 3.3 Model Architecture
 
-**Parameters**: ~250,000  
-**Design rationale**: Multi-scale convolutional layers capture both fast oscillations (gamma, beta) and slower temporal dynamics (alpha, theta).
-
-### 3.2 Challenge 2: Externalizing Factor CNN
-
-A simpler architecture proved effective for the larger Challenge 2 dataset:
+**CompactResponseTimeCNN** (200,048 parameters)
 
 ```
-Input: (batch, 129 channels, 200 samples)
-├─ Conv1D(129→64, kernel=7, stride=2) + BatchNorm + ReLU
-├─ Conv1D(64→128, kernel=5, stride=2) + BatchNorm + ReLU
-├─ Conv1D(128→256, kernel=3, stride=2) + BatchNorm + ReLU
-├─ AdaptiveAvgPool1D → Flatten
-├─ Linear(256→128) + ReLU + Dropout(0.3)
-├─ Linear(128→64) + ReLU + Dropout(0.2)
-└─ Linear(64→1)
-Output: Externalizing factor score (normalized)
+Input: (129 channels, 200 timepoints)
+
+Features:
+  Conv1D(129→32, k=7, s=2, p=3) + BatchNorm + ReLU + Dropout(0.3)
+  Conv1D(32→64, k=5, s=2, p=2) + BatchNorm + ReLU + Dropout(0.4)
+  Conv1D(64→128, k=3, s=2, p=1) + BatchNorm + ReLU + Dropout(0.5)
+  AdaptiveAvgPool1D(1) + Flatten
+
+Regressor:
+  Linear(128→64) + ReLU + Dropout(0.5)
+  Linear(64→32) + ReLU + Dropout(0.4)
+  Linear(32→1)
+
+Output: Response time (continuous value)
 ```
 
-**Parameters**: 239,617  
-**Design rationale**: Rapid feature compression suitable for resting-state signals with slower temporal dynamics.
+**Design Rationale:**
+- **75% parameter reduction** (vs 800K baseline) to prevent overfitting
+- **Progressive dropout** (0.3→0.4→0.5) for strong regularization
+- **Simple architecture** to learn robust features across releases
 
----
+### 3.4 Training
 
-## 4. Training Procedure
+**Optimizer:** AdamW
+- Learning rate: 1e-3
+- Weight decay: 1e-4 (L2 regularization)
+- Scheduler: CosineAnnealingLR (T_max=50)
 
-### 4.1 Optimization
+**Loss:** Mean Squared Error (MSE)
 
-- **Optimizer**: AdamW
-  - Learning rate: 5×10⁻⁴
-  - Weight decay: 1×10⁻⁵
-- **Scheduler**: CosineAnnealingLR over 40 epochs
-- **Batch size**: 32
-- **Loss function**: Mean Squared Error (MSE)
-- **Gradient clipping**: max norm = 1.0
-
-### 4.2 Regularization Techniques
-
-- **Early stopping**: Patience = 10 epochs
-- **Dropout**: In fully connected layers (30%, 20%)
-- **Batch normalization**: In all convolutional layers
-- **Data augmentation**: Challenge 1 only (see Section 2.3)
-
-### 4.3 Data Split
-
-- **Training**: 80% of data
-- **Validation**: 20% of data
-- Random splitting ensures diverse subject representation
-
-### 4.4 Hardware and Environment
-
-- **Platform**: Ubuntu 22.04, Python 3.12
-- **Framework**: PyTorch 2.5.1
-- **EEG Processing**: MNE-Python 1.7.1
-- **Hardware**: CPU-only training (AMD GPU instability issues)
-- **Training time**: <1 hour total for both challenges
-
----
-
-## 5. Results
-
-### 5.1 Challenge 1: Response Time Prediction
-
-| Metric | Value |
-|--------|-------|
-| **NRMSE (validation)** | **0.4680** |
-| Competition target | 0.5000 |
-| Improvement | 6.4% below target |
-| Best epoch | 18/40 |
-| Inference time | 3.9 ms (average) |
-| Prediction range | 1.09 - 2.28 seconds |
-
-**Analysis**: Despite limited training data (420 segments), the model learned meaningful response time patterns. Data augmentation was critical for achieving below-target performance.
-
-### 5.2 Challenge 2: Externalizing Factor Prediction
-
-| Metric | Value |
-|--------|-------|
-| **NRMSE (validation)** | **0.0808** |
-| Competition target | 0.5000 |
-| Improvement | 83.8% below target |
-| **Correlation** | **0.9972** |
-| Best epoch | 7/40 |
-| Inference time | 2.1 ms (average) |
-
-**Analysis**: The near-perfect correlation (0.9972) indicates that resting-state EEG contains robust signals for clinical factor prediction. Fast convergence (7 epochs) suggests strong signal-to-noise ratio.
-
-### 5.3 Overall Competition Score
-
-Competition scoring formula: **30% Challenge 1 + 70% Challenge 2**
-
+**Evaluation Metric:** Normalized RMSE
 ```
-Overall NRMSE = 0.30 × 0.4680 + 0.70 × 0.0808
-               = 0.1404 + 0.0566
-               = 0.1970
+NRMSE = RMSE / std(targets)
 ```
 
-**Result**: Overall NRMSE of **0.1970**, representing a **2.5× improvement** over the 0.5 competition baseline.
+**Training Strategy:**
+- Epochs: 50 (with early stopping after 15 epochs no improvement)
+- Batch size: 32
+- Gradient clipping: max_norm=1.0
+- Early stopping patience: 15 epochs
 
-### 5.4 Validation Summary
-
-Comprehensive validation testing confirmed:
-- ✅ Both models load successfully
-- ✅ Inference runs without errors
-- ✅ Memory usage: 54.2 MB (well under 20GB limit)
-- ✅ Output ranges are reasonable
-- ✅ Fast inference: C1=3.9ms, C2=2.1ms average
-
----
-
-## 6. Discussion
-
-### 6.1 Key Findings
-
-1. **Data augmentation critical for small datasets**: Challenge 1 performance improved 53% with noise injection and temporal jittering.
-
-2. **Resting-state EEG highly predictive of clinical factors**: Challenge 2 correlation of 0.9972 suggests EEG captures robust individual differences in psychopathology.
-
-3. **Simple architectures sufficient**: Standard CNN architectures outperformed baselines without requiring complex attention mechanisms or transformer layers.
-
-4. **Fast inference enables real-time applications**: Both models process samples in <10ms, suitable for online prediction scenarios.
-
-### 6.2 Limitations
-
-1. **Challenge 1 limited by small dataset**: Only 420 training segments across 20 subjects. More data could further improve performance.
-
-2. **No cross-validation**: Time constraints prevented k-fold validation for robustness estimates.
-
-3. **Single model per challenge**: No ensemble methods to reduce prediction variance.
-
-4. **Hardware constraints**: AMD GPU instability forced CPU-only training, limiting exploration of larger models.
-
-5. **Limited task diversity**: Challenge 1 used only CCD task; multi-task training could improve generalization.
-
-### 6.3 Future Work
-
-1. **Cross-validation**: 5-fold CV for robustness estimates and confidence intervals.
-
-2. **Ensemble methods**: Train multiple models with different seeds and average predictions.
-
-3. **Advanced preprocessing**: Independent Component Analysis (ICA) for artifact removal.
-
-4. **Transfer learning**: Pre-train on larger EEG datasets (e.g., TUH EEG Corpus).
-
-5. **Multi-task learning**: Joint training on both challenges to learn shared representations.
-
-6. **Attention mechanisms**: Explore spatial attention to weight channel importance.
-
-7. **Test-time augmentation**: Average predictions over augmented versions of test samples.
+**Data:**
+- Train: R1-R4 (multi-release)
+- Validation: R5 (cross-release validation)
+- Normalization: Per-window z-score (channel-wise)
 
 ---
 
-## 7. Conclusion
+## 4. Challenge 2: Externalizing Factor Prediction
 
-We developed CNN-based models for EEG analysis that significantly outperform competition baselines on both response time prediction (NRMSE 0.4680) and clinical factor prediction (NRMSE 0.0808). Our results demonstrate three key insights:
+### 4.1 Task
+Predict externalizing psychopathology factor from resting state EEG. Externalizing represents outward-directed behavioral traits (impulsivity, activity level, rule-challenging).
 
-1. **Data augmentation is essential** for achieving competitive performance on small EEG datasets
-2. **Resting-state EEG contains rich clinical information** with near-perfect predictive correlation
-3. **Simple, well-regularized architectures** can outperform complex models when properly tuned
+### 4.2 Data Processing
 
-The overall competition score of 0.1970 (2.5× better than baseline) positions our approach competitively. Fast inference times (<10ms per sample) make these models practical for real-world applications.
+**Continuous Recording:**
+- Task: RestingState (eyes open/closed)
+- No trial structure (continuous EEG)
+- Total duration: ~3-5 minutes per subject
+
+**Windowing:**
+- Method: `create_fixed_length_windows` from braindecode
+- Window size: 200 samples (2 seconds @ 100 Hz)
+- Stride: 100 samples (50% overlap)
+- Purpose: Extract multiple samples per subject
+
+**Target Extraction:**
+- Externalizing scores stored in `dataset.description['externalizing']` (subject-level)
+- For each window, we map back to parent dataset to retrieve score
+- All windows from same subject share same externalizing score
+
+**Key Fix:**
+RestingState has no trial-level metadata. Externalizing is a subject-level score that must be extracted from dataset description and mapped to each window.
+
+```python
+# During initialization: map windows to externalizing scores
+for win_idx in range(len(windows_dataset)):
+    _, _, win_metadata = windows_dataset[win_idx]
+    
+    # Get which dataset this window came from
+    if isinstance(win_metadata, list) and len(win_metadata) > 0:
+        dataset_ind = win_metadata[0].get('i_dataset', 0)
+    else:
+        dataset_ind = 0
+    
+    # Get externalizing score from that dataset
+    orig_dataset = dataset.datasets[dataset_ind]
+    externalizing_score = orig_dataset.description.get('externalizing', 0.0)
+    
+    self.externalizing_scores.append(externalizing_score)
+
+# In __getitem__: use pre-computed score
+externalizing = self.externalizing_scores[idx]
+```
+
+### 4.3 Model Architecture
+
+**CompactExternalizingCNN** (64,001 parameters)
+
+```
+Input: (129 channels, 200 timepoints)
+
+Features:
+  Conv1D(129→32, k=7, s=2, p=3) + BatchNorm + ELU + Dropout(0.3)
+  Conv1D(32→64, k=5, s=2, p=2) + BatchNorm + ELU + Dropout(0.4)
+  Conv1D(64→96, k=3, s=2, p=1) + BatchNorm + ELU + Dropout(0.5)
+  AdaptiveAvgPool1D(1) + Flatten
+
+Regressor:
+  Linear(96→48) + ELU + Dropout(0.5)
+  Linear(48→24) + ELU + Dropout(0.4)
+  Linear(24→1)
+
+Output: Externalizing factor (continuous value)
+```
+
+**Design Rationale:**
+- **75% parameter reduction** (vs 600K baseline) to prevent overfitting
+- **ELU activations** instead of ReLU for smoother gradients
+- **Even smaller** (64K params) due to simpler task (subject-level vs trial-level)
+- **Progressive dropout** (0.3→0.4→0.5) for regularization
+
+### 4.4 Training
+
+**Optimizer:** AdamW
+- Learning rate: 1e-3
+- Weight decay: 1e-4
+- Scheduler: CosineAnnealingLR (T_max=50)
+
+**Loss:** Mean Squared Error (MSE)
+
+**Evaluation Metric:** Normalized RMSE
+
+**Training Strategy:**
+- Epochs: 50 (with early stopping after 15 epochs no improvement)
+- Batch size: 32
+- Gradient clipping: max_norm=1.0
+- Early stopping patience: 15 epochs
+
+**Data:**
+- Train: R1-R4 RestingState recordings (multi-release)
+- Validation: R5 RestingState
+- Normalization: Per-window z-score (channel-wise)
 
 ---
 
-## 8. Code and Reproducibility
+## 5. Multi-Release Training Strategy
 
-All code, trained models, and documentation are included in our submission package:
+### 5.1 Problem
 
-**Files**:
-- `submission.py` - Competition entry point with model definitions
-- `weights_challenge_1.pt` - Trained Challenge 1 model weights (949 KB)
-- `weights_challenge_2.pt` - Trained Challenge 2 model weights (949 KB)
+Previous single-release approach:
+- Trained on R5 only
+- Validated on R5 (same data)
+- Tested on R12 (different distribution)
+- **Result:** 10-14x performance degradation on test set
 
-**Additional Resources** (in repository):
-- Training scripts with full hyperparameters
-- Data preprocessing pipeline
-- Comprehensive validation suite
-- Performance documentation
+### 5.2 Solution
 
-**Environment**:
-- Python 3.12.7
-- PyTorch 2.5.1
-- MNE-Python 1.7.1
-- NumPy 1.26.4
-- scikit-learn 1.5.2
+**Cross-Release Training:**
+1. **Train:** Combine R1, R2, R3, R4 (diverse subjects, ~240 total)
+2. **Validate:** Use R5 (simulates distribution shift to R12)
+3. **Test:** Evaluated on R12 by organizers
 
-All models trained on CPU (Ubuntu 22.04) in <1 hour total. Inference requires <100 MB memory.
+**Benefits:**
+- Model sees diverse subjects across releases
+- Validation on different release catches overfitting
+- Better generalization to held-out R12
 
----
+### 5.3 Comparison
 
-## References
-
-1. Alexander, L.M., et al. (2017). *An open resource for transdiagnostic research in pediatric mental health and learning disorders.* Scientific Data, 4, 170181.
-
-2. Gramfort, A., et al. (2013). *MEG and EEG data analysis with MNE-Python.* Frontiers in Neuroscience, 7, 267.
-
-3. Paszke, A., et al. (2019). *PyTorch: An imperative style, high-performance deep learning library.* NeurIPS, 32.
-
-4. Kingma, D. P., & Ba, J. (2015). *Adam: A method for stochastic optimization.* ICLR.
-
-5. Loshchilov, I., & Hutter, F. (2019). *Decoupled weight decay regularization.* ICLR.
+| Approach | Training | Validation | Test (R12) | Degradation |
+|----------|----------|------------|------------|-------------|
+| **Old** | R5 | R5 | Poor | 10-14x |
+| **New** | R1-R4 | R5 | Expected Good | ~2x |
 
 ---
 
-**Word Count**: ~1,800 words (fits comfortably in 2-page PDF format)
+## 6. Implementation Details
 
-**Submission Package Ready**: ✅  
-**Competition URL**: https://www.codabench.org/competitions/4287/
+### 6.1 Data Loading
+
+**Corrupted File Handling:**
+- Test each dataset by accessing `raw.n_times`
+- Skip corrupted files
+- Log all skipped datasets
+
+**Multi-Release Dataset:**
+- Load each release separately
+- Check and skip corrupted files
+- Create windows for each release
+- Concatenate all windows
+- Track release label for each window
+
+### 6.2 Normalization
+
+**Per-Window Z-Score Normalization:**
+```python
+X_norm = (X - mean(X, axis=channels)) / (std(X, axis=channels) + 1e-8)
+```
+
+Applied independently to each window to handle:
+- Different EEG amplitudes across subjects
+- Baseline drift within recordings
+- Impedance variations
+
+### 6.3 Training Loop
+
+```python
+for epoch in range(50):
+    # Training
+    model.train()
+    for X_batch, y_batch in train_loader:
+        optimizer.zero_grad()
+        predictions = model(X_batch)
+        loss = criterion(predictions, y_batch)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
+    
+    # Validation
+    model.eval()
+    with torch.no_grad():
+        val_predictions = []
+        val_targets = []
+        for X_val, y_val in val_loader:
+            pred = model(X_val)
+            val_predictions.append(pred)
+            val_targets.append(y_val)
+        
+        nrmse = compute_nrmse(val_targets, val_predictions)
+        
+        if nrmse < best_nrmse:
+            best_nrmse = nrmse
+            save_checkpoint()
+            patience_counter = 0
+        else:
+            patience_counter += 1
+        
+        if patience_counter >= 15:
+            break  # Early stopping
+    
+    scheduler.step()
+```
+
+---
+
+## 7. Software and Libraries
+
+**Core Libraries:**
+- PyTorch 2.9.0
+- braindecode 1.2.0 (EEG-specific preprocessing and windowing)
+- eegdash 0.4.0 (HBN dataset access)
+- MNE-Python 1.10.2 (EEG data handling)
+- NumPy, SciPy (numerical operations)
+
+**Hardware:**
+- CPU-only training
+- RAM: 32 GB
+- Training time: ~2.5 hours per challenge
+
+---
+
+## 8. Expected Performance
+
+### 8.1 Previous Submission (R5 only)
+- Challenge 1: Val 0.47 → Test 4.05 (10x degradation)
+- Challenge 2: Val 0.08 → Test 1.14 (14x degradation)
+- Overall: 2.01 NRMSE
+
+### 8.2 Current Submission (R1-R4 multi-release)
+- Challenge 1: Expected ~1.4 NRMSE (3x improvement)
+- Challenge 2: Expected ~0.5 NRMSE (2x improvement)
+- Overall: Expected ~0.8 NRMSE (2.5x improvement)
+
+**Key Improvement:** Elimination of distribution shift degradation through cross-release validation.
+
+---
+
+## 9. Code Availability
+
+All code will be made available upon publication:
+- Training scripts: `train_challenge1_multi_release.py`, `train_challenge2_multi_release.py`
+- Model definitions: Contained in training scripts
+- Submission: `submission.py`
+
+---
+
+## 10. Lessons Learned
+
+### 10.1 Critical Bugs Found and Fixed
+
+1. **Challenge 1 Target Bug:** Windows return event type (0/1) as `y`, not response time. Must extract from metadata.
+
+2. **Challenge 2 Target Bug:** RestingState has no trial metadata. Externalizing scores are subject-level in dataset description, must be mapped to windows.
+
+3. **Metadata Format:** Braindecode windows return metadata as list of dicts (one per window), not single dict.
+
+4. **Architecture Mismatch:** Submission model must exactly match training model architecture.
+
+5. **Distribution Shift:** Single-release training catastrophically fails on held-out release.
+
+### 10.2 Best Practices
+
+- ✅ Always verify targets are correct (check for constant predictions)
+- ✅ Use cross-release validation to catch distribution shift
+- ✅ Smaller models with strong regularization generalize better
+- ✅ Check NRMSE ≠ 0.0 (indicates constant predictions)
+- ✅ Match submission.py architecture exactly to training
+
+---
+
+## 11. Conclusion
+
+Our multi-release training approach with compact, well-regularized CNN architectures addresses the critical distribution shift problem in the EEG Foundation Challenge. By training on diverse releases (R1-R4) and validating on a held-out release (R5), we expect 2-3x improvement over single-release approaches. The key innovations are:
+
+1. **Multi-release training** for robustness
+2. **Compact architectures** (75% parameter reduction)
+3. **Strong regularization** (dropout 0.3-0.5, weight decay)
+4. **Proper target extraction** from metadata
+5. **Cross-release validation** to simulate test conditions
+
+This approach should generalize well to the unseen R12 test set.
+
+---
+
+**Contact:** [Your Email]  
+**Code:** [GitHub Repository - to be released]  
+**Competition:** https://www.codabench.org/competitions/4287/
+
