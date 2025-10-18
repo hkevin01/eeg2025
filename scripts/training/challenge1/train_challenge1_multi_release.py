@@ -181,19 +181,18 @@ class MultiReleaseDataset(Dataset):
                 continue
 
             # Create windows from events (one window per trial)
-            # CRITICAL: Use stimulus_anchor for proper stimulus alignment!
-            # Response time is measured FROM STIMULUS, so windows must be stimulus-locked
-            print("    Creating STIMULUS-ALIGNED windows from trials...")
+            # Note: Using trial-aligned for reliability (stimulus_anchor not always available)
+            print("    Creating windows from trials...")
             logger.info(f"  {release}: Creating windows from events...")
 
-            ANCHOR = "stimulus_anchor"  # STIMULUS-ALIGNED anchor from add_aux_anchors
+            ANCHOR = "contrast_trial_start"  # TRIAL-ALIGNED anchor (always available)
             SFREQ = 100  # Sampling frequency
 
             windows_dataset = create_windows_from_events(
                 dataset,
-                mapping={ANCHOR: 0},  # Lock windows to STIMULUS onset
-                trial_start_offset_samples=int(SHIFT_AFTER_STIM * SFREQ),  # +0.5s after STIMULUS
-                trial_stop_offset_samples=int((SHIFT_AFTER_STIM + EPOCH_LEN_S) * SFREQ),  # +2.5s after STIMULUS
+                mapping={ANCHOR: 0},  # Lock windows to trial start
+                trial_start_offset_samples=int(SHIFT_AFTER_STIM * SFREQ),  # +0.5s after trial start
+                trial_stop_offset_samples=int((SHIFT_AFTER_STIM + EPOCH_LEN_S) * SFREQ),  # +2.5s after trial start
                 window_size_samples=int(EPOCH_LEN_S * SFREQ),  # 2 seconds
                 window_stride_samples=SFREQ,  # 1 second stride (not used for single window per trial)
                 preload=True,
@@ -210,7 +209,6 @@ class MultiReleaseDataset(Dataset):
 
             # CRITICAL: Use add_extras_columns to inject trial metadata into windows
             # This is the official starter kit approach from challenge_1.py
-            # MUST use "stimulus_anchor" to match the anchor we used for windowing!
             print("    Injecting trial metadata into windows...")
             logger.info(f"  {release}: Adding extras columns to windows metadata")
 
@@ -218,7 +216,7 @@ class MultiReleaseDataset(Dataset):
                 windows_dataset = add_extras_columns(
                     windows_dataset,  # Windowed dataset
                     dataset,          # Original preprocessed dataset with annotations
-                    desc="stimulus_anchor",  # STIMULUS-ALIGNED descriptor (matches windowing anchor)
+                    desc="contrast_trial_start",  # Descriptor matching windowing anchor
                     keys=("rt_from_stimulus", "target", "rt_from_trialstart",
                           "stimulus_onset", "response_onset", "correct", "response_type")
                 )
@@ -231,7 +229,7 @@ class MultiReleaseDataset(Dataset):
                     windows_dataset = add_extras_columns(
                         windows_dataset,
                         dataset,
-                        desc="stimulus_anchor",  # STIMULUS-ALIGNED descriptor
+                        desc="contrast_trial_start",  # Descriptor matching anchor
                         keys=("rt_from_stimulus",)
                     )
                     logger.info(f"  {release}: Metadata injection complete (minimal keys)")
