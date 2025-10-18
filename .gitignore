@@ -307,7 +307,7 @@ watch_*.sh.output
 quick_status.sh.output
 check_training_status.sh.output
 
-# Old/test/backup/deprecated files
+# Old/test/backup files
 *_old.py
 *_test.py
 *_backup.py
@@ -317,6 +317,8 @@ check_training_status.sh.output
 *_old.*
 *_backup.*
 *_temp.*
+gpu_*_test*.log
+run_gpu_test*.sh
 scripts/deprecated/**
 scripts/testing/**
 tests/old/**
