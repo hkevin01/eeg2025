@@ -314,10 +314,14 @@ class MultiReleaseDataset(Dataset):
         return self.windows_datasets[dataset_idx], idx
 
 
-class CompactResponseTimeCNN(nn.Module):
-    """Smaller CNN to reduce overfitting (200K params vs 800K)"""
+class CompactCNN(nn.Module):
+    """Compact CNN with STRONG regularization (L1+L2+Dropout) to prevent overfitting"""
 
-    def __init__(self):
+    def __init__(self, dropout_p=0.5):
+        """
+        Args:
+            dropout_p: Dropout probability (default 0.5 for strong regularization)
+        """
         super().__init__()
 
         self.features = nn.Sequential(
@@ -325,19 +329,19 @@ class CompactResponseTimeCNN(nn.Module):
             nn.Conv1d(129, 32, kernel_size=7, stride=2, padding=3),
             nn.BatchNorm1d(32),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(dropout_p * 0.6),  # 0.3 with default dropout_p=0.5
 
             # Conv2: 32x100 -> 64x50
             nn.Conv1d(32, 64, kernel_size=5, stride=2, padding=2),
             nn.BatchNorm1d(64),
             nn.ReLU(),
-            nn.Dropout(0.4),
+            nn.Dropout(dropout_p * 0.8),  # 0.4 with default dropout_p=0.5
 
             # Conv3: 64x50 -> 128x25
             nn.Conv1d(64, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(128),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(dropout_p),  # 0.5 with default dropout_p=0.5
 
             # Global pooling
             nn.AdaptiveAvgPool1d(1),
@@ -347,10 +351,10 @@ class CompactResponseTimeCNN(nn.Module):
         self.regressor = nn.Sequential(
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(dropout_p),  # 0.5 strong dropout before first FC
             nn.Linear(64, 32),
             nn.ReLU(),
-            nn.Dropout(0.4),
+            nn.Dropout(dropout_p * 0.8),  # 0.4 moderate dropout
             nn.Linear(32, 1)
         )
 
@@ -368,18 +372,34 @@ def compute_nrmse(y_true, y_pred):
     return rmse / std if std > 0 else 0.0
 
 
-def train_model(model, train_loader, val_loader, epochs=50):
-    """Train with strong regularization"""
+def train_model(model, train_loader, val_loader, epochs=50, l1_lambda=1e-5, l2_lambda=1e-4):
+    """
+    Train with STRONG regularization (L1 + L2 + Dropout)
+
+    Args:
+        model: PyTorch model
+        train_loader: Training data loader
+        val_loader: Validation data loader
+        epochs: Number of training epochs
+        l1_lambda: L1 regularization strength (default 1e-5)
+        l2_lambda: L2 regularization strength (default 1e-4)
+    """
 
     print("\n" + "="*80)
-    print("🔥 Training Multi-Release Model")
+    print("🔥 Training Multi-Release Model with Enhanced Regularization")
     print("="*80)
 
     total_params = sum(p.numel() for p in model.parameters())
     print(f"   Parameters: {total_params:,}")
+    print(f"   L1 penalty: {l1_lambda:.0e} (Lasso)")
+    print(f"   L2 penalty: {l2_lambda:.0e} (Ridge, via weight_decay)")
+    print(f"   Regularization: Elastic Net (L1 + L2)")
+    print(f"   Dropout: 0.3-0.5 throughout network")
+    print(f"   Gradient clipping: max_norm=1.0")
 
     criterion = nn.MSELoss()
-    optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    # L2 regularization via weight_decay
+    optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=l2_lambda)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
     best_nrmse = float('inf')
@@ -394,18 +414,31 @@ def train_model(model, train_loader, val_loader, epochs=50):
         # Train
         model.train()
         train_loss = 0
+        train_l1_loss = 0
         train_preds = []
         train_labels = []
 
         for data, labels in train_loader:
             optimizer.zero_grad()
             outputs = model(data)
-            loss = criterion(outputs, labels)
+
+            # MSE loss
+            mse_loss = criterion(outputs, labels)
+
+            # L1 regularization (Lasso) - sum of absolute weights
+            l1_penalty = 0.0
+            for param in model.parameters():
+                l1_penalty += torch.sum(torch.abs(param))
+
+            # Total loss = MSE + L1 penalty (L2 is handled by weight_decay in optimizer)
+            loss = mse_loss + l1_lambda * l1_penalty
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
-            train_loss += loss.item()
+            train_loss += mse_loss.item()  # Track MSE separately
+            train_l1_loss += l1_penalty.item()
             train_preds.extend(outputs.detach().numpy().flatten())
             train_labels.extend(labels.numpy().flatten())
 
@@ -432,6 +465,9 @@ def train_model(model, train_loader, val_loader, epochs=50):
         train_nrmse = compute_nrmse(train_labels_array, train_preds_array)
         val_nrmse = compute_nrmse(val_labels_array, val_preds_array)
 
+        # Calculate average L1 penalty per batch
+        avg_l1_penalty = train_l1_loss / len(train_loader)
+
         # Debug info on first epoch
         if epoch == 1:
             print(f"\n🔍 DEBUG - First 10 training targets: {train_labels_array[:10]}")
@@ -441,7 +477,7 @@ def train_model(model, train_loader, val_loader, epochs=50):
             print(f"🔍 DEBUG - First 10 val preds: {val_preds_array[:10]}")
             print(f"🔍 DEBUG - Val target stats: mean={val_labels_array.mean():.4f}, std={val_labels_array.std():.4f}, range=[{val_labels_array.min():.4f}, {val_labels_array.max():.4f}]\n")
 
-        print(f"Train NRMSE: {train_nrmse:.4f}")
+        print(f"Train NRMSE: {train_nrmse:.4f}  |  L1 Penalty: {avg_l1_penalty:.2e}")
         print(f"Val NRMSE:   {val_nrmse:.4f}")
 
         scheduler.step()
@@ -488,8 +524,12 @@ def main():
     print(f"   Train: {len(train_dataset)} windows")
     print(f"   Val:   {len(val_dataset)} windows")
 
-    # Create model
-    model = CompactResponseTimeCNN()
+    # Create model with strong regularization (dropout=0.5)
+    print("\n🏗️  Creating model with enhanced regularization:")
+    print("   • L1 + L2 regularization (Elastic Net)")
+    print("   • Dropout: 0.5 (50% neurons dropped during training)")
+    print("   • Gradient clipping: max_norm=1.0")
+    model = CompactCNN(dropout_p=0.5)
 
     # Train
     best_nrmse = train_model(model, train_loader, val_loader, epochs=50)
