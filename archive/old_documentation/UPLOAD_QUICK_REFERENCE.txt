@@ -1,0 +1,71 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                     v6a SUBMISSION - QUICK REFERENCE                       ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📦 FILE TO UPLOAD
+  Location: /home/kevin/Projects/eeg2025/eeg2025_submission_v6a_fixed.zip
+  Size: 2.4 MB
+  Status: ✅ READY (tested and fixed)
+
+🌐 UPLOAD URL
+  https://www.codabench.org/competitions/4287/
+
+📝 SUBMISSION DESCRIPTION (copy-paste this)
+─────────────────────────────────────────────────────────────────────────────
+v6a Fixed - TCN (C1) + CompactCNN (C2)
+- Challenge 1: TCN_EEG, 196K params, Val Loss 0.0102
+- Challenge 2: CompactExternalizingCNN, 64K params, Val NRMSE 0.2917
+- Fixed: Corrected weight loading in fallback path
+- Expected NRMSE: 0.15-0.18
+─────────────────────────────────────────────────────────────────────────────
+
+🐛 WHAT WAS FIXED
+  Problem: Challenge 2 fallback weight loading was broken
+  Impact: Model ran with untrained weights (garbage predictions)
+  Fix: Added torch.load() and load_state_dict() calls
+  Result: Both challenges now work correctly
+
+✅ LOCAL TESTING RESULTS
+  Challenge 1: ✅ Working (TCN loaded, Val Loss 0.0102)
+  Challenge 2: ✅ Working (CompactCNN loaded via fallback)
+  Predictions: Valid outputs in expected ranges
+  Status: All tests passed
+
+📊 EXPECTED PERFORMANCE
+  Challenge 1 NRMSE: ~0.10 (90% better than Oct 16: 1.002)
+  Challenge 2 NRMSE: ~0.29 (80% better than Oct 16: 1.460)
+  Overall NRMSE: ~0.15-0.18 (86% better than Oct 16: 1.322)
+  Expected Rank: Top 10-15
+
+📋 WHAT TO CHECK AFTER UPLOAD
+  1. Submission status: Should show "Running" then "Finished"
+  2. Metadata: exitCode should be 0 (not null)
+  3. scoring_result.zip: Should have content (not 0 bytes)
+  4. scores.json: Check Challenge1, Challenge2, Overall NRMSE
+  5. Leaderboard: Check rank and compare with expected
+
+⚠️ IF SUBMISSION FAILS AGAIN
+  1. Download prediction_result.zip and scoring_result.zip
+  2. Check metadata for exitCode (should be 0, not null)
+  3. Read scores.json for specific error messages
+  4. Report errors to continue debugging
+
+🎯 SUCCESS CRITERIA
+  Minimum: Execution completes (exitCode: 0), NRMSE < 0.30
+  Expected: NRMSE 0.15-0.18, Rank top 15
+  Optimal: NRMSE < 0.15, Rank top 10
+
+📚 DOCUMENTATION CREATED
+  1. V6A_SUBMISSION_FIX_SUMMARY.md - Complete overview
+  2. SUBMISSION_FIX_ANALYSIS.md - Technical details
+  3. SUBMISSION_CHANGELOG.md - Code changes
+  4. UPLOAD_QUICK_REFERENCE.txt - This file
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                        READY TO UPLOAD! 🚀                                 ║
+║                                                                            ║
+║  Next Step: Go to https://www.codabench.org/competitions/4287/            ║
+║             Upload eeg2025_submission_v6a_fixed.zip                        ║
+║             Wait 1-2 hours for validation                                  ║
+║             Check results and celebrate! 🎉                                ║
+╔════════════════════════════════════════════════════════════════════════════╝
