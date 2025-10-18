@@ -15,6 +15,10 @@ REFRESH_INTERVAL=10
 
 # Auto-detect latest log files
 detect_latest_logs() {
+    # Find the most recent Competition/Real data training log
+    # Include ALL training log patterns: train_real, train_fixed, train_independent, train_tcn_competition
+    COMP_LOG=$(ls -t logs/train_real*.log logs/train_fixed*.log logs/train_independent*.log logs/train_tcn_competition*.log 2>/dev/null | head -1)
+
     # Find the most recent Challenge 1 log (try multiple patterns)
     C1_LOG=$(ls -t logs/train_c1*.log logs/challenge1*.log 2>/dev/null | head -1)
     if [ -z "$C1_LOG" ]; then
@@ -51,6 +55,14 @@ get_process_info() {
     if [ -z "$info" ]; then
         # Try broader patterns for robust/gpu/cpu variants
         info=$(ps aux | grep "[p]ython.*train_challenge.*\.py" | grep -v grep | head -1)
+    fi
+    if [ -z "$info" ]; then
+        # Try competition data training patterns
+        info=$(ps aux | grep "[p]ython.*train_tcn_competition.*\.py" | grep -v grep | head -1)
+    fi
+    if [ -z "$info" ]; then
+        # Try any TCN training
+        info=$(ps aux | grep "[p]ython.*train_tcn.*\.py" | grep -v grep | head -1)
     fi
     if [ -z "$info" ]; then
         echo "STOPPED|0|0|0"
@@ -189,14 +201,14 @@ get_training_progress() {
     fi
 
     # Check if training completed
-    if grep -q "✅ TRAINING COMPLETE" "$log_file" 2>/dev/null; then
-        local best_val=$(grep "Best validation NRMSE:" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
-        local total_time=$(grep "Time:" "$log_file" | tail -1 | awk '{print $2, $3}')
+    if grep -q "✅ TRAINING COMPLETE\|🎉 Training Complete" "$log_file" 2>/dev/null; then
+        local best_val=$(grep -E "Best validation NRMSE:|Best validation loss:" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
+        local total_time=$(grep -E "Time:|Training time:" "$log_file" | tail -1 | awk '{print $2, $3}')
         local model_file=$(grep "Model saved:" "$log_file" | tail -1 | awk '{print $3}')
 
         echo -e "${GREEN}✅ TRAINING COMPLETE${NC}"
         if [ ! -z "$best_val" ]; then
-            echo -e "   ${BOLD}Best Val NRMSE: $(parse_nrmse $best_val)${NC} ⭐"
+            echo -e "   ${BOLD}Best Val Loss: $(parse_nrmse $best_val)${NC} ⭐"
         fi
         if [ ! -z "$total_time" ]; then
             echo -e "   Training Time: ${CYAN}$total_time${NC}"
@@ -210,14 +222,26 @@ get_training_progress() {
             echo -e "   ${YELLOW}⏹️  Early stopping triggered${NC}"
         fi
 
+        # Show checkpoint info for competition training
+        if grep -q "challenge1_tcn_competition" "$log_file" 2>/dev/null; then
+            echo -e "   ${CYAN}📦 Checkpoint: challenge1_tcn_competition_best.pth${NC}"
+        fi
+
         return
     fi
 
-    # Check if training started
-    if grep -q "Epoch 1/50" "$log_file" 2>/dev/null; then
-        # Get current epoch
-        local current_epoch=$(grep -oP "Epoch \K\d+(?=/50)" "$log_file" | tail -1)
-        local total_epochs=50
+    # Check if training started (look for epoch patterns)
+    if grep -qE "Epoch 1/[0-9]+|^Epoch 1$|^===.*Epoch 1" "$log_file" 2>/dev/null; then
+        # Get current epoch - try multiple patterns
+        local current_epoch=$(grep -oP "Epoch \K\d+(?=/\d+)" "$log_file" | tail -1)
+        if [ -z "$current_epoch" ]; then
+            current_epoch=$(grep -E "^Epoch [0-9]+" "$log_file" | tail -1 | grep -oP "Epoch \K\d+")
+        fi
+
+        local total_epochs=$(grep -oP "Epoch \d+/\K\d+" "$log_file" | tail -1)
+        if [ -z "$total_epochs" ]; then
+            total_epochs=100  # Default for competition training
+        fi
 
         if [ -z "$current_epoch" ]; then
             echo -e "${YELLOW}🔄 Starting Epoch 1...${NC}"
@@ -236,26 +260,39 @@ get_training_progress() {
         for ((i=0; i<empty; i++)); do bar+="░"; done
         bar+="]"
 
-        # Get NRMSE values
-        local train_nrmse=$(grep "Train NRMSE:" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
-        local val_nrmse=$(grep "Val NRMSE:" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
+        # Get loss values (handle both NRMSE and regular loss)
+        local train_loss=$(grep -E "Train Loss:|Train NRMSE:" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
+        local val_loss=$(grep -E "Val Loss:|Val NRMSE:" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
 
-        # Get best validation NRMSE
-        local best_val=$(grep "Best Val NRMSE" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
+        # Get best validation loss
+        local best_val=$(grep -E "Best Val|best model" "$log_file" | tail -1 | grep -oP '\d+\.\d+')
 
         echo -e "${GREEN}✅ TRAINING${NC}"
         echo -e "   Epoch: ${BOLD}$current_epoch/$total_epochs${NC} ${bar} ${progress}%"
 
-        if [ ! -z "$train_nrmse" ]; then
-            echo -e "   Train NRMSE: $(parse_nrmse $train_nrmse)"
+        if [ ! -z "$train_loss" ]; then
+            echo -e "   Train Loss: $(parse_nrmse $train_loss)"
         fi
 
-        if [ ! -z "$val_nrmse" ]; then
-            echo -e "   Val NRMSE:   $(parse_nrmse $val_nrmse)"
+        if [ ! -z "$val_loss" ]; then
+            echo -e "   Val Loss:   $(parse_nrmse $val_loss)"
         fi
 
         if [ ! -z "$best_val" ]; then
-            echo -e "   Best Val:    $(parse_nrmse $best_val) ⭐"
+            echo -e "   Best Val:   $(parse_nrmse $best_val) ⭐"
+        fi
+
+        # Get patience counter if available
+        local patience=$(grep -oP "Patience: \K\d+(?=/\d+)" "$log_file" | tail -1)
+        local max_patience=$(grep -oP "Patience: \d+/\K\d+" "$log_file" | tail -1)
+        if [ ! -z "$patience" ]; then
+            if [ "$patience" -gt 10 ]; then
+                echo -e "   ${RED}⚠️  Patience: $patience/$max_patience (Warning!)${NC}"
+            elif [ "$patience" -gt 5 ]; then
+                echo -e "   ${YELLOW}⏳ Patience: $patience/$max_patience${NC}"
+            else
+                echo -e "   ${CYAN}⏳ Patience: $patience/$max_patience${NC}"
+            fi
         fi
 
         # Estimate time remaining
@@ -273,57 +310,109 @@ get_training_progress() {
         # Still loading data
         echo -e "${YELLOW}🔄 LOADING DATA${NC}"
 
-        # Check for release loading progress
-        local loading_r1=$(grep -c "Loading R1" "$log_file" 2>/dev/null)
-        local loading_r2=$(grep -c "Loading R2" "$log_file" 2>/dev/null)
-        local loading_r3=$(grep -c "Loading R3" "$log_file" 2>/dev/null)
-        local total_loaded=$(grep "✅ Total:" "$log_file" 2>/dev/null | tail -1)
+        # Check for competition data loading
+        if grep -q "Loading competition data" "$log_file" 2>/dev/null; then
+            echo -e "   ${CYAN}📂 Loading competition data (R1-R5)${NC}"
 
-        # Show which releases are being loaded
-        if [ $loading_r1 -gt 0 ]; then
-            if grep -q "Loading R1.*✓" "$log_file" 2>/dev/null; then
-                echo -e "   ${GREEN}✓${NC} R1 loaded"
+            # Show which releases are being processed
+            if grep -q "Processing release: R1" "$log_file" 2>/dev/null; then
+                if grep -q "Extracted.*samples from R1" "$log_file" 2>/dev/null; then
+                    local r1_samples=$(grep "Extracted.*samples from R1" "$log_file" | grep -oP '\d+(?= samples)')
+                    echo -e "   ${GREEN}✓${NC} R1: $r1_samples samples"
+                else
+                    echo -e "   ${YELLOW}⏳${NC} Processing R1..."
+                fi
+            fi
+
+            if grep -q "Processing release: R2" "$log_file" 2>/dev/null; then
+                if grep -q "Extracted.*samples from R2" "$log_file" 2>/dev/null; then
+                    local r2_samples=$(grep "Extracted.*samples from R2" "$log_file" | grep -oP '\d+(?= samples)')
+                    echo -e "   ${GREEN}✓${NC} R2: $r2_samples samples"
+                else
+                    echo -e "   ${YELLOW}⏳${NC} Processing R2..."
+                fi
+            fi
+
+            if grep -q "Processing release: R3" "$log_file" 2>/dev/null; then
+                if grep -q "Extracted.*samples from R3" "$log_file" 2>/dev/null; then
+                    local r3_samples=$(grep "Extracted.*samples from R3" "$log_file" | grep -oP '\d+(?= samples)')
+                    echo -e "   ${GREEN}✓${NC} R3: $r3_samples samples"
+                else
+                    echo -e "   ${YELLOW}⏳${NC} Processing R3..."
+                fi
+            fi
+
+            if grep -q "Processing release: R4" "$log_file" 2>/dev/null; then
+                if grep -q "Extracted.*samples from R4" "$log_file" 2>/dev/null; then
+                    local r4_samples=$(grep "Extracted.*samples from R4" "$log_file" | grep -oP '\d+(?= samples)')
+                    echo -e "   ${GREEN}✓${NC} R4: $r4_samples samples"
+                else
+                    echo -e "   ${YELLOW}⏳${NC} Processing R4..."
+                fi
+            fi
+
+            # Show total samples loaded
+            if grep -q "Total samples loaded:" "$log_file" 2>/dev/null; then
+                local total_train=$(grep "Train samples:" "$log_file" | tail -1 | grep -oP '\d+')
+                local total_val=$(grep "Val samples:" "$log_file" | tail -1 | grep -oP '\d+')
+                if [ ! -z "$total_train" ]; then
+                    echo -e "   ${CYAN}📊 Train: ${BOLD}$total_train${NC}${CYAN} | Val: ${BOLD}$total_val${NC}"
+                fi
+            fi
+        else
+            # Original loading logic for challenge training
+            # Check for release loading progress
+            local loading_r1=$(grep -c "Loading R1" "$log_file" 2>/dev/null)
+            local loading_r2=$(grep -c "Loading R2" "$log_file" 2>/dev/null)
+            local loading_r3=$(grep -c "Loading R3" "$log_file" 2>/dev/null)
+            local total_loaded=$(grep "✅ Total:" "$log_file" 2>/dev/null | tail -1)
+
+            # Show which releases are being loaded
+            if [ $loading_r1 -gt 0 ]; then
+                if grep -q "Loading R1.*✓" "$log_file" 2>/dev/null; then
+                    echo -e "   ${GREEN}✓${NC} R1 loaded"
+                else
+                    echo -e "   ${YELLOW}⏳${NC} Loading R1..."
+                fi
+            fi
+
+            if [ $loading_r2 -gt 0 ]; then
+                if grep -q "Loading R2.*✓" "$log_file" 2>/dev/null; then
+                    echo -e "   ${GREEN}✓${NC} R2 loaded"
+                else
+                    echo -e "   ${YELLOW}⏳${NC} Loading R2..."
+                fi
+            fi
+
+            if [ $loading_r3 -gt 0 ]; then
+                if grep -q "Loading R3.*✓" "$log_file" 2>/dev/null; then
+                    echo -e "   ${GREEN}✓${NC} R3 loaded"
+                else
+                    echo -e "   ${YELLOW}⏳${NC} Loading R3..."
+                fi
+            fi
+
+            # Show total if available
+            if [ ! -z "$total_loaded" ]; then
+                local trial_count=$(echo "$total_loaded" | grep -oP '\d+(?= trials)')
+                if [ ! -z "$trial_count" ]; then
+                    echo -e "   ${CYAN}📊 Total: ${BOLD}$trial_count${NC}${CYAN} trials${NC}"
+                fi
+            fi
+        fi
+
+        # Show model creation status
+        if grep -q "Creating.*model" "$log_file" 2>/dev/null; then
+            local model_params=$(grep "Parameters:" "$log_file" | tail -1 | grep -oP '\d+[,\d]*')
+            if [ ! -z "$model_params" ]; then
+                echo -e "   ${GREEN}✓ Model created: $model_params parameters${NC}"
             else
-                echo -e "   ${YELLOW}⏳${NC} Loading R1..."
+                echo -e "   ${YELLOW}⏳${NC} Creating model..."
             fi
-        fi
-
-        if [ $loading_r2 -gt 0 ]; then
-            if grep -q "Loading R2.*✓" "$log_file" 2>/dev/null; then
-                echo -e "   ${GREEN}✓${NC} R2 loaded"
-            else
-                echo -e "   ${YELLOW}⏳${NC} Loading R2..."
-            fi
-        fi
-
-        if [ $loading_r3 -gt 0 ]; then
-            if grep -q "Loading R3.*✓" "$log_file" 2>/dev/null; then
-                echo -e "   ${GREEN}✓${NC} R3 loaded"
-            else
-                echo -e "   ${YELLOW}⏳${NC} Loading R3..."
-            fi
-        fi
-
-        # Show total if available
-        if [ ! -z "$total_loaded" ]; then
-            local trial_count=$(echo "$total_loaded" | grep -oP '\d+(?= trials)')
-            if [ ! -z "$trial_count" ]; then
-                echo -e "   ${CYAN}📊 Total: ${BOLD}$trial_count${NC}${CYAN} trials${NC}"
-            fi
-        fi
-
-        # Check for splitting message
-        if grep -q "Splitting dataset" "$log_file" 2>/dev/null; then
-            local train_samples=$(grep "Train:" "$log_file" | tail -1 | grep -oP '\d+(?= samples)')
-            local val_samples=$(grep "Val:" "$log_file" | tail -1 | grep -oP '\d+(?= samples)')
-            if [ ! -z "$train_samples" ]; then
-                echo -e "   ${CYAN}📊 Train: ${train_samples} | Val: ${val_samples}${NC}"
-            fi
-            echo -e "   ${YELLOW}⏳${NC} Preparing DataLoaders..."
         fi
 
         # Show latest activity (last non-empty line with relevant info)
-        local latest=$(tail -10 "$log_file" 2>/dev/null | grep -E "Loading|Creating|Checking|Windows|Preprocessing|Applying" | tail -1 | sed 's/^[[:space:]]*//' | cut -c1-70)
+        local latest=$(tail -10 "$log_file" 2>/dev/null | grep -E "Loading|Creating|Checking|Windows|Preprocessing|Applying|Processing|Found" | tail -1 | sed 's/^[[:space:]]*//' | cut -c1-70)
         if [ ! -z "$latest" ]; then
             echo -e "   ${DIM}${latest}...${NC}"
         fi
@@ -365,11 +454,14 @@ get_training_progress() {
     fi  # Close the "else" block from line 269
 }
 
+# Flag for clean exit
+MONITOR_RUNNING=true
+
 # Trap Ctrl+C for clean exit
-trap 'echo -e "\n${CYAN}Monitor stopped by user. Training continues in background.${NC}"; exit 0' INT
+trap 'MONITOR_RUNNING=false' INT TERM
 
 # Main monitoring loop
-while true; do
+while $MONITOR_RUNNING; do
     clear
     echo -e "${BOLD}${CYAN}════════════════════════════════════════════════════════════════════${NC}"
     echo -e "${BOLD}${CYAN}   🧠 EEG MULTI-RELEASE TRAINING MONITOR${NC}"
@@ -379,6 +471,51 @@ while true; do
 
     # Re-detect logs in case they changed
     detect_latest_logs
+
+    # Competition Data Training (if active)
+    if [ ! -z "$COMP_LOG" ] && [ -f "$COMP_LOG" ]; then
+        echo -e "${BOLD}${MAGENTA}🎯 COMPETITION DATA TRAINING: TCN on R1-R5${NC}"
+        echo -e "${BLUE}   Training: R1, R2, R3 | Validation: R4 ${GREEN}(Full Competition Dataset)${NC}"
+        echo -e "${CYAN}   Log: $COMP_LOG${NC}"
+
+        COMP_INFO=$(get_process_info "train_tcn_competition_data.py")
+        IFS='|' read -r comp_pid comp_cpu comp_mem comp_time <<< "$COMP_INFO"
+
+        if [ "$comp_pid" == "STOPPED" ]; then
+            if grep -q "🎉 Training Complete" "$COMP_LOG" 2>/dev/null; then
+                echo -e "   ${GREEN}✅ COMPLETED${NC}"
+
+                # Show final results
+                best_loss=$(grep "Best validation loss:" "$COMP_LOG" | tail -1 | grep -oP '\d+\.\d+')
+                total_epochs=$(grep "Total epochs:" "$COMP_LOG" | tail -1 | grep -oP '\d+')
+                if [ ! -z "$best_loss" ]; then
+                    echo -e "   ${BOLD}Best Val Loss: $(parse_nrmse $best_loss)${NC} ⭐"
+                    echo -e "   Total Epochs: ${CYAN}$total_epochs${NC}"
+                    echo -e "   ${GREEN}✓ Model: challenge1_tcn_competition_best.pth${NC}"
+                fi
+            else
+                echo -e "   ${RED}❌ NOT RUNNING${NC}"
+            fi
+        else
+            echo -e "   PID: ${comp_pid} | CPU: ${comp_cpu}% | MEM: ${comp_mem}% | Runtime: ${comp_time}"
+
+            # Device info
+            IFS='|' read -r log_device log_detail <<< "$(check_gpu_usage_from_logs "$COMP_LOG")"
+            IFS='|' read -r gpu_type gpu_name gpu_util gpu_mem temp power sclk mclk <<< "$(get_gpu_info)"
+
+            if [ "$log_device" == "GPU" ]; then
+                echo -e "   ${GREEN}✅ TRAINING ON GPU:${NC} ${BOLD}$log_detail${NC}"
+            elif [ "$log_device" == "CPU" ]; then
+                echo -e "   ${YELLOW}💻 TRAINING ON CPU${NC} (Stable for long runs)"
+            else
+                echo -e "   ${CYAN}💻 Device: CPU${NC}"
+            fi
+
+            get_training_progress "$COMP_LOG" "Competition TCN"
+        fi
+
+        echo ""
+    fi
 
     # Challenge 1
     echo -e "${BOLD}${MAGENTA}📊 CHALLENGE 1: Response Time Prediction${NC}"
@@ -627,5 +764,16 @@ while true; do
     echo -e "${CYAN}   Tip: Training runs in background - safe to close this monitor${NC}"
     echo -e "${BOLD}${CYAN}════════════════════════════════════════════════════════════════════${NC}"
 
-    sleep $REFRESH_INTERVAL
+    # Sleep in 1-second intervals to be responsive to Ctrl+C
+    for ((i=0; i<REFRESH_INTERVAL; i++)); do
+        if ! $MONITOR_RUNNING; then
+            echo -e "\n${CYAN}Monitor stopped by user. Training continues in background.${NC}"
+            exit 0
+        fi
+        sleep 1
+    done
 done
+
+# Clean exit message
+echo -e "\n${CYAN}Monitor stopped. Training continues in background.${NC}"
+exit 0
