@@ -245,7 +245,6 @@ docs/planning/**
 *_ANALYSIS.md
 *_STATUS.md
 *_TODO.md
-*_COMPLETE.md
 *_REPORT.md
 *_SUMMARY.md
 ANSWERS_TO_*.md
@@ -269,6 +268,13 @@ MEMORY_BANK_*.md
 ATTENTION_*.md
 NEXT_STEPS_*.md
 READY_TO_*.md
+
+# Keep important cleanup and session documentation
+!CLEANUP_SESSION_COMPLETE.md
+!GITIGNORE_CLEANUP_FINAL.md
+!TODO_NEXT_ACTIONS.md
+!CHANNEL_NORMALIZATION_EXPLAINED.md
+!MY_NORMALIZATION_METHODS.md
 
 # Old/archived documentation (too many files)
 docs/archive/
