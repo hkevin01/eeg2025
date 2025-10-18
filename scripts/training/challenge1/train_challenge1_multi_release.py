@@ -61,6 +61,7 @@ from eegdash.hbn.windows import (
     annotate_trials_with_target,
     add_aux_anchors,
     add_extras_columns,
+    keep_only_recordings_with,  # CRITICAL: Filter datasets without stimulus_anchor
 )
 
 print("="*80)
@@ -180,19 +181,32 @@ class MultiReleaseDataset(Dataset):
                 logger.warning(f"  {release}: No valid trials after preprocessing, skipping...")
                 continue
 
+            # CRITICAL: Keep only recordings that have stimulus_anchor (from add_aux_anchors)
+            # This is the official starter kit approach - filters out datasets without stimulus info
+            print("    Filtering datasets with stimulus_anchor...")
+            logger.info(f"  {release}: Keeping only recordings with stimulus_anchor")
+            dataset = keep_only_recordings_with("stimulus_anchor", dataset)
+            print(f"    Datasets with stimulus_anchor: {len(dataset.datasets)}/{valid_trials}")
+            logger.info(f"  {release}: {len(dataset.datasets)} datasets have stimulus_anchor")
+
+            if len(dataset.datasets) == 0:
+                logger.warning(f"  {release}: No datasets with stimulus_anchor, skipping...")
+                continue
+
             # Create windows from events (one window per trial)
-            # Note: Using trial-aligned for reliability (stimulus_anchor not always available)
-            print("    Creating windows from trials...")
+            # CRITICAL: Use stimulus_anchor for correct RT prediction (starter kit approach)
+            # Response time is measured FROM STIMULUS, so windows MUST be stimulus-locked
+            print("    Creating STIMULUS-ALIGNED windows from trials...")
             logger.info(f"  {release}: Creating windows from events...")
 
-            ANCHOR = "contrast_trial_start"  # TRIAL-ALIGNED anchor (always available)
+            ANCHOR = "stimulus_anchor"  # STIMULUS-ALIGNED anchor (from add_aux_anchors)
             SFREQ = 100  # Sampling frequency
 
             windows_dataset = create_windows_from_events(
                 dataset,
-                mapping={ANCHOR: 0},  # Lock windows to trial start
-                trial_start_offset_samples=int(SHIFT_AFTER_STIM * SFREQ),  # +0.5s after trial start
-                trial_stop_offset_samples=int((SHIFT_AFTER_STIM + EPOCH_LEN_S) * SFREQ),  # +2.5s after trial start
+                mapping={ANCHOR: 0},  # Lock windows to STIMULUS onset
+                trial_start_offset_samples=int(SHIFT_AFTER_STIM * SFREQ),  # +0.5s after STIMULUS
+                trial_stop_offset_samples=int((SHIFT_AFTER_STIM + EPOCH_LEN_S) * SFREQ),  # +2.5s after STIMULUS
                 window_size_samples=int(EPOCH_LEN_S * SFREQ),  # 2 seconds
                 window_stride_samples=SFREQ,  # 1 second stride (not used for single window per trial)
                 preload=True,
@@ -209,6 +223,7 @@ class MultiReleaseDataset(Dataset):
 
             # CRITICAL: Use add_extras_columns to inject trial metadata into windows
             # This is the official starter kit approach from challenge_1.py
+            # MUST use "stimulus_anchor" to match the anchor we used for windowing!
             print("    Injecting trial metadata into windows...")
             logger.info(f"  {release}: Adding extras columns to windows metadata")
 
@@ -216,7 +231,7 @@ class MultiReleaseDataset(Dataset):
                 windows_dataset = add_extras_columns(
                     windows_dataset,  # Windowed dataset
                     dataset,          # Original preprocessed dataset with annotations
-                    desc="contrast_trial_start",  # Descriptor matching windowing anchor
+                    desc="stimulus_anchor",  # STIMULUS-ALIGNED descriptor (matches windowing anchor)
                     keys=("rt_from_stimulus", "target", "rt_from_trialstart",
                           "stimulus_onset", "response_onset", "correct", "response_type")
                 )
@@ -229,7 +244,7 @@ class MultiReleaseDataset(Dataset):
                     windows_dataset = add_extras_columns(
                         windows_dataset,
                         dataset,
-                        desc="contrast_trial_start",  # Descriptor matching anchor
+                        desc="stimulus_anchor",  # STIMULUS-ALIGNED descriptor
                         keys=("rt_from_stimulus",)
                     )
                     logger.info(f"  {release}: Metadata injection complete (minimal keys)")
