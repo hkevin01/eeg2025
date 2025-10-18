@@ -1,2 +1,0 @@
-2025-10-16 21:04:06,942 - ERROR - Failed to import braindecode create_windows_from_events or preprocessing: No module named 'braindecode'
-2025-10-16 21:04:06,942 - ERROR - Please install a compatible braindecode and mne build. Example: pip install braindecode[mne]==0.7.2

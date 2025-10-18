@@ -1,6 +1,0 @@
-nohup: ignoring input
-🚀 Quick GPU Training
-==================================================
-
-📊 Step 1: Loading dataset...
-   ❌ Dataset error: SimpleEEGDataset.__init__() got an unexpected keyword argument 'subjects'

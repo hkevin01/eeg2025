@@ -1,2 +1,0 @@
-2025-10-14 14:25:30,080 - INFO - Starting multi-process training with 8 workers
-2025-10-14 14:25:30,080 - INFO - Effective batch size: 32 x 8 = 256

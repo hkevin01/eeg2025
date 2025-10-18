@@ -1,1 +1,0 @@
-🎉 TRAINING COMPLETED! Monitor script fixed. Best val loss: 0.010170. Model saved: checkpoints/challenge1_tcn_competition_best.pth. Ready for submission!
