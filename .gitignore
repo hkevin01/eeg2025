@@ -1,4 +1,6 @@
+# ============================================================================
 # Python
+# ============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,85 +21,355 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual environments
+# ============================================================================
+# Virtual Environments
+# ============================================================================
 venv/
 env/
 ENV/
 .venv
+.pyenv/
+pipenv/
+poetry.lock
 
-# Large data directories
+# ============================================================================
+# Large Data Directories (EEG Data)
+# ============================================================================
+# Raw EEG data (downloaded from competition)
 data/raw/**
 data/processed/**
 data/cache/**
-outputs/**
-checkpoints/*.pth
-logs/*.log
+data/eegdash/**
+data/hbn/**
+
+# Subject data directories (BIDS format) - CRITICAL
+sub-NDAR*/
+**/sub-NDAR*/
+data/**/sub-NDAR*/
+*.bdf
+*.edf
+*.fif
+*.fif.gz
 
 # Keep directory structure but ignore contents
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/cache/.gitkeep
-!outputs/.gitkeep
-!checkpoints/.gitkeep
-!logs/.gitkeep
+!data/eegdash/.gitkeep
+!data/hbn/.gitkeep
 
-# P300 Feature Extraction Cache (large pickle files)
+# Braindecode/MNE cached data
+data/mne_data/**
+~/.mne_data/**
+
+# Feature extraction caches
 data/processed/p300_cache/
 data/processed/p300_cache/*.pkl
-logs/p300_extraction.log
+data/processed/features/*.npy
+data/processed/features/*.pkl
 
-# IDE
+# ============================================================================
+# Model Outputs and Checkpoints
+# ============================================================================
+# Training outputs
+outputs/**
+!outputs/.gitkeep
+
+# Logs (EVERYTHING in logs/)
+logs/
+logs/**
+!logs/.gitkeep
+
+# TensorBoard and experiment tracking
+runs/**
+tensorboard/**
+wandb/**
+
+# Model checkpoints (large files)
+checkpoints/*.pth
+checkpoints/*.pt
+*.pth
+*.pt
+
+# Keep specific important checkpoints
+!weights_challenge_1_multi_release.pt
+!weights_challenge_2_multi_release.pt
+!*_best.pth
+!*_final.pt
+
+# Submission weights (keep these small ones)
+!submission_weights.pt
+
+# ============================================================================
+# Submission Packages
+# ============================================================================
+# Zip files and packages
+*.zip
+!starter_kit_*.zip
+submission_complete.zip
+submission_package/
+eeg2025_submission_*.zip
+
+# Archive folder - EVERYTHING (old experiments, logs, weights)
+archive/
+archive/**
+!archive/.gitkeep
+!archive/README.md
+
+# ============================================================================
+# IDE and Editor Settings
+# ============================================================================
+# VSCode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# PyCharm / IntelliJ
 .idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
 *.swp
 *.swo
 *~
+.*.sw[op]
 
-# OS
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# Operating System
+# ============================================================================
+# macOS
 .DS_Store
-Thumbs.db
+.AppleDouble
+.LSOverride
+._*
 
-# Jupyter
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ============================================================================
+# Jupyter Notebooks
+# ============================================================================
 .ipynb_checkpoints/
 *.ipynb
+!notebooks/tutorial*.ipynb
+!notebooks/demo*.ipynb
 
-# Testing
+# Jupyter notebook outputs
+*-checkpoint.ipynb
+
+# ============================================================================
+# Testing and Coverage
+# ============================================================================
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
 
-# Temporary files
+# ============================================================================
+# Temporary and Log Files
+# ============================================================================
 *.tmp
 *.bak
 *.orig
+*.log
 nohup.out
+*.out
 
-# Monitoring and extraction scripts output
+# Training and monitoring logs
 logs/p300_*.log
 logs/*_extraction.log
+logs/training_*.log
+logs/monitoring_*.log
+monitor_*.sh.log
 
-# Model checkpoints (keep small ones)
-*.pth
-*.pt
-!*_best.pth
+# Script outputs
+status_*.txt
+progress_*.txt
 
-# Submission packages and large files
-*.zip
-submission_complete.zip
-submission_package/
-archive/*.pt
-archive/*.zip
-
-# Documentation - keep markdown but ignore generated files
+# ============================================================================
+# Documentation (Keep Markdown, Ignore Generated)
+# ============================================================================
+# HTML/PDF generated from markdown
 *.html
+!docs/*.html
 *.pdf
 !README.pdf
 !METHOD_DESCRIPTION.pdf
 
-# Challenge 2 improvement tracking
-docs/CHALLENGE2_*.md
+# LaTeX intermediate files
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+
+# Analysis and status documents (ephemeral)
+docs/analysis/**
+docs/status/**
+docs/planning/**
+*_ANALYSIS.md
+*_STATUS.md
+*_TODO.md
+*_COMPLETE.md
+*_REPORT.md
+*_SUMMARY.md
+ANSWERS_TO_*.md
+CHALLENGE2_*.md
+COMPETITION_*.md
+CRITICAL_*.md
+EXECUTIVE_*.md
+METHODS_*.md
+PROGRESS_*.md
+SCORE_*.md
+SUBMISSION_*.md
+*_DISCOVERY.md
+*_CRISIS.md
+*_ISSUE.md
+*_EVOLUTION.md
+*_ORGANIZED.md
+*_UPDATE.md
+*_REFERENCE.md
+WORKSPACE_*.md
+MEMORY_BANK_*.md
+ATTENTION_*.md
+NEXT_STEPS_*.md
+READY_TO_*.md
+
+# Old/archived documentation (too many files)
+docs/archive/
+docs/archive/**
+docs/status/
+docs/status/**
+docs/planning/
+docs/planning/**
+docs/historical/
+docs/historical/**
+docs/summaries/
+docs/summaries/**
+docs/plans/
+docs/plans/**
+docs/analysis/CHALLENGE2_*_old.md
+docs/analysis/*_backup.md
+
+# ============================================================================
+# Project-Specific Patterns
+# ============================================================================
+# Challenge 2 improvement tracking (temporary files)
+docs/CHALLENGE2_*_old.md
+docs/*_backup.md
+
+# Training status files (generated during runs)
+TRAINING_STATUS_*.md
+GPU_TRAINING_STATUS_*.md
+*_STATUS_CURRENT.md
+
+# Monitoring scripts output
+monitor_debug.sh.output
+monitor_training.sh.output
+watch_*.sh.output
+
+# Quick status scripts
+quick_status.sh.output
+check_training_status.sh.output
+
+# Old/test/backup/deprecated files
+*_old.py
+*_test.py
+*_backup.py
+*_temp.py
+*_debug.py
+*_bak.py
+*_old.*
+*_backup.*
+*_temp.*
+scripts/deprecated/**
+scripts/testing/**
+tests/old/**
+tests/deprecated/**
+
+# Memory bank (AI assistant memory)
+memory-bank/**
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+secrets.yaml
+config/secrets.yaml
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Pickle files (except specific ones)
+*.pkl
+!data/normalization_stats*.pkl
+
+# Large numpy arrays
+*.npy
+!data/processed/important_*.npy
+
+# History and checkpoint JSON files
+*_history.json
+checkpoints/*_history.json
+
+# ============================================================================
+# Git and Version Control
+# ============================================================================
+*.orig
+*.rej
+.git/
+.gitattributes_backup
+
+# ============================================================================
+# Misc
+# ============================================================================
+# Shell history in project
+.bash_history
+.python_history
+.zsh_history
+
+# macOS Finder
+*.DS_Store
+
+# Editor backup files
+*~
+*.bak
+*.swp
+*.swo

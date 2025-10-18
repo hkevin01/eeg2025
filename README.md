@@ -1,11 +1,14 @@
-# 🧠 EEG 2025 NeurIPS Competition - Advanced EEG Foundation Model
+# 🧠 EEG 2025 NeurIPS Competition - Lightweight CNN Solution
 
 [![NeurIPS 2025](https://img.shields.io/badge/NeurIPS-2025-blue.svg)](https://eeg2025.github.io/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Score: 1.32](https://img.shields.io/badge/Best%20Score-1.32%20NRMSE-success.svg)](https://eeg2025.github.io/leaderboard)
 
-Deep learning foundation models for cross-task and cross-subject EEG decoding using novel sparse attention mechanisms and multi-release training strategies.
+Compact CNNs for EEG decoding: response time prediction and behavioral assessment using competition starter kit infrastructure with custom normalization and training strategies.
+
+**Current Best Score:** 1.32 NRMSE (Challenge 1: 1.00, Challenge 2: 1.46)
 
 ---
 
@@ -281,23 +284,170 @@ class ChannelAttention(nn.Module):
 
 ---
 
+## � What's in the Starter Kit vs. My Implementation
+
+### Starter Kit Infrastructure (Provided by Organizers)
+
+The competition organizers provided a comprehensive starter kit that handles:
+
+#### **Core Modules from Starter Kit**
+
+| Module | Purpose | What It Provides |
+|--------|---------|------------------|
+| **`eegdash`** | Competition data loader | Data download, caching, R1-R6 release management |
+| **`eegdash.EEGChallengeDataset`** | Official dataset class | Competition-specific preprocessing, ensures eval consistency |
+| **`braindecode`** | EEG deep learning toolkit | Preprocessing pipelines, window creation, dataset utilities |
+| **`mne`** | EEG signal processing | Industry-standard EEG I/O, filtering, event handling |
+
+#### **Starter Kit Components I Used**
+
+✅ **Data Loading:**
+```python
+from eegdash import EEGChallengeDataset
+dataset = EEGChallengeDataset(release="R1", query=dict(task="contrastChangeDetection"))
+```
+
+✅ **Preprocessing:**
+```python
+from braindecode.preprocessing import Preprocessor, preprocess
+from eegdash.hbn.windows import annotate_trials_with_target, add_aux_anchors
+# These functions extract response times and add event anchors
+```
+
+✅ **Window Creation:**
+```python
+from braindecode.preprocessing import create_windows_from_events
+# Creates event-locked 2-second windows using 'stimulus_anchor'
+```
+
+✅ **Official Metric:**
+```python
+def nrmse(y_true, y_pred):
+    return rmse(y_true, y_pred) / y_true.std()
+```
+
+✅ **Submission Template:**
+```python
+class Submission:
+    def get_model_challenge_1(self): ...
+    def get_model_challenge_2(self): ...
+```
+
+### My Implementation (Not in Starter Kit)
+
+#### **What I Built from Scratch**
+
+❌ **No starter kit models used** - Built custom architectures:
+- `CompactResponseTimeCNN` (75K params) for Challenge 1
+- `CompactExternalizingCNN` (64K params) for Challenge 2
+
+❌ **No normalization provided** - Implemented:
+```python
+# Method 1: Z-score normalization (used in submission)
+X = (X - X.mean(axis=1, keepdims=True)) / (X.std(axis=1, keepdims=True) + 1e-8)
+
+# Method 2: Robust scaling (implemented, not used)
+# src/dataio/preprocessing.py - median + IQR normalization
+
+# Method 3: GPU RMSNorm (experimental)
+# src/gpu/triton/rmsnorm.py - Triton kernel implementation
+```
+
+❌ **No training loop provided** - Implemented:
+- AdamW optimizer with weight decay
+- Cosine annealing LR scheduler
+- Early stopping with patience
+- Model checkpointing (save best validation model)
+- 5-fold cross-validation
+
+❌ **No data augmentation** - Implemented TTA:
+```python
+# TTAPredictor with 10 augmentations
+- Gaussian noise
+- Temporal scaling
+- Time shift
+- Channel dropout
+- Mixup
+```
+
+#### **Why I Didn't Use Starter Kit Example Models**
+
+The starter kit included example braindecode models:
+- `EEGNeX` - Too large (5M+ params), slow to train
+- `ShallowFBCSPNet` - Designed for motor imagery, not cognitive tasks
+- `Deep4Net` - Too many parameters, overfits small datasets
+
+**My approach:** Lightweight custom CNNs optimized for this specific task.
+
+---
+
 ## 🛠️ Technical Stack
 
-### Core Technologies & Why We Chose Them
+### Core Dependencies
 
-| Technology | Version | Purpose | Why Chosen |
-|-----------|---------|---------|------------|
-| **Python** | 3.9+ | Primary language | ✅ Rich ML/neuroscience ecosystem<br/>✅ Easy prototyping<br/>✅ Community support |
-| **PyTorch** | 2.0+ | Deep learning framework | ✅ Dynamic computation graphs<br/>✅ Excellent for research<br/>✅ Better debugging than TensorFlow<br/>✅ Native sparse attention support |
-| **NumPy** | 1.24+ | Numerical computing | ✅ Fast array operations<br/>✅ Foundation for scientific Python<br/>✅ BLAS/LAPACK integration |
-| **MNE-Python** | 1.5+ | EEG processing | ✅ Industry standard for EEG<br/>✅ Comprehensive preprocessing<br/>✅ Built-in EEG-specific functions |
-| **scikit-learn** | 1.3+ | ML utilities | ✅ Reliable metrics (NRMSE)<br/>✅ Cross-validation tools<br/>✅ Preprocessing pipelines |
-| **pandas** | 2.0+ | Data manipulation | ✅ Easy metadata handling<br/>✅ Efficient data loading<br/>✅ Integration with NumPy/PyTorch |
+| Technology | Version | Purpose | Source |
+|-----------|---------|---------|--------|
+| **`eegdash`** | Latest | Competition data | ✅ Starter Kit |
+| **`braindecode`** | 0.8+ | EEG preprocessing | ✅ Starter Kit |
+| **`mne`** | 1.5+ | EEG signal processing | ✅ Starter Kit |
+| **`torch`** | 2.0+ | Deep learning | ✅ Starter Kit |
+| **`numpy`** | 1.24+ | Numerical computing | Standard |
+| **`pandas`** | 2.0+ | Data manipulation | Standard |
+| **`scikit-learn`** | 1.3+ | Metrics, CV | Standard |
+
+### Why These Libraries?
+
+#### **`braindecode` - The Key to EEG Deep Learning**
+
+**What is braindecode?**
+- Deep learning toolkit specifically for EEG/MEG
+- Built on top of MNE (30+ year industry standard)
+- PyTorch-native integration
+- Used by neuroscience researchers worldwide
+
+**Why the starter kit uses it:**
+1. **EEG-specific preprocessing** - Handles MNE Raw objects natively
+2. **Event-locked windowing** - `create_windows_from_events()` for task-related segments
+3. **Parallel processing** - `preprocess()` with n_jobs for multi-core processing
+4. **Dataset management** - `BaseConcatDataset` for efficient multi-subject handling
+
+**Key features I use:**
+```python
+# Preprocessor - Apply functions to EEG data
+Preprocessor(annotate_trials_with_target, apply_on_array=False)
+
+# Parallel preprocessing across all recordings  
+preprocess(dataset, preprocessors, n_jobs=-1)
+
+# Event-locked window creation
+create_windows_from_events(dataset, mapping={"stimulus_anchor": 0})
+```
+
+#### **`eegdash` - Competition-Specific Data**
+
+**Critical distinction:** Must use `EEGChallengeDataset`, NOT `EEGDashDataset`!
+
+```python
+# ✅ CORRECT - Competition data with proper preprocessing
+from eegdash import EEGChallengeDataset
+dataset = EEGChallengeDataset(release="R1")
+
+# ❌ WRONG - Raw data without competition preprocessing
+from eegdash import EEGDashDataset  
+dataset = EEGDashDataset()  # Don't use this!
+```
+
+**What `EEGChallengeDataset` provides:**
+- Automatic download from competition servers
+- Cached local storage (no re-download)
+- Release-specific data (R1, R2, R3, R4, R5, R6)
+- Competition-specific preprocessing applied
+- Ensures consistency with evaluation server
 
 ### Dependencies Explained
 
 ```python
-# Core ML Stack
+# Core ML Stack from Starter Kit
 torch>=2.0.0           # GPU acceleration, autograd, sparse ops
 torchvision>=0.15.0    # Image transforms (adapted for EEG)
 numpy>=1.24.0          # Fast numerical operations
