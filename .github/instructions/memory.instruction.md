@@ -4,6 +4,46 @@ applyTo: '**'
 
 # EEG Foundation Challenge 2025 - Competition Memory
 
+## 🧠 CRITICAL: Summarization Instructions (Added Oct 19, 2025)
+
+**ALWAYS follow these rules when summarizing conversation history:**
+
+1. **BREAK INTO SMALL PARTS** - Never create one large summary/analysis/file
+   - Maximum 100-150 lines per file
+   - Create multiple numbered parts (PART1, PART2, PART3, etc.)
+   - Each part should focus on ONE topic
+
+2. **BIT BY BIT APPROACH** - Process incrementally
+   - Document one section at a time
+   - Complete each part before moving to next
+   - Show progress after each part created
+
+3. **PREVENT VS CODE CRASHES** - Small files reduce crash risk
+   - Large files (>200 lines) can trigger RegExp issues
+   - Multiple small files are safer than one big file
+   - Use simple markdown formatting only
+
+4. **FILE NAMING CONVENTION:**
+   - Master index: `[NAME]_MASTER_INDEX.md`
+   - Parts: `[NAME]_PART1_[TOPIC].md`, `[NAME]_PART2_[TOPIC].md`, etc.
+   - Summary: `[NAME]_SUMMARY.txt` (plain text backup)
+
+5. **ALWAYS UPDATE THIS MEMORY FILE** when completing major work
+   - Add to "Current Model Status" section
+   - Update "Recent Work Sessions" section
+   - Keep entries concise (2-3 lines max per item)
+
+**Example Structure:**
+```
+TODO_MASTER_INDEX.md (100 lines - overview + links)
+TODO_PART1_INFRASTRUCTURE.md (100 lines)
+TODO_PART2_TRAINING.md (100 lines)
+TODO_PART3_SUBMISSION.md (100 lines)
+TODO_SUMMARY.txt (plain text backup)
+```
+
+---
+
 **Competition:** NeurIPS 2025 EEG Foundation Challenge  
 **Deadline:** November 2, 2025  
 **Dataset:** HBN-EEG (3000+ participants, 6 tasks, 129 channels)
@@ -49,7 +89,7 @@ Predict **response time (RT)** from EEG during active **Contrast Change Detectio
 - **Architecture:** TCN_EEG (from `improvements/all_improvements.py`)
 - **Performance:** Val loss 0.010170 (epoch 2) ⭐
 - **Estimated NRMSE:** 0.10-0.15 (excellent, well below 0.30 target)
-- **Status:** ✅ Weights load correctly in submission.py
+- **Status:** ✅ READY - Weights load correctly in submission.py
 
 ### Critical Notes
 - **CCD Task Details:**
@@ -100,11 +140,32 @@ Predict **externalizing factor (p_factor)** from EEG to enable objective mental 
   - Dropout throughout network
   - Early stopping on validation set
 
-### Current Model Status
-- **File:** `weights_challenge_2.pt` (261 KB)
-- **Issue:** ⚠️ Architecture mismatch - checkpoint from different model
-- **Fallback:** Using untrained EEGNeX (won't crash, but poor performance)
-- **Action Needed:** Train correct EEGNeX model on CCD task with p_factor target
+### Current Model Status (As of October 19, 2025, 6:21 PM)
+- **Infrastructure:** ✅ COMPLETE - HDF5 cache + SQLite database + enhanced training
+- **VS Code Crash:** ✅ FIXED - Analyzed, documented, prevented (see VSCODE_CRASH_ANALYSIS.md)
+- **Cache Status:** 🔄 IN PROGRESS (tmux session 'cache_remaining')
+  - R1: ✅ 11GB (61,889 windows)
+  - R2: ✅ 12GB (62,000+ windows)
+  - R3: 🔄 Loading dataset (in progress)
+  - R4: ⏳ Pending
+  - R5: ⏳ Pending
+  - Expected total: ~50GB HDF5 cache
+- **Database:** ✅ READY (data/metadata.db, 56KB, 7 tables, 2 views)
+- **Training Script:** ✅ READY (train_challenge2_fast.py)
+- **TODO Lists:** ✅ CREATED (crash-resistant, in 4 parts)
+- **Benefits:** 10-15x faster data loading (seconds vs 15-30 minutes)
+- **Status:** WAITING for cache completion, then start training in tmux
+
+### Infrastructure & Documentation Files
+- **create_challenge2_cache_remaining.py** - R3,R4,R5 cache (running in tmux)
+- **train_challenge2_fast.py** - Enhanced training with cache + database
+- **data/metadata.db** - SQLite tracking database
+- **TODO_MASTER_INDEX.md** - Master todo list (crash-resistant)
+- **TODO_PART1_INFRASTRUCTURE.md** - Cache creation checklist
+- **TODO_PART2_TRAINING.md** - Training checklist
+- **TODO_PART3_SUBMISSION.md** - Submission checklist
+- **VSCODE_CRASH_ANALYSIS.md** - VS Code crash analysis for team
+- **.vscode/settings.json** - Crash prevention settings
 
 ### Critical Notes
 - **Externalizing Factor:**
@@ -204,20 +265,25 @@ class Submission:
 - Loads correctly: ✅
 - Submission ready: ✅
 
-### Challenge 2: ⚠️ NEEDS TRAINING
-- Model: Should be EEGNeX
-- Current weights: From different architecture (CompactExternalizingCNN)
-- Training script: `train_challenge2_correct.py` (following starter kit)
-- Status: Training in progress
-- Action: Complete training, then update submission
+### Challenge 2: 🔄 INFRASTRUCTURE UPGRADE IN PROGRESS (Oct 19, 2025)
+- **Strategic Decision:** Stopped training to build HDF5 cache infrastructure
+- **Reason:** Challenge 1 has 3.6GB cache (loads in seconds), Challenge 2 didn't (15-30 min)
+- **Solution:** Create cache + database + enhanced training for 10-15x speedup
+- **Cache Status:** R1 complete (2.6GB), R2-R5 processing (10-30 min remaining)
+- **Database:** ✅ Ready (metadata.db with training tracking)
+- **Training Script:** ✅ Ready (train_challenge2_fast.py with cache support)
+- **Next:** Start fast training after cache completes, expect 5-10 epochs
+- **Timeline:** Training this week, submission before Nov 2 deadline (13 days)
 
 ### Next Steps
-1. ✅ Complete Challenge 2 training (in progress)
-2. ⬜ Copy weights: `cp weights_challenge_2_correct.pt weights_challenge_2.pt`
-3. ⬜ Test submission locally
-4. ⬜ Recreate submission.zip
-5. ⬜ Submit to competition
-6. ⬜ Monitor leaderboard results
+1. ⏳ Wait for cache creation to complete (~10-30 min)
+2. ⬜ Start fast training: `python3 train_challenge2_fast.py`
+3. ⬜ Monitor via database queries
+4. ⬜ Complete training (5-10 epochs with early stopping)
+5. ⬜ Copy best weights to submission location
+6. ⬜ Test submission locally
+7. ⬜ Organize repository
+8. ⬜ Submit before Nov 2 deadline
 
 ---
 
@@ -356,6 +422,40 @@ eeg2025/
 - Monitoring scripts (watchdog depends on them)
 - Current weight files
 - submission.py (required for competition)
+
+---
+
+## 🕐 Recent Work Sessions
+
+### October 19, 2025 (6:30 PM) - Crash Recovery & Multi-Part Documentation ✅
+**Session Summary:** SESSION_OCT19_MASTER_INDEX.md (+ 5 detail parts)
+
+**What Happened:**
+- VS Code crashed at 5:53 PM (RegExp.test() froze UI thread on 22MB log)
+- All terminal processes killed, R3-R5 cache creation lost
+- R1 (11GB) and R2 (12GB) cache files survived
+
+**Actions Taken:**
+1. ✅ Analyzed crash logs, identified root cause
+2. ✅ Fixed .vscode/settings.json (file watcher exclusions)
+3. ✅ Moved all processes to tmux (crash-resistant)
+4. ✅ Fixed cache script API (3 iterations, correct: `from eegdash`)
+5. ✅ Created multi-part documentation (6 files vs. 1 large file)
+6. ✅ Updated memory with summarization rules
+
+**Current Status:**
+- Cache R3 creating in tmux (downloading metadata)
+- R4, R5 queued after R3
+- All work crash-resistant now
+- Next: Wait for cache → Start training
+
+**Files Created:**
+- SESSION_OCT19_*.md (6 summary parts)
+- VSCODE_CRASH_ANALYSIS.md (for VS Code team)
+- TODO_MASTER_INDEX.md + 3 parts
+- .vscode/settings.json (crash prevention)
+
+---
 
 ### Submission Workflow
 

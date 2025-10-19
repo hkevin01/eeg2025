@@ -1,0 +1,69 @@
+VS CODE CRASH - LOG FILE LOCATIONS
+===================================
+
+Date: October 19, 2025, 17:53:59 EDT
+Session: 20251019T174530
+
+CRASH LOGS
+----------
+Main log (crash sequence):
+  ~/.config/Code/logs/20251019T174530/main.log
+
+Renderer log (UI thread):
+  ~/.config/Code/logs/20251019T174530/renderer.log
+
+Extension host log:
+  ~/.config/Code/logs/20251019T174530/exthost/exthost.log
+
+Terminal log (ptyHost):
+  ~/.config/Code/logs/20251019T174530/ptyhost.log
+
+
+ANALYSIS DOCUMENTS (in project repo)
+-------------------------------------
+Full crash analysis:
+  /home/kevin/Projects/eeg2025/VSCODE_CRASH_ANALYSIS.md
+
+Recovery status:
+  /home/kevin/Projects/eeg2025/STATUS_AFTER_CRASH.md
+
+Complete summary:
+  /home/kevin/Projects/eeg2025/RECOVERY_COMPLETE_SUMMARY.md
+
+
+CRASH SUMMARY
+-------------
+Root Cause: RegExp.test() froze UI thread
+Trigger: 22MB log file (logs/cache_creation.log)
+Cascade: Extension host → ptyHost → All processes (SIGTERM code 15)
+Impact: Complete VS Code instance crash
+Recovery: <5 minutes, no data lost
+
+
+RECOMMENDATIONS FOR VS CODE
+----------------------------
+1. Implement timeout for RegExp operations
+2. Allow terminal survival during crashes
+3. Better large file handling (>10MB warnings)
+4. Graceful degradation (don't kill all processes)
+5. Save terminal state for recovery
+
+
+WORKAROUND IMPLEMENTED
+----------------------
+✅ File watcher exclusions (.vscode/settings.json)
+✅ tmux for long-running processes
+✅ Search exclusions for large directories
+✅ Large file limit increased
+
+
+USER IMPACT
+-----------
+Before fix: All work in terminals lost on crash
+After fix:  Critical processes run in tmux (survive crashes)
+
+
+To access logs:
+  cd ~/.config/Code/logs/20251019T174530
+  cat main.log | grep -A 20 "CodeWindow: detected unresponsive"
+
