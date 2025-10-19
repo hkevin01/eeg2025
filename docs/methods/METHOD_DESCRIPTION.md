@@ -220,12 +220,111 @@ Validation NRMSE: 0.2917
 
 ---
 
+## Task-Specific Advanced Methods (Future Exploration)
+
+### Motivation
+Different cognitive tasks elicit distinct neural signatures. While our current sparse attention CNN provides strong baseline performance, task-specific architectures could capture unique patterns more effectively.
+
+### Proposed Methods by Task
+
+#### **1. Resting State (RS)**
+**Methods:** Spectral + Connectivity Analysis
+
+**Key Components:**
+- Power spectral density (PSD) features across frequency bands (delta, theta, alpha, beta, gamma)
+- Functional connectivity estimation (coherence, phase-locking value)
+- Graph neural networks for brain network topology
+- Multivariate autoregressive models for directed connectivity
+
+**Rationale:** Resting-state EEG is characterized by rich oscillatory dynamics and functional network organization. Frequency-domain and connectivity features capture intrinsic brain states better than raw temporal features.
+
+**Implementation Considerations:**
+```python
+class RestingStateNet(nn.Module):
+    def __init__(self):
+        # Multi-taper spectral estimation
+        self.spectral_encoder = WaveletTransform(bands=FREQUENCY_BANDS)
+        # Functional connectivity
+        self.connectivity = CoherenceEstimator(num_channels=129)
+        # Graph convolutional network
+        self.gnn = GraphConvolution(adj_matrix='dynamic')
+```
+
+#### **2. Surround Suppression (SuS)**
+**Methods:** Convolutional Layers + Attention Mechanisms
+
+**Key Components:**
+- Spatial convolutions mimicking retinotopic mapping
+- Center-surround attention mechanisms
+- Multi-scale receptive fields for different visual field sizes
+- Visual cortex-inspired hierarchical processing
+
+**Rationale:** Visual suppression effects require modeling spatial context and center-surround interactions, similar to V1 receptive field properties.
+
+#### **3. Movie Watching (MW)**
+**Methods:** Temporal Transformers + Dynamic Connectivity
+
+**Key Components:**
+- Temporal transformers for long-range dependencies (movie clips span minutes)
+- Sliding-window dynamic connectivity analysis
+- Time-varying graph neural networks
+- Attention mechanisms for salient movie moments
+
+**Rationale:** Movie watching induces complex temporal dynamics requiring models that capture long-range dependencies and time-varying network reconfigurations.
+
+#### **4. Contrast Change Detection (CCD)**
+**Methods:** ERP Extraction + Motor Preparation Modeling
+
+**Key Components:**
+- Event-related potential (ERP) template matching
+- Motor cortex (central electrodes) feature extraction
+- Pre-response time window analysis (-500ms to 0ms)
+- Decision-related negativity and readiness potential features
+
+**Rationale:** Detection tasks produce stereotyped ERPs (P300, N200) and motor preparation signals. Extracting these well-characterized components provides interpretable features.
+
+**Current Status:** This is our strongest task (NRMSE 0.26) - already capturing some ERP features implicitly.
+
+#### **5. Symbol Search (SyS)**
+**Methods:** Spatial Attention Modeling
+
+**Key Components:**
+- Visual search attention maps over electrode space
+- Parietal cortex (P3, P4, Pz) feature emphasis
+- Working memory load indicators
+- Eye movement-related potentials
+
+**Rationale:** Symbol search engages visual attention networks (parietal cortex) and working memory systems (frontal-parietal networks).
+
+### Implementation Priority
+
+1. **High Priority:** CCD (our current best task) - optimize further
+2. **Medium Priority:** RS (common task, well-studied features)
+3. **Low Priority:** MW, SuS, SyS (less common, more experimental)
+
+### Why Not Implemented Yet
+
+1. **Strong Baseline Performance:** Current sparse attention CNN already achieves 0.26 NRMSE
+2. **Computational Cost:** Task-specific models require separate training and hyperparameter tuning
+3. **Competition Timeline:** Prioritizing robust general-purpose solution over task-specific tuning
+4. **Overfitting Risk:** Task-specific architectures may overfit to limited training data
+
+### Expected Improvements
+
+If implemented, we estimate:
+- **10-15% improvement** per task from specialized architectures
+- **Overall score:** 0.23-0.25 NRMSE (vs current 0.26)
+- **Trade-off:** Increased model complexity and training time
+
+---
+
 ## Limitations & Future Work
 
 1. **Sparse Attention Randomness:** Random permutation introduces stochasticity; deterministic sparse patterns could be explored
 2. **Single Model per Challenge:** Ensemble of diverse architectures could improve robustness
-3. **Hyperparameter Tuning:** Limited by computational budget; Bayesian optimization could help
-4. **Challenge 2 Data:** Could explore additional releases or transfer learning
+3. **Task-Specific Tuning:** Could implement specialized architectures for each cognitive task (see above)
+4. **Hyperparameter Tuning:** Limited by computational budget; Bayesian optimization could help
+5. **Challenge 2 Data:** Could explore additional releases or transfer learning
 
 ---
 

@@ -70,6 +70,12 @@ data/processed/p300_cache/*.pkl
 data/processed/features/*.npy
 data/processed/features/*.pkl
 
+# HDF5 cached preprocessed windows (LARGE!)
+data/cached/*.h5
+data/cached/**/*.h5
+data/cached/challenge*.h5
+!data/cached/.gitkeep
+
 # ============================================================================
 # Model Outputs and Checkpoints
 # ============================================================================

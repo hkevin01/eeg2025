@@ -1,14 +1,16 @@
-# 🧠 EEG 2025 NeurIPS Competition - Lightweight CNN Solution
+# 🧠 EEG 2025 NeurIPS Competition - Memory-Efficient CNN Solution
 
 [![NeurIPS 2025](https://img.shields.io/badge/NeurIPS-2025-blue.svg)](https://eeg2025.github.io/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Score: 1.32](https://img.shields.io/badge/Best%20Score-1.32%20NRMSE-success.svg)](https://eeg2025.github.io/leaderboard)
+[![Memory: 2-4GB](https://img.shields.io/badge/RAM-2--4GB%20(HDF5)-brightgreen.svg)]()
 
-Compact CNNs for EEG decoding: response time prediction and behavioral assessment using competition starter kit infrastructure with custom normalization and training strategies.
+Compact CNNs for EEG decoding with **memory-efficient HDF5 preprocessing**: response time prediction and behavioral assessment using competition starter kit infrastructure with custom normalization and training strategies.
 
-**Current Best Score:** 1.32 NRMSE (Challenge 1: 1.00, Challenge 2: 1.46)
+**Current Best Score:** 1.32 NRMSE (Challenge 1: 1.00, Challenge 2: 1.46)  
+**Memory Footprint:** 2-4GB RAM (down from 40GB+ via HDF5 memory-mapping)
 
 ---
 
@@ -243,6 +245,56 @@ class ChannelAttention(nn.Module):
 - ✅ Focuses on task-relevant channels
 - ✅ Interpretable (can visualize channel importance)
 - ✅ Improved performance
+
+### 5. Task-Specific Advanced Methods (Planned)
+
+**Why**: Different cognitive tasks have unique neural signatures that require specialized processing approaches
+
+**Task-Specific Architectures Under Consideration**:
+
+| Task | Key Methods | Architecture Components | Rationale |
+|------|-------------|------------------------|-----------|
+| **Resting State (RS)** | Spectral + Connectivity Analysis | • Power spectral density features<br/>• Functional connectivity matrices<br/>• Graph neural networks | Resting state shows rich frequency dynamics and network organization |
+| **Surround Suppression (SuS)** | Convolutional Layers + Attention | • Spatial convolutions for retinotopic mapping<br/>• Attention mechanisms for center-surround<br/>• Multi-scale receptive fields | Visual suppression requires spatial context modeling |
+| **Movie Watching (MW)** | Temporal Transformers + Dynamic Connectivity | • Temporal transformers for long sequences<br/>• Dynamic connectivity graphs<br/>• Time-varying network analysis | Movies induce complex temporal dynamics requiring long-range dependencies |
+| **Contrast Change Detection (CCD)** | ERP Extraction + Motor Preparation | • Event-related potential (ERP) analysis<br/>• Motor cortex activity modeling<br/>• Pre-response feature extraction | Detection tasks show clear ERPs and motor preparation signals |
+| **Symbol Search (SyS)** | Spatial Attention Modeling | • Visual search attention maps<br/>• Parietal cortex feature extraction<br/>• Working memory components | Symbol search engages visual attention and memory systems |
+
+**Implementation Plan**:
+
+```python
+# Example: Resting State Spectral Features
+class RestingStateNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Multi-band spectral decomposition
+        self.spectral_encoder = WaveletEncoder(bands=['delta', 'theta', 'alpha', 'beta', 'gamma'])
+        # Connectivity estimation
+        self.connectivity = FunctionalConnectivity(method='coherence')
+        # Graph neural network
+        self.gnn = GraphConvNet(num_nodes=129)
+        
+# Example: Movie Watching Temporal Dependencies  
+class MovieWatchingNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Long-range temporal transformer
+        self.temporal_transformer = TemporalTransformer(max_len=10000)
+        # Dynamic connectivity
+        self.dynamic_conn = SlidingWindowConnectivity(window_size=200)
+```
+
+**Current Status**: 
+- ✅ Basic CNN architectures deployed (Challenge 1 & 2)
+- 🔄 Task-specific methods planned for next iteration
+- 📊 Will A/B test against current sparse attention baseline
+- 🎯 Target: Further 10-15% improvement per task
+
+**Why Not Implemented Yet**:
+1. Current sparse attention CNN already performs well (0.26 NRMSE)
+2. Want to establish baseline first before task-specific tuning
+3. These methods require more computational resources and hyperparameter tuning
+4. Competition timeline prioritizes working solutions over experimental architectures
 
 ---
 
@@ -766,14 +818,121 @@ python -c "import mne; print(f'MNE: {mne.__version__}')"
 
 ## 🚀 Usage
 
+### Memory-Efficient HDF5 Preprocessing Pipeline
+
+**Why HDF5?** Training on full datasets (R1-R4 = 719 subjects) requires 40GB+ RAM, causing system crashes. HDF5 memory-mapped files solve this by loading data on-demand.
+
+#### **Storage & Performance**
+
+| Metric | Without HDF5 | With HDF5 | Improvement |
+|--------|--------------|-----------|-------------|
+| **RAM Usage** | 40GB+ | 2-4GB | **10x reduction** |
+| **Storage** | N/A | 3.7GB | +164KB labels |
+| **Training Speed** | Crashes | Fast | ∞% faster! |
+| **I/O Pattern** | Load all | On-demand | Sequential |
+
+#### **Preprocessing Steps**
+
+```bash
+# 1. Preprocess & Cache Windows (one-time, 30-40 min)
+python scripts/preprocessing/cache_challenge1_windows_safe.py
+
+# Creates HDF5 files with:
+#   - EEG data: (N, 21 channels, 200 timepoints)
+#   - Labels: (N,) response times from metadata
+#   - Compression: gzip level 4 (~40% size reduction)
+
+# Output:
+#   data/cached/challenge1_R1_windows.h5  (660MB, 7,316 windows)
+#   data/cached/challenge1_R2_windows.h5  (681MB, 7,565 windows)
+#   data/cached/challenge1_R3_windows.h5  (853MB, 9,586 windows)
+#   data/cached/challenge1_R4_windows.h5  (1.5GB, 16,604 windows)
+#   Total: ~3.7GB, 41,071 windows
+
+# 2. Verify cached files
+python << 'EOF'
+import h5py
+with h5py.File("data/cached/challenge1_R1_windows.h5", 'r') as f:
+    print(f"EEG shape: {f['eeg'].shape}")
+    print(f"Labels shape: {f['labels'].shape}")
+    print(f"Non-zero labels: {(f['labels'][:] != 0).sum()}")
+EOF
+```
+
+#### **Memory-Safe Training**
+
+```bash
+# Launch training with memory monitoring
+./train_safe_tmux.sh
+
+# Features:
+#   - Dual-pane tmux session
+#   - Left: Training output
+#   - Right: Memory monitor (auto-refresh)
+#   - Logs: logs/training_comparison/training_safe_*.log
+#   - Safety: Stops at 85% RAM usage
+
+# Monitor training
+tmux attach -t eeg_train_safe  # Ctrl+b, d to detach
+tail -f logs/training_comparison/training_safe_*.log
+```
+
+#### **Architecture Details**
+
+```python
+# HDF5Dataset - Memory-mapped loading
+from utils.hdf5_dataset import HDF5Dataset
+
+dataset = HDF5Dataset([
+    'data/cached/challenge1_R1_windows.h5',
+    'data/cached/challenge1_R2_windows.h5',
+    'data/cached/challenge1_R3_windows.h5',
+    'data/cached/challenge1_R4_windows.h5',
+])
+
+# Benefits:
+#   ✅ Loads single windows on-demand (not entire dataset)
+#   ✅ Thread-safe (works with DataLoader num_workers)
+#   ✅ Automatic multi-file indexing
+#   ✅ Minimal memory footprint (2-4GB vs 40GB+)
+
+# Training
+train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+for eeg, labels in train_loader:
+    # Only this batch's data loaded into RAM!
+    predictions = model(eeg)
+    loss = criterion(predictions, labels)
+```
+
+#### **Safety Features**
+
+```python
+# Memory monitoring (every batch)
+import psutil
+
+def check_memory_safe(max_percent=85):
+    memory = psutil.virtual_memory()
+    if memory.percent > max_percent:
+        logger.error(f"Memory limit exceeded: {memory.percent:.1f}%")
+        # Auto-save checkpoint and stop gracefully
+        return False
+    return True
+
+# Crash prevention:
+#   - Memory checks before major operations
+#   - Auto-checkpoint after each release
+#   - Resume capability (skip completed)
+#   - Detailed logging with timestamps
+```
+
 ### Quick Start
 
 ```bash
 # Monitor Challenge 2 training (if running)
 tail -f logs/challenge2_r234_final.log
 
-# Train Challenge 1 (Sparse Attention)
-python scripts/train_challenge1_attention.py
+# Train Challenge 1 (HDF5 Memory-Safe)
+python scripts/training/challenge1/train_challenge1_hdf5_simple.py
 
 # Train Challenge 2 (Multi-Release)
 python scripts/train_challenge2_multi_release.py

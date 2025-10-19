@@ -37,12 +37,12 @@ tmux select-pane -t $SESSION_NAME:0.0
 
 # Pane 0: Training
 tmux send-keys -t $SESSION_NAME:0.0 "cd $PROJECT_DIR" C-m
-tmux send-keys -t $SESSION_NAME:0.0 "echo '🎯 Starting training with crash protection...'" C-m
+tmux send-keys -t $SESSION_NAME:0.0 "echo '🎯 Starting HDF5-based training (memory-safe)...'" C-m
 tmux send-keys -t $SESSION_NAME:0.0 "echo 'Log: $LOG_FILE'" C-m
 tmux send-keys -t $SESSION_NAME:0.0 "echo ''" C-m
 
-# Training command with error handling
-tmux send-keys -t $SESSION_NAME:0.0 "python scripts/training/challenge1/train_challenge1_multi_release.py 2>&1 | tee $LOG_FILE" C-m
+# Training command with error handling (HDF5 version!)
+tmux send-keys -t $SESSION_NAME:0.0 "python scripts/training/challenge1/train_challenge1_hdf5_simple.py 2>&1 | tee $LOG_FILE" C-m
 
 # Pane 1: Memory monitoring
 tmux send-keys -t $SESSION_NAME:0.1 "cd $PROJECT_DIR" C-m
