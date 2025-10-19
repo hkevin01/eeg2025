@@ -15,6 +15,10 @@
 
 ## 📋 Table of Contents
 
+- [Why This Project Exists](#-why-this-project-exists)
+- [Project Purpose](#-project-purpose)
+- [System Architecture](#-system-architecture)
+- [Technology Stack](#-technology-stack)
 - [Competition Overview](#-competition-overview)
 - [Current Status](#-current-status)
 - [Project Structure](#-project-structure)
@@ -24,6 +28,372 @@
 - [Installation](#-installation)
 - [Usage](#-usage)
 - [Documentation](#-documentation)
+
+---
+
+## 🎯 Why This Project Exists
+
+### The Challenge: Brain-Computer Interfaces
+
+Brain-computer interfaces (BCIs) and EEG-based brain decoding face critical challenges:
+
+```mermaid
+mindmap
+  root((EEG Challenges))
+    Signal Quality
+      Low SNR
+      Artifacts
+      Individual Variability
+    Computational
+      High Dimensionality
+      Long Sequences
+      Real-time Processing
+    Generalization
+      Cross-Subject
+      Cross-Task
+      Cross-Site
+    Clinical Application
+      Behavioral Prediction
+      Mental Health Assessment
+      Objective Biomarkers
+```
+
+### Our Solution: Foundation Models for EEG
+
+This project addresses these challenges through:
+
+1. **Cross-Task Transfer Learning** - Models that work across different cognitive tasks
+2. **Subject-Invariant Representations** - Features robust to individual differences
+3. **Efficient Architectures** - Lightweight models for real-world deployment
+4. **Clinical Applicability** - Predicting behavioral and mental health factors
+
+---
+
+## 🚀 Project Purpose
+
+### What We're Building
+
+```mermaid
+graph TB
+    subgraph Input["🧠 EEG Input"]
+        A[129-Channel EEG<br/>100 Hz Sampling]
+        style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    end
+    
+    subgraph Processing["⚙️ Processing Pipeline"]
+        B[Preprocessing<br/>Bandpass Filter]
+        C[Window Extraction<br/>Task-Specific]
+        D[Feature Extraction<br/>Deep Learning]
+        style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style D fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    end
+    
+    subgraph Models["🤖 Neural Models"]
+        E1[Challenge 1<br/>TCN Model]
+        E2[Challenge 2<br/>EEGNeX Model]
+        style E1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style E2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    end
+    
+    subgraph Outputs["📊 Predictions"]
+        F1[Response Time<br/>Behavioral]
+        F2[Externalizing Factor<br/>Clinical]
+        style F1 fill:#065f46,stroke:#10b981,color:#fff
+        style F2 fill:#065f46,stroke:#10b981,color:#fff
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E1
+    D --> E2
+    E1 --> F1
+    E2 --> F2
+```
+
+### Why This Matters
+
+| Impact Area | Description | Benefit |
+|-------------|-------------|---------|
+| 🧬 **Neuroscience** | Foundation models for EEG analysis | Accelerate research with pretrained models |
+| 🏥 **Clinical** | Objective behavioral assessment | Early detection of mental health issues |
+| 🎮 **BCI Applications** | Real-time brain decoding | Enable next-gen brain-computer interfaces |
+| 📊 **Methodology** | Cross-task generalization | Models that work across different paradigms |
+| 🌍 **Accessibility** | Lightweight architectures | Deployable on standard hardware |
+
+---
+
+## 🏗️ System Architecture
+
+### High-Level Data Flow
+
+```mermaid
+flowchart LR
+    subgraph Data["📁 Data Layer"]
+        D1[Raw EEG<br/>BIDS Format]
+        D2[HBN Dataset<br/>3000+ Subjects]
+        style D1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style D2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    end
+    
+    subgraph Prep["🔧 Preprocessing"]
+        P1[MNE Python<br/>Signal Processing]
+        P2[Bandpass Filter<br/>0.5-50 Hz]
+        P3[Window Creation<br/>Task-Specific]
+        style P1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style P2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style P3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    end
+    
+    subgraph Train["🎓 Training"]
+        T1[PyTorch<br/>Deep Learning]
+        T2[Custom Models<br/>TCN & EEGNeX]
+        T3[Optimization<br/>Adamax & Adam]
+        style T1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style T2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style T3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    end
+    
+    subgraph Monitor["📊 Monitoring"]
+        M1[Watchdog<br/>Crash Detection]
+        M2[Live Metrics<br/>Loss & Progress]
+        M3[Logs<br/>Debugging]
+        style M1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style M2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style M3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    end
+    
+    subgraph Output["🎯 Output"]
+        O1[Trained Models<br/>Checkpoints]
+        O2[Submission<br/>Competition]
+        style O1 fill:#065f46,stroke:#10b981,color:#fff
+        style O2 fill:#065f46,stroke:#10b981,color:#fff
+    end
+    
+    D1 --> D2
+    D2 --> P1
+    P1 --> P2
+    P2 --> P3
+    P3 --> T1
+    T1 --> T2
+    T2 --> T3
+    T3 --> M1
+    M1 --> M2
+    M2 --> M3
+    M3 --> O1
+    O1 --> O2
+```
+
+### Model Architecture Comparison
+
+```mermaid
+graph TB
+    subgraph Challenge1["Challenge 1: TCN Architecture"]
+        C1A[Input<br/>129×200 samples]
+        C1B[TemporalBlock 1<br/>Dilation=1]
+        C1C[TemporalBlock 2<br/>Dilation=2]
+        C1D[TemporalBlock 3<br/>Dilation=4]
+        C1E[TemporalBlock 4<br/>Dilation=8]
+        C1F[TemporalBlock 5<br/>Dilation=16]
+        C1G[Output<br/>Response Time]
+        
+        C1A --> C1B
+        C1B --> C1C
+        C1C --> C1D
+        C1D --> C1E
+        C1E --> C1F
+        C1F --> C1G
+        
+        style C1A fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C1B fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C1C fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C1D fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C1E fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C1F fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C1G fill:#065f46,stroke:#10b981,color:#fff
+    end
+    
+    subgraph Challenge2["Challenge 2: EEGNeX Architecture"]
+        C2A[Input<br/>129×200 samples]
+        C2B[Depthwise Conv<br/>Channel Features]
+        C2C[Pointwise Conv<br/>Feature Mixing]
+        C2D[Temporal Pool<br/>Aggregation]
+        C2E[Dense Layers<br/>Classification]
+        C2F[Output<br/>p_factor Score]
+        
+        C2A --> C2B
+        C2B --> C2C
+        C2C --> C2D
+        C2D --> C2E
+        C2E --> C2F
+        
+        style C2A fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C2B fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C2C fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C2D fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C2E fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        style C2F fill:#065f46,stroke:#10b981,color:#fff
+    end
+```
+
+---
+
+## 💻 Technology Stack
+
+### Core Technologies & Why We Chose Them
+
+| Technology | Version | Purpose | Why Chosen |
+|------------|---------|---------|------------|
+| **Python** | 3.9+ | Primary language | Industry standard for ML/neuroscience |
+| **PyTorch** | 2.0+ | Deep learning framework | Dynamic graphs, excellent debugging, research-friendly |
+| **MNE-Python** | Latest | EEG processing | Gold standard for electrophysiology analysis |
+| **NumPy** | Latest | Numerical computing | Fast array operations, scientific computing base |
+| **Braindecode** | Latest | EEG-specific models | Pre-built architectures for EEG (EEGNeX) |
+
+### Architecture Components Explained
+
+#### 1. Temporal Convolutional Network (TCN)
+
+**What it is:** A CNN architecture designed for sequence modeling with causal convolutions.
+
+**Why we chose it:**
+- ✅ **Parallelizable**: Unlike RNNs, can process entire sequences at once
+- ✅ **Long-range dependencies**: Dilated convolutions capture long temporal patterns
+- ✅ **Stable training**: No vanishing gradient issues like RNNs
+- ✅ **Efficient**: Fixed-size filters reduce parameters vs. transformers
+
+**How it works:**
+```
+Dilation Pattern: [1, 2, 4, 8, 16]
+Receptive Field: 1 + 2×6×(1+2+4+8+16) = 373 time points
+Coverage: 3.73 seconds of EEG at 100 Hz
+```
+
+#### 2. EEGNeX Model
+
+**What it is:** A modern, efficient CNN architecture specifically designed for EEG.
+
+**Why we chose it:**
+- ✅ **Lightweight**: Small parameter count prevents overfitting
+- ✅ **Generalization-focused**: Designed for cross-subject robustness
+- ✅ **Proven**: From braindecode library with validated performance
+- ✅ **Efficient**: Depthwise separable convolutions reduce computation
+
+**Architecture pattern:**
+```
+Depthwise Conv → Pointwise Conv → Pooling → Dense
+(Channel-wise)   (Cross-channel)  (Temporal)  (Prediction)
+```
+
+#### 3. Preprocessing Pipeline (MNE-Python)
+
+**What it is:** Signal processing for raw EEG to clean, usable data.
+
+**Components:**
+
+| Step | Tool | Purpose | Parameters |
+|------|------|---------|------------|
+| **Filtering** | MNE Bandpass | Remove noise | 0.5-50 Hz (keeps neural signals) |
+| **Referencing** | MNE Rereference | Common reference | Cz electrode (center) |
+| **Windowing** | Custom | Extract epochs | Task-specific timing |
+| **Normalization** | NumPy | Standardize | Per-channel z-score |
+
+**Why this pipeline:**
+- 0.5 Hz highpass removes slow drifts
+- 50 Hz lowpass removes electrical noise (50 Hz in Europe)
+- Cz reference is standard in clinical EEG
+- Z-score normalization handles amplitude differences
+
+#### 4. Training Strategy
+
+**Challenge 1: Standard Supervised Learning**
+```mermaid
+graph LR
+    A[Training Data<br/>R1-R4] --> B[TCN Model]
+    B --> C[MSE Loss]
+    C --> D[Adam Optimizer]
+    D --> E[Validation<br/>R5]
+    
+    style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style C fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style D fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style E fill:#065f46,stroke:#10b981,color:#fff
+```
+
+**Challenge 2: Regularization-Heavy Approach**
+```mermaid
+graph LR
+    A[Training Data<br/>R1-R4] --> B[Data Augmentation<br/>Random Crops]
+    B --> C[EEGNeX Model<br/>Small Architecture]
+    C --> D[L1 Loss<br/>Robust to Outliers]
+    D --> E[Adamax Optimizer<br/>Adaptive LR]
+    E --> F[Early Stopping<br/>Patience=5]
+    F --> G[Validation<br/>R5]
+    
+    style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style C fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style D fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style E fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style F fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style G fill:#065f46,stroke:#10b981,color:#fff
+```
+
+**Why different strategies:**
+
+| Aspect | Challenge 1 | Challenge 2 | Reason |
+|--------|-------------|-------------|--------|
+| **Loss** | MSE (Mean Squared Error) | L1 (Mean Absolute Error) | L1 more robust to outliers in clinical data |
+| **Optimizer** | Adam | Adamax | Adamax handles sparse gradients better |
+| **Regularization** | Moderate | Heavy | Challenge 2 emphasizes generalization |
+| **Model Size** | Larger (196K params) | Smaller (from braindecode) | Smaller prevents overfitting |
+| **Augmentation** | None | Random cropping | Creates diverse training examples |
+
+#### 5. Monitoring System (Watchdog)
+
+**What it is:** Automated system that monitors training 24/7.
+
+**Why we built it:**
+- ⏱️ **Long training times**: Epochs take 2-3 hours each
+- 💻 **Unattended running**: Training continues overnight
+- 🚨 **Early problem detection**: Catch crashes/freezes immediately
+- 📊 **Progress tracking**: Know when training will complete
+
+**How it works:**
+```mermaid
+stateDiagram-v2
+    [*] --> Monitoring
+    
+    Monitoring --> CheckProcess: Every 60s
+    CheckProcess --> ProcessAlive: Check if running
+    
+    ProcessAlive --> CheckLogs: Yes
+    ProcessAlive --> CrashAlert: No
+    
+    CheckLogs --> LogUpdated: New content?
+    LogUpdated --> MonitorMetrics: Yes
+    LogUpdated --> FreezeAlert: No (>5 min)
+    
+    MonitorMetrics --> CheckMemory
+    CheckMemory --> MemoryWarning: >90%
+    CheckMemory --> Monitoring: Normal
+    
+    MemoryWarning --> Monitoring
+    FreezeAlert --> Monitoring
+    CrashAlert --> [*]
+    
+    MonitorMetrics --> Success: Training complete
+    Success --> [*]
+```
+
+**Features:**
+- 🚨 Crash detection with error diagnosis
+- ❄️ Freeze detection (no updates for 5+ minutes)
+- 💾 Memory monitoring (warns at 90%)
+- ✅ Automatic completion detection
+- 🔊 Visual + audio alerts
 
 ---
 
