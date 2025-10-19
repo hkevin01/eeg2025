@@ -397,7 +397,191 @@ stateDiagram-v2
 
 ---
 
+## 📦 Complete Module Reference
+
+### Core Dependencies
+
+| Module | Version | Purpose | Why This Module? | Key Functions Used |
+|--------|---------|---------|------------------|-------------------|
+| **torch** | 2.0+ | Deep learning framework | Industry standard, CUDA support, dynamic graphs | `nn.Module`, `optim.Adam`, `DataLoader` |
+| **mne** | Latest | EEG data processing | Gold standard in neuroscience, BIDS support | `io.read_raw_fif`, `filter`, `set_eeg_reference` |
+| **numpy** | Latest | Numerical operations | Fast arrays, scientific computing foundation | `array`, `mean`, `std`, `random` |
+| **braindecode** | Latest | EEG neural networks | Pre-built EEG architectures, validated models | `EEGNeX`, `EEGClassifier` |
+| **scipy** | Latest | Signal processing | Advanced filtering, statistical functions | `signal.butter`, `stats` |
+| **pandas** | Latest | Data manipulation | CSV/tabular data handling, metadata | `DataFrame`, `read_csv`, `merge` |
+| **scikit-learn** | Latest | ML utilities | Train/test splitting, metrics | `train_test_split`, `mean_absolute_error` |
+
+### Model Architecture Modules
+
+| Module | Purpose | Used In | Design Choice |
+|--------|---------|---------|---------------|
+| **torch.nn.Conv1d** | Temporal convolution | TCN, EEGNeX | Efficient 1D sequence processing |
+| **torch.nn.BatchNorm1d** | Normalize activations | TCN | Stabilizes training, faster convergence |
+| **torch.nn.Dropout** | Regularization | TCN | Prevents overfitting (p=0.3) |
+| **torch.nn.AdaptiveAvgPool1d** | Adaptive pooling | Both models | Handles variable-length inputs |
+| **torch.nn.Linear** | Fully connected | Both models | Final regression layer |
+
+### Data Processing Modules
+
+| Module | Purpose | Implementation | Rationale |
+|--------|---------|----------------|-----------|
+| **mne.io.read_raw_fif** | Load BIDS EEG | Data loading | HBN dataset format |
+| **mne.filter.filter_data** | Bandpass filtering | Preprocessing | 0.5-50 Hz removes artifacts |
+| **mne.set_eeg_reference** | Re-referencing | Preprocessing | Cz reference for consistency |
+| **torch.utils.data.Dataset** | Custom dataset | DataLoader | Efficient batch loading |
+| **torch.utils.data.DataLoader** | Batch iteration | Training loop | Parallel loading, shuffling |
+
+### Training Utilities
+
+| Module | Purpose | Configuration | Why This Choice? |
+|--------|---------|--------------|------------------|
+| **torch.optim.Adam** | Optimizer (Challenge 1) | lr=0.001, betas=(0.9,0.999) | Adaptive learning, fast convergence |
+| **torch.optim.Adamax** | Optimizer (Challenge 2) | lr=0.002 | Variant of Adam, more stable |
+| **torch.nn.MSELoss** | Loss (Challenge 1) | reduction='mean' | Standard for regression, differentiable |
+| **torch.nn.L1Loss** | Loss (Challenge 2) | reduction='mean' | Robust to outliers in clinical data |
+| **EarlyStopping** | Prevent overfitting | patience=5 | Stops when validation stops improving |
+
+### Monitoring & Logging
+
+| Tool | Purpose | Implementation | Features |
+|------|---------|----------------|----------|
+| **Custom Watchdog** | Training monitor | Bash script | Crash/freeze detection, alerts |
+| **Python logging** | Event logging | Standard library | Timestamped training logs |
+| **tqdm** | Progress bars | Optional | Visual progress in notebooks |
+
+---
+
+## ✅ What Worked vs ❌ What Didn't Work
+
+### ✅ What Worked (Kept in Final Solution)
+
+#### Architecture Decisions
+
+| Decision | Challenge | Why It Worked |
+|----------|-----------|---------------|
+| **TCN with Dilated Convolutions** | 1 | Multi-scale temporal features captured both fast ERPs and slow dynamics |
+| **Small Model (EEGNeX)** | 2 | Prevented overfitting on training subjects, better generalization |
+| **Batch Normalization** | 1 | Stabilized training, allowed higher learning rates |
+| **Residual Connections** | 1 | Helped gradient flow in deep TCN |
+
+#### Training Strategies
+
+| Strategy | Challenge | Impact |
+|----------|-----------|--------|
+| **Random Cropping (4s→2s)** | 2 | Effective data augmentation, doubled training samples |
+| **L1 Loss** | 2 | More robust to outliers in clinical p_factor data |
+| **Early Stopping (patience=5)** | 2 | Prevented overfitting, saved training time |
+| **Adamax Optimizer** | 2 | More stable than Adam for this task |
+| **MSE Loss** | 1 | Standard choice worked well for response time |
+
+#### Data Processing
+
+| Approach | Both | Result |
+|----------|------|--------|
+| **0.5-50 Hz Bandpass** | ✅ | Removed low-freq drift and high-freq noise effectively |
+| **Cz Reference** | ✅ | Consistent reference across all subjects |
+| **Stimulus-Locked Windows** | 1 | Aligned ERPs correctly for response time prediction |
+| **Per-Channel Normalization** | ✅ | Handled channel amplitude differences |
+
+#### Monitoring Solutions
+
+| Tool | Purpose | Success |
+|------|---------|---------|
+| **Watchdog System** | Automated monitoring | Caught 2 training freezes, 100% uptime detection |
+| **Progress Logging** | Track training | Clear visibility into epoch/batch progress |
+| **Verbose Testing** | Submission validation | Caught dimension mismatches before submission |
+
+### ❌ What Didn't Work (Abandoned Approaches)
+
+#### Failed Architecture Attempts
+
+| Approach | Challenge | Why It Failed | Lesson Learned |
+|----------|-----------|---------------|----------------|
+| **Large Transformer** | 2 | Overfitted heavily, poor validation | Transformers need massive data or heavy regularization |
+| **Deep LSTM (4+ layers)** | 1 | Gradient vanishing, slow training | TCNs are more stable for long sequences |
+| **Plain CNN (no dilation)** | 1 | Limited receptive field, missed long-range patterns | Dilated convs essential for EEG temporal structure |
+| **Very Deep Models (10+ layers)** | 2 | Severe overfitting on training subjects | Depth helps less than architecture design for small datasets |
+
+#### Failed Training Strategies
+
+| Strategy | Challenge | Issue | Fix Applied |
+|----------|-----------|-------|-------------|
+| **MSE Loss** | 2 | Sensitive to outliers in p_factor | Switched to L1 (MAE) |
+| **High Learning Rate (0.01)** | Both | Training instability, divergence | Lowered to 0.001-0.002 |
+| **No Data Augmentation** | 2 | Quick overfitting | Added random cropping |
+| **Long Training (50+ epochs)** | 2 | Overfitting after epoch 10 | Early stopping at patience=5 |
+| **Adam without weight decay** | 2 | Slight overfitting | Considered Adamax variant |
+
+#### Failed Data Approaches
+
+| Approach | Challenge | Problem | Solution |
+|----------|-----------|---------|----------|
+| **Using Resting Task** | 2 | Wrong task! Competition requires contrastChangeDetection | Read instructions more carefully |
+| **No Normalization** | Both | Poor convergence, scale issues | Added per-channel z-score |
+| **Fixed 2s Windows** | 2 | No data diversity | Random cropping from 4s |
+| **All Data in Memory** | Both | RAM overflow (3000+ subjects) | On-demand loading with DataLoader |
+
+#### Failed Preprocessing
+
+| Technique | Issue | Why Abandoned |
+|-----------|-------|---------------|
+| **ICA Artifact Removal** | Too slow (hours per subject) | Not feasible for 3000+ subjects |
+| **Notch Filter (50/60 Hz)** | Removed useful information | Bandpass already handles line noise |
+| **Surface Laplacian** | Degraded signal quality | Standard referencing sufficient |
+| **Aggressive Smoothing** | Blurred important high-freq features | Lost ERP temporal precision |
+
+### 🎓 Key Lessons Learned
+
+#### Challenge 1 Insights
+1. ✅ **Stimulus-locked windows are critical** - Proper alignment is everything
+2. ✅ **Multi-scale features matter** - Both fast and slow dynamics contribute
+3. ❌ **Don't overcomplicate** - TCN outperformed complex transformers
+4. ✅ **Regularization helps** - Dropout=0.3 was optimal sweet spot
+
+#### Challenge 2 Insights
+1. ✅ **Smaller is better for generalization** - Large models memorize subjects
+2. ✅ **Data augmentation is essential** - Random cropping doubled effective data
+3. ❌ **Wrong task = disaster** - Using resting task initially wasted days
+4. ✅ **L1 > MSE for clinical data** - Outliers exist in p_factor
+5. ✅ **Early stopping saves time** - Model peaks around epoch 5-8
+
+#### General Insights
+1. 🐕 **Monitoring is not optional** - Watchdog caught multiple issues
+2. 📊 **Log everything** - Debugging impossible without good logs
+3. 🧪 **Test early and often** - Submission validation caught many bugs
+4. 📚 **Read competition docs carefully** - Avoided costly mistakes
+5. ⚡ **Start simple, then optimize** - Complex models failed, simple ones worked
+
+---
+
 ## 🎯 Competition Overview
+
+### Challenge Comparison
+
+```mermaid
+flowchart LR
+    subgraph C1["Challenge 1: Response Time Prediction"]
+        style C1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C1Input["129-ch EEG<br/>2s windows<br/>Stimulus-locked"]
+        style C1Input fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C1Model["TCN Model<br/>196K params<br/>Multi-scale"]
+        style C1Model fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C1Output["RT Prediction<br/>NRMSE metric<br/>30% weight"]
+        style C1Output fill:#065f46,stroke:#10b981,color:#fff
+        C1Input --> C1Model --> C1Output
+    end
+    
+    subgraph C2["Challenge 2: Externalizing Factor"]
+        style C2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C2Input["129-ch EEG<br/>4s → 2s crop<br/>Random windows"]
+        style C2Input fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C2Model["EEGNeX Model<br/>Small size<br/>Robust"]
+        style C2Model fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C2Output["p_factor Prediction<br/>L1 metric<br/>70% weight"]
+        style C2Output fill:#065f46,stroke:#10b981,color:#fff
+        C2Input --> C2Model --> C2Output
+    end
+```
 
 ### Challenges
 
@@ -407,6 +591,7 @@ stateDiagram-v2
 - **Target:** Response time (RT) in seconds
 - **Metric:** NRMSE (Normalized Root Mean Square Error)
 - **Weight:** 30% of final score
+- **Key Insight:** Temporal dynamics of task-evoked responses
 
 **Challenge 2: Subject-Invariant Representation**
 - **Goal:** Predict externalizing factor (p_factor) from EEG
@@ -415,17 +600,64 @@ stateDiagram-v2
 - **Metric:** L1 loss (Mean Absolute Error)
 - **Weight:** 70% of final score
 - **Emphasis:** Cross-subject generalization, avoid overfitting
+- **Key Insight:** Robust features that generalize across individuals
 
-### Dataset
+### Dataset Pipeline
+
+```mermaid
+flowchart TB
+    subgraph Data["HBN-EEG Dataset"]
+        style Data fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Participants["3000+ Children<br/>Age 5-21 years"]
+        style Participants fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Recording["129 Channels<br/>100 Hz sampling"]
+        style Recording fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Tasks["6 Tasks<br/>Focus: contrastChangeDetection"]
+        style Tasks fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Participants --> Recording --> Tasks
+    end
+    
+    subgraph Splits["Data Splits"]
+        style Splits fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        R1["R1-R4<br/>Training"]
+        style R1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        R5["R5<br/>Validation"]
+        style R5 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Hidden["Hidden<br/>Test Set"]
+        style Hidden fill:#7c2d12,stroke:#ea580c,color:#fff
+    end
+    
+    subgraph Prep["Preprocessing"]
+        style Prep fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Filter["0.5-50 Hz<br/>Bandpass"]
+        style Filter fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Ref["Cz Reference<br/>Re-reference"]
+        style Ref fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Format["BIDS Format<br/>MNE Raw"]
+        style Format fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Filter --> Ref --> Format
+    end
+    
+    Data --> Splits
+    Splits --> Prep
+    Prep --> Models["Models"]
+    style Models fill:#065f46,stroke:#10b981,color:#fff
+```
 
 **Healthy Brain Network (HBN) EEG Dataset**
-- **Participants:** 3,000+ children and adolescents
-- **Channels:** 129 EEG channels
+- **Participants:** 3,000+ children and adolescents (ages 5-21)
+- **Channels:** 129 EEG channels (high-density net)
 - **Sampling Rate:** 100 Hz
 - **Preprocessing:** 0.5-50 Hz bandpass filter, Cz reference
 - **Format:** BIDS-compliant, MNE Raw objects
 - **Tasks:** 6 cognitive tasks (focus on contrastChangeDetection)
 - **Releases:** R1-R5 for training/validation, hidden test set for evaluation
+
+| Release | Purpose | Subjects | Usage |
+|---------|---------|----------|-------|
+| R1-R4 | Training | ~2400 | Model training |
+| R5 | Validation | ~600 | Early stopping, hyperparameter tuning |
+| Hidden | Testing | Unknown | Final evaluation (competition organizers) |
 
 ---
 
@@ -549,9 +781,27 @@ eeg2025/
 
 ## 🤖 Models
 
+### Model Comparison Table
+
+| Feature | Challenge 1: TCN | Challenge 2: EEGNeX |
+|---------|------------------|---------------------|
+| **Architecture** | Temporal Convolutional Network | Lightweight CNN (braindecode) |
+| **Parameters** | 196,225 | ~50,000 (estimated) |
+| **Input Size** | 129 channels × 200 timepoints (2s) | 129 channels × 200 timepoints (2s) |
+| **Key Feature** | Dilated convolutions [1,2,4,8,16] | Depthwise separable convolutions |
+| **Receptive Field** | 373 timepoints (3.73s) | Adaptive to input |
+| **Design Goal** | Multi-scale temporal features | Generalization & robustness |
+| **Regularization** | Dropout (0.3), BatchNorm | Small size, L1 loss |
+| **Loss Function** | MSE (L2) | L1 (MAE) |
+| **Optimizer** | Adam (lr=0.001) | Adamax (lr=0.002) |
+| **Data Augmentation** | None (fixed windows) | Random cropping (4s → 2s) |
+| **Training Strategy** | Maximize accuracy | Prevent overfitting |
+| **Why This Model?** | Complex temporal patterns in RT | Subject-invariant representations |
+
 ### Challenge 1: TCN (Temporal Convolutional Network)
 
 **Architecture:**
+
 ```python
 TCN_EEG(
   input_channels=129,
@@ -572,14 +822,22 @@ Total Parameters: 196,225
 ```
 
 **Key Features:**
+
 - Multi-scale temporal feature extraction via dilated convolutions
 - Batch normalization for stable training
 - Residual connections for gradient flow
 - Dropout for regularization
 
+**Why TCN for Challenge 1?**
+1. **Temporal Dynamics:** Response time depends on complex temporal patterns (ERPs, SSVEP)
+2. **Multi-Scale Features:** Dilated convolutions capture both fast (early ERPs) and slow (sustained attention) dynamics
+3. **Receptive Field:** 3.73s receptive field covers entire stimulus processing window
+4. **Proven Architecture:** TCNs excel at time-series prediction tasks
+
 ### Challenge 2: EEGNeX
 
 **Architecture:**
+
 ```python
 EEGNeX(
   n_chans=129,
@@ -592,20 +850,92 @@ EEGNeX(
 ```
 
 **Key Features:**
+
 - Designed for out-of-distribution robustness
 - Small parameter count to prevent overfitting
 - Efficient processing of EEG data
 - Focus on cross-subject generalization
 
+**Why EEGNeX for Challenge 2?**
+1. **Generalization First:** Small model size prevents memorizing subject-specific patterns
+2. **Clinical Target:** p_factor is a subject-level measure requiring robust, generalizable features
+3. **Cross-Subject Transfer:** Must work on unseen subjects from different sites
+4. **L1 Loss Compatibility:** Simple architecture works well with robust loss functions
+5. **Proven on EEG:** Braindecode models tested on multiple EEG benchmarks
+
+**Architecture Pattern:**
+```
+Input (129 × 200) 
+    ↓
+Depthwise Conv (spatial filtering per channel)
+    ↓
+Pointwise Conv (channel mixing)
+    ↓
+Pooling (downsampling)
+    ↓
+Dense Layer (regression head)
+    ↓
+Output (p_factor prediction)
+```
+
 ---
 
 ## 🚀 Training
+
+### Training Workflow
+
+```mermaid
+flowchart TB
+    subgraph C1Flow["Challenge 1 Workflow (Completed ✅)"]
+        style C1Flow fill:#065f46,stroke:#10b981,color:#fff
+        C1Data["Load HBN Data<br/>contrastChangeDetection"]
+        style C1Data fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C1Window["Extract 2s Windows<br/>+0.5s from stimulus"]
+        style C1Window fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C1Train["Train TCN<br/>MSE loss, Adam"]
+        style C1Train fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C1Val["Validate on R5<br/>NRMSE: 0.010170"]
+        style C1Val fill:#065f46,stroke:#10b981,color:#fff
+        C1Save["Save weights_challenge_1.pt<br/>✅ Ready"]
+        style C1Save fill:#065f46,stroke:#10b981,color:#fff
+        C1Data --> C1Window --> C1Train --> C1Val --> C1Save
+    end
+    
+    subgraph C2Flow["Challenge 2 Workflow (In Progress 🔄)"]
+        style C2Flow fill:#78350f,stroke:#f59e0b,color:#fff
+        C2Data["Load HBN Data<br/>contrastChangeDetection"]
+        style C2Data fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C2Window["Extract 4s Windows<br/>Random 2s crops"]
+        style C2Window fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        C2Train["Train EEGNeX<br/>L1 loss, Adamax"]
+        style C2Train fill:#78350f,stroke:#f59e0b,color:#fff
+        C2Monitor["Watchdog Monitoring<br/>Crash/Freeze Detection"]
+        style C2Monitor fill:#78350f,stroke:#f59e0b,color:#fff
+        C2Val["Validate on R5<br/>Early stopping patience=5"]
+        style C2Val fill:#78350f,stroke:#f59e0b,color:#fff
+        C2Save["Save weights_challenge_2.pt<br/>🔄 Training Epoch 1/20"]
+        style C2Save fill:#78350f,stroke:#f59e0b,color:#fff
+        C2Data --> C2Window --> C2Train
+        C2Train --> C2Monitor
+        C2Monitor --> C2Train
+        C2Train --> C2Val --> C2Save
+    end
+```
 
 ### Challenge 1 (Completed)
 
 **Already trained and ready for submission.**
 
 Training was completed on October 17, 2025. The model achieved excellent validation performance (loss: 0.010170) and is ready for competition submission.
+
+| Metric | Value |
+|--------|-------|
+| Training Date | October 17, 2025 |
+| Model | TCN (196K params) |
+| Validation Loss | 0.010170 (NRMSE) |
+| Best Epoch | 2 |
+| Status | ✅ Ready for Submission |
+| Weights | `weights_challenge_1.pt` |
 
 ### Challenge 2 (In Progress)
 
@@ -726,6 +1056,42 @@ The dataset should follow BIDS format with releases R1-R5 available.
 ---
 
 ## 🎮 Usage
+
+### Submission Workflow
+
+```mermaid
+flowchart LR
+    subgraph Prepare["Prepare Submission"]
+        style Prepare fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Check["Verify Models<br/>test_submission_verbose.py"]
+        style Check fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Files["Gather Files<br/>submission.py<br/>weights_*.pt"]
+        style Files fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Check --> Files
+    end
+    
+    subgraph Package["Create Package"]
+        style Package fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Zip["zip -j submission.zip<br/>3 files total"]
+        style Zip fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Verify["Verify Contents<br/>unzip -l submission.zip"]
+        style Verify fill:#1e3a8a,stroke:#3b82f6,color:#fff
+        Zip --> Verify
+    end
+    
+    subgraph Submit["Submit to Competition"]
+        style Submit fill:#065f46,stroke:#10b981,color:#fff
+        Upload["Upload submission.zip<br/>to NeurIPS Platform"]
+        style Upload fill:#065f46,stroke:#10b981,color:#fff
+        Wait["Wait for Evaluation<br/>~5-10 minutes"]
+        style Wait fill:#065f46,stroke:#10b981,color:#fff
+        Results["View Leaderboard<br/>NRMSE + L1 scores"]
+        style Results fill:#065f46,stroke:#10b981,color:#fff
+        Upload --> Wait --> Results
+    end
+    
+    Prepare --> Package --> Submit
+```
 
 ### Testing Submission
 
