@@ -260,3 +260,147 @@ class Submission:
 
 **Last Updated:** October 19, 2025  
 **Competition Deadline:** November 2, 2025 (14 days remaining)
+
+---
+
+## 📁 PROJECT ORGANIZATION (Updated 2025-10-19)
+
+### Directory Structure
+
+```
+eeg2025/
+├── weights/                         # ORGANIZED WEIGHT FILES
+│   ├── challenge1/                  # Challenge 1 weights (response time)
+│   │   ├── weights_challenge_1_current.pt  ← Use for submission
+│   │   └── weights_challenge_1_YYYYMMDD_HHMMSS.pt  (backups)
+│   ├── challenge2/                  # Challenge 2 weights (p_factor)
+│   │   ├── weights_challenge_2_current.pt  ← Use for submission
+│   │   ├── weights_challenge_2.pt
+│   │   └── weights_challenge_2_YYYYMMDD_HHMMSS.pt  (backups)
+│   ├── multi_release/               # Multi-release trained versions
+│   │   ├── weights_challenge_1_multi_release.pt
+│   │   └── weights_challenge_2_multi_release.pt
+│   ├── checkpoints/                 # Training checkpoints (.pth)
+│   │   └── challenge1_tcn_competition_best.pth
+│   ├── archive/                     # Old weights
+│   └── WEIGHTS_METADATA.md          # Version tracking & documentation
+│
+├── training/                        # TRAINING SCRIPTS
+│   ├── challenge1/                  # Challenge 1 training
+│   ├── challenge2/                  # Challenge 2 training
+│   │   ├── train_challenge2_correct.py  (backup)
+│   │   └── train_challenge2_correct_YYYYMMDD_HHMMSS.py (timestamped)
+│   └── archive/                     # Old training scripts
+│
+├── submissions/                     # SUBMISSION MANAGEMENT
+│   ├── archive/                     # Old submission packages
+│   │   ├── eeg2025_submission_v6_CORRECTED_API.zip
+│   │   ├── eeg2025_submission_v7_TTA.zip
+│   │   ├── prediction_result(2).zip
+│   │   └── scoring_result(2).zip
+│   ├── versions/                    # Timestamped backups
+│   ├── submission_YYYYMMDD_HHMMSS.py  (backups)
+│   ├── test_submission_verbose.py   (backup)
+│   └── SUBMISSION_HISTORY.md        # Submission workflow docs
+│
+├── scripts/
+│   └── monitoring/                  # Monitoring scripts (copies)
+│       ├── monitor_challenge2.sh
+│       ├── quick_training_status.sh
+│       ├── manage_watchdog.sh
+│       └── watchdog_challenge2.sh
+│
+├── CHANGELOG.md                     # Project changelog
+├── README.md                        # Main documentation
+└── [active files in root]           # See below
+```
+
+### Active Files in Root (Required)
+
+**These files MUST stay in root while training/submitting:**
+
+- **submission.py** - Competition submission script (required)
+- **test_submission_verbose.py** - Submission validator
+- **train_challenge2_correct.py** - Active training script (PID 548497 running)
+- **monitor_challenge2.sh** - Training monitor
+- **quick_training_status.sh** - Quick status check
+- **manage_watchdog.sh** - Watchdog control
+- **watchdog_challenge2.sh** - Watchdog daemon (PID 560789 running)
+
+### Version Control & Backups
+
+**Weights Versioning:**
+- Current versions: `weights/challenge*/weights_challenge_*_current.pt`
+- Timestamped backups created on each organization
+- Easy rollback to any previous version
+
+**Script Backups:**
+- Training scripts backed up with timestamps
+- Submission.py backed up on each organization
+- All old versions preserved in archive/
+
+**Metadata Files:**
+- `weights/WEIGHTS_METADATA.md` - Complete weights tracking
+- `submissions/SUBMISSION_HISTORY.md` - Submission guide
+- `CHANGELOG.md` - Project history
+
+### File Movement Rules
+
+**Safe to Move/Archive:**
+- Old submission zips
+- Completed training scripts
+- Documentation files (after training complete)
+
+**NEVER Move While Training Active:**
+- train_challenge2_correct.py (in use by PID 548497)
+- Monitoring scripts (watchdog depends on them)
+- Current weight files
+- submission.py (required for competition)
+
+### Submission Workflow
+
+1. **Test**: `python test_submission_verbose.py`
+2. **Create Package**:
+   ```bash
+   zip -j submission.zip \
+       submission.py \
+       weights/challenge1/weights_challenge_1_current.pt \
+       weights/challenge2/weights_challenge_2_current.pt
+   ```
+3. **Verify**: `unzip -l submission.zip` (should show exactly 3 files)
+4. **Submit**: Upload to competition platform
+
+### Current Training Status (2025-10-19 15:10 - POST POWER SURGE)
+
+**Challenge 1:** ✅ Ready
+- Status: Complete, ready for submission
+- Checkpoint: `checkpoints/challenge1_tcn_competition_best.pth`
+- Val Loss: 0.010170 (NRMSE)
+- Note: Unaffected by power surge
+
+**Challenge 2:** 🔄 Training RESTARTED
+- **Power Surge Event:** System went down ~15:00, training interrupted
+- **Previous Progress:** Epoch 1/20, Batch 1,320/5,214 (~25% of epoch 1)
+- **Previous Runtime:** 47 hours 15 minutes
+- **Previous PIDs:** Training 548497, Watchdog 560789 (terminated)
+- **Recovery Actions:**
+  - Backed up logs to `challenge2_correct_training_backup_20251019_150947.log`
+  - Created `restart_challenge2_training.sh` script
+  - Verified Python dependencies and data integrity
+  - Restarted training from scratch (epoch 1, batch 0)
+- **Current Status:** ✅ RUNNING (restarted Oct 19, 15:09)
+- **New PIDs:** Training 8593, Watchdog 8654
+- **Progress:** Data loading phase
+- **ETA:** Early stopping expected around epoch 5-10
+- **Note:** Previous progress lost but acceptable for long training runs
+
+### Organization Benefits
+
+✅ Clear structure by purpose
+✅ Version control with timestamps
+✅ Easy rollback capability
+✅ Metadata tracking
+✅ Clean root directory
+✅ Protected active processes
+✅ Comprehensive documentation
+
