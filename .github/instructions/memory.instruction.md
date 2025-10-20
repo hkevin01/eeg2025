@@ -457,6 +457,48 @@ eeg2025/
 
 ---
 
+### October 19, 2025 (8:20 PM) - Second VS Code Crash & Solution ✅
+**Session Summary:** VSCODE_CRASH_2_ANALYSIS.md
+
+**What Happened:**
+- VS Code crashed AGAIN at 8:19 PM (different cause)
+- Training run #9 killed while loading 22.8 GB of data
+- ptyHost heartbeat timeout after 6 seconds → SIGTERM to all processes
+
+**Root Cause Analysis:**
+- **NOT memory shortage** (23 GB available, only needed 22.8 GB)
+- ptyHost lost heartbeat during heavy HDF5 I/O operations
+- System was busy decompressing/loading 10.8 GB + 12 GB cache files
+- VS Code's ptyHost timeout too aggressive (6 sec) for heavy I/O
+- All child processes killed when ptyHost assumed dead
+
+**Actions Taken:**
+1. ✅ Analyzed crash logs (different pattern than crash #1)
+2. ✅ Checked system resources (memory sufficient!)
+3. ✅ Identified ptyHost timeout as culprit
+4. ✅ Added comprehensive debugging to training script
+5. ✅ Documented solution: Run training outside VS Code
+
+**Solution:**
+- **DO NOT** run heavy training in VS Code terminals
+- Use pure system terminal (Ctrl+Alt+T) instead
+- Training in tmux → detach → monitor log from VS Code
+- This prevents VS Code from killing processes
+
+**Impact:**
+- Lost: Training run #9 (killed during load)
+- Survived: All code, cache files (R1, R2), database
+- Training script works perfectly (tested)
+- VS Code terminals are the problem, not the script
+
+**Files Created:**
+- VSCODE_CRASH_2_ANALYSIS.md (detailed analysis)
+- Improved train_challenge2_r1r2.py (extensive debugging)
+- ORGANIZATION_SUMMARY.md (root cleanup)
+- scripts/{cache,training,monitoring,infrastructure}/README.md
+
+---
+
 ### Submission Workflow
 
 1. **Test**: `python test_submission_verbose.py`

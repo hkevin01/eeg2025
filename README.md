@@ -250,6 +250,178 @@ graph TB
 | **MNE-Python** | Latest | EEG processing | Gold standard for electrophysiology analysis |
 | **NumPy** | Latest | Numerical computing | Fast array operations, scientific computing base |
 | **Braindecode** | Latest | EEG-specific models | Pre-built architectures for EEG (EEGNeX) |
+| **MongoDB** | 7.0 | Experiment tracking database | Concurrent writes, rich queries, flexible schema |
+
+### Data Infrastructure
+
+#### MongoDB - Experiment Tracking Database
+
+**What it is:** A NoSQL database that stores all training experiments, metrics, and model checkpoints.
+
+**Why we added it:**
+
+| Problem (SQLite) | Solution (MongoDB) | Impact |
+|------------------|-------------------|---------|
+| ❌ Single-writer lock | ✅ Unlimited concurrent writes | Run multiple experiments simultaneously |
+| ❌ Local file only | ✅ Network accessible | Query experiments from any machine |
+| ❌ Basic SQL queries | ✅ Rich aggregation pipelines | Complex analytics and comparisons |
+| ❌ Fixed schema | ✅ Flexible document model | Add custom metrics without migrations |
+| ❌ No UI | ✅ Web-based Mongo Express | Visual data exploration |
+
+**What it does:**
+
+```mermaid
+graph TB
+    subgraph Training["🎯 Training Process"]
+        T1[Start Experiment]
+        T2[Epoch Loop]
+        T3[Save Checkpoint]
+        T4[Complete Training]
+    end
+    
+    subgraph MongoDB["🗄️ MongoDB Database"]
+        M1[(experiments<br/>Training runs)]
+        M2[(epochs<br/>Per-epoch metrics)]
+        M3[(checkpoints<br/>Model files)]
+    end
+    
+    subgraph Analysis["📊 Analysis & Monitoring"]
+        A1[Best Model Query]
+        A2[Training History]
+        A3[Experiment Comparison]
+        A4[Web UI Dashboard]
+    end
+    
+    T1 --> M1
+    T2 --> M2
+    T3 --> M3
+    T4 --> M1
+    
+    M1 --> A1
+    M2 --> A2
+    M3 --> A2
+    M1 --> A3
+    M2 --> A3
+    M1 --> A4
+    M2 --> A4
+    
+    style T1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style T2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style T3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style T4 fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style M1 fill:#7c2d12,stroke:#ea580c,color:#fff
+    style M2 fill:#7c2d12,stroke:#ea580c,color:#fff
+    style M3 fill:#7c2d12,stroke:#ea580c,color:#fff
+    style A1 fill:#065f46,stroke:#10b981,color:#fff
+    style A2 fill:#065f46,stroke:#10b981,color:#fff
+    style A3 fill:#065f46,stroke:#10b981,color:#fff
+    style A4 fill:#065f46,stroke:#10b981,color:#fff
+```
+
+**Database Schema:**
+
+```javascript
+// experiments collection - One document per training run
+{
+  _id: ObjectId("..."),
+  experiment_name: "eegnex_r1r2_20251020",
+  challenge: 2,
+  status: "completed",
+  
+  model: {
+    name: "EEGNeX",
+    parameters: 2457821
+  },
+  
+  config: {
+    batch_size: 16,
+    learning_rate: 0.002,
+    optimizer: "Adamax"
+  },
+  
+  dataset: {
+    releases: ["R1", "R2"],
+    train_windows: 103724
+  },
+  
+  metrics: {
+    best_val_loss: 0.0452,
+    best_epoch: 15
+  },
+  
+  tags: ["baseline", "cpu"]
+}
+
+// epochs collection - Per-epoch training metrics
+{
+  experiment_id: ObjectId("..."),
+  epoch: 15,
+  metrics: {
+    train_loss: 0.0389,
+    val_loss: 0.0452,
+    learning_rate: 0.002
+  },
+  timing: {
+    duration_seconds: 3240.5
+  }
+}
+
+// checkpoints collection - Model checkpoint tracking
+{
+  experiment_id: ObjectId("..."),
+  epoch: 15,
+  is_best: true,
+  metrics: {val_loss: 0.0452},
+  file: {
+    path: "checkpoints/best_model.pt",
+    size_mb: 9.8
+  }
+}
+```
+
+**Usage Example:**
+
+```python
+from src.data.nosql_backend import MongoExperimentTracker
+
+# Start experiment
+tracker = MongoExperimentTracker()
+exp_id = tracker.create_experiment(
+    experiment_name="my_experiment",
+    challenge=2,
+    model={'name': 'EEGNeX'},
+    config={'batch_size': 16}
+)
+
+# Log epoch metrics
+for epoch in range(20):
+    train_loss, val_loss = train_epoch(...)
+    tracker.log_epoch(exp_id, epoch, {
+        'train_loss': train_loss,
+        'val_loss': val_loss
+    })
+
+# Query best models
+best_models = tracker.get_best_models(challenge=2, n=5)
+for model in best_models:
+    print(f"{model['experiment_name']}: {model['metrics']['best_val_loss']}")
+```
+
+**Improvements enabled by MongoDB:**
+
+1. **Concurrent Training**: Run multiple experiments simultaneously without database locks
+2. **Rich Queries**: Find best models, compare hyperparameters, analyze trends
+3. **Experiment Tracking**: Complete history of all training runs with searchable tags
+4. **Real-time Monitoring**: Web UI at http://localhost:8082 for live progress
+5. **Reproducibility**: Full configuration and environment captured per experiment
+6. **Scalability**: Ready for distributed training and cloud deployment
+
+**Access:**
+- **MongoDB**: `mongodb://localhost:27017/eeg2025`
+- **Web UI**: http://localhost:8082 (admin/pass123)
+- **Documentation**: `docs/DATABASE_DESIGN.md`
+
+---
 
 ### Architecture Components Explained
 
@@ -1132,6 +1304,19 @@ See `CHALLENGE2_TRAINING_STATUS.md` for detailed training configuration and `scr
 - **CHALLENGE2_TRAINING_STATUS.md** - Training configuration and status
 - **WATCHDOG_QUICK_REFERENCE.md** - Monitoring system guide
 - **ORGANIZATION_COMPLETE.md** - Project organization summary
+- **docs/model_control_plane.md** - Model Control Plane architecture and operations
+- **docs/rocm_troubleshooting.md** - ROCm GPU debugging and fallback strategies
+
+### Database Documentation
+
+- **docs/DATABASE_DESIGN.md** - Complete MongoDB schema and architecture (800+ lines)
+  - Full collection schemas with examples
+  - Query patterns and performance optimization
+  - Integration guide with training scripts
+  - Migration script from SQLite
+- **MONGODB_INTEGRATION.md** - Quick start guide for MongoDB setup
+- **MONGODB_SETUP_COMPLETE.md** - Comprehensive setup summary and benefits
+- **MONGODB_QUICK_REFERENCE.md** - One-page cheat sheet for common operations
 
 ### Reference Documentation
 

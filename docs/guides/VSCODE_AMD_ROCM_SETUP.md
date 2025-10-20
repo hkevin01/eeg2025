@@ -330,4 +330,12 @@ rocm-smi
 
 # Clear GPU memory
 python3 -c "import torch; torch.cuda.empty_cache()"
+
+# Verify PyTorch sees the ROCm GPU
+python3 - <<'PY'
+import torch
+print("ROCm available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("Device:", torch.cuda.get_device_name(0))
+PY
 ```

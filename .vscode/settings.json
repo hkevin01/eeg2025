@@ -27,5 +27,7 @@
   "terminal.integrated.persistentSessionReviveProcess": "never",
   "files.associations": {
     "*.log": "plaintext"
-  }
+  },
+  "intellicode.enable.python": false,
+  "intellicode.enable.general": false
 }
