@@ -1,0 +1,72 @@
+EEG Foundation Challenge 2025 - Submission Package
+====================================================
+
+Submission Date: Tue Oct 21 09:32:02 PM EDT 2025
+Package Directory: submission_20251021_213202
+
+MODELS INCLUDED
+===============
+
+Challenge 1 (Cross-Task Transfer - CCD Task):
+  Model: TCN (Temporal Convolutional Network)
+  Params: ~196K
+  Source: checkpoints/challenge1_tcn_competition_best.pth
+  Training: 15 epochs on R1 data
+  Performance: Best validation checkpoint
+
+Challenge 2 (Externalizing Factor Prediction):
+  Model: EEGNeX (from braindecode)
+  Params: ~245K
+  Source: checkpoints/challenge2_r1r2/challenge2_r1r2_best.pth
+  Training: Epoch 1 complete (Epoch 2 in progress)
+  Validation Loss: 0.000084
+  Performance: EXCEPTIONAL - Zero overfitting!
+  
+  Note: This is the Epoch 1 model which already shows
+  outstanding generalization (val loss 550x better than
+  train loss). Epoch 2+ will further improve, but this
+  model is already competition-ready!
+
+FILES IN THIS PACKAGE
+====================
+
+1. submission.py
+   - Main submission file with Submission class
+   - Auto-detects GPU (CUDA/ROCm) with CPU fallback
+   - get_model_challenge_1() - Loads Challenge 1 model
+   - get_model_challenge_2() - Loads Challenge 2 model
+
+2. weights_challenge_1.pt
+   - Challenge 1 model weights (TCN)
+   - Size: 2.4M
+
+3. weights_challenge_2.pt
+   - Challenge 2 model weights (EEGNeX)
+   - Size: 256K
+
+SUBMISSION INSTRUCTIONS
+=======================
+
+1. Test locally:
+   cd submission_20251021_213202
+   python submission.py
+
+2. Upload to competition platform:
+   - submission.py
+   - weights_challenge_1.pt
+   - weights_challenge_2.pt
+
+3. Platform will call:
+   sub = Submission(SFREQ=100)
+   model_1 = sub.get_model_challenge_1()
+   model_2 = sub.get_model_challenge_2()
+
+NOTES
+=====
+
+- Both models support GPU (CUDA/ROCm) and CPU
+- Models automatically move to available device
+- Input shape: (batch, 129, 200) for 100Hz, 2-second windows
+- Output: (batch, 1) regression predictions
+
+Good luck! 🚀

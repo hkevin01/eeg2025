@@ -1200,6 +1200,32 @@ tail -f logs/challenge2_correct_training.log
 - Python 3.9+
 - PyTorch 2.0+
 - CUDA (optional, for GPU training)
+- **AMD GPU Users**: For unsupported consumer GPUs (gfx1010, etc.), see [ROCm SDK Builder Solution](#-amd-gpu-rocm-sdk-builder-solution)
+
+### ROCm SDK Builder Solution
+
+**Problem**: AMD consumer GPUs (RX 5600 XT, RX 6000 series, etc.) with gfx1010/gfx1030 architectures experience `HSA_STATUS_ERROR_MEMORY_APERTURE_VIOLATION` errors with standard PyTorch ROCm installations because official ROCm binaries only support server GPUs.
+
+**Solution**: Use [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) to build custom PyTorch with consumer GPU support:
+
+```bash
+# Clone ROCm SDK Builder
+git clone https://github.com/lamikr/rocm_sdk_builder.git /tmp/rocm_sdk_builder
+cd /tmp/rocm_sdk_builder
+
+# Install dependencies
+./install_deps.sh
+
+# Configure for your GPU (e.g., gfx1010 for RX 5600 XT)
+echo "GPU_BUILD_AMD_NAVI10_GFX1010=1" >> binfo/envsetup.sh
+
+# Download sources and build (takes 3-4 hours)
+./babs.sh -i && ./babs.sh -b
+```
+
+This builds a complete ROCm SDK with PyTorch at `/opt/rocm_sdk_612` that includes kernels for your specific GPU architecture, resolving the braindecode GPU compatibility issues.
+
+**Credit**: [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) by @lamikr - ⭐ **Please star this repo** - it enables ROCm on thousands of unsupported consumer AMD GPUs!
 
 ### Setup
 

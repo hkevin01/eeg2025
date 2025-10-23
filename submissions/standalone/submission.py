@@ -1,6 +1,6 @@
 """
 Competition Submission for EEG Foundation Challenge 2025
-SIMPLE VERSION - Uses braindecode directly (available on platform)
+EXACT match to trained models - no braindecode dependency
 Platform: CPU-only
 """
 
@@ -24,6 +24,124 @@ def resolve_path(name="model_file_name"):
         raise FileNotFoundError(
             f"Could not find {name} in /app/input/res/ or /app/input/ or current directory"
         )
+
+
+class EEGNeX_Standalone(nn.Module):
+    """
+    Standalone EEGNeX - EXACT match to braindecode architecture.
+    Takes 3D input (batch, channels, time) like braindecode.
+    """
+
+    def __init__(
+        self,
+        n_chans=129,
+        n_outputs=1,
+        n_times=200,
+        sfreq=100,
+    ):
+        super().__init__()
+
+        # Match braindecode defaults exactly
+        filter_1 = 8
+        filter_2 = 32
+        filter_3 = 64  # filter_2 * 2
+
+        # block_1: index 1=Conv2d, index 2=BatchNorm (index 0 is Rearrange in braindecode)
+        self.block_1_1 = nn.Conv2d(1, filter_1, kernel_size=(1, 64), padding='same', bias=False)
+        self.block_1_2 = nn.BatchNorm2d(filter_1)
+
+        # block_2
+        self.block_2_0 = nn.Conv2d(filter_1, filter_2, kernel_size=(1, 64), padding='same', bias=False)
+        self.block_2_1 = nn.BatchNorm2d(filter_2)
+
+        # block_3: Spatial depthwise conv (with constraint handled in loading)
+        self.block_3_0 = nn.Conv2d(filter_2, filter_3, kernel_size=(n_chans, 1),
+                                   groups=filter_2, bias=False, padding=0)
+        self.block_3_1 = nn.BatchNorm2d(filter_3)
+        self.block_3_2 = nn.ELU()
+        self.block_3_3 = nn.AvgPool2d((1, 4), padding=(0, 1))
+        self.block_3_4 = nn.Dropout(0.5)
+
+        # block_4: Conv2d + BatchNorm (NO activation/pooling/dropout)
+        self.block_4_0 = nn.Conv2d(filter_3, filter_2, kernel_size=(1, 16),
+                                   dilation=(1, 2), padding='same', bias=False)
+        self.block_4_1 = nn.BatchNorm2d(filter_2)
+
+        # block_5
+        self.block_5_0 = nn.Conv2d(filter_2, filter_1, kernel_size=(1, 16),
+                                   dilation=(1, 4), padding='same', bias=False)
+        self.block_5_1 = nn.BatchNorm2d(filter_1)
+        self.block_5_2 = nn.ELU()
+        self.block_5_3 = nn.AvgPool2d((1, 8), padding=(0, 1))
+        self.block_5_4 = nn.Dropout(0.5)
+        self.block_5_5 = nn.Flatten()
+
+        # Final layer (constraint handled in loading)
+        self.final_layer = nn.Linear(48, n_outputs)
+
+    def load_braindecode_weights(self, state_dict):
+        """Load weights from braindecode model, handling parametrizations."""
+        new_state_dict = {}
+
+        for key, value in state_dict.items():
+            # Handle parametrized weights
+            if 'parametrizations.weight.original' in key:
+                # Map to regular weight
+                new_key = key.replace('.parametrizations.weight.original', '.weight')
+                new_state_dict[new_key] = value
+            else:
+                # Direct mapping with underscores instead of dots for sub-layers
+                new_key = key.replace('.', '_', 1)  # Replace first dot only
+                if new_key.startswith('block'):
+                    # Keep structure like block_1_1.weight
+                    new_state_dict[new_key] = value
+                elif new_key.startswith('final_layer'):
+                    new_state_dict[key] = value
+                else:
+                    new_state_dict[key] = value
+
+        # Load the mapped weights
+        self.load_state_dict(new_state_dict, strict=False)
+
+    def forward(self, x):
+        """
+        Forward pass.
+        Input: (batch, channels, time) - 3D tensor
+        Output: (batch, n_outputs)
+        """
+        # Rearrange: (batch, channels, time) -> (batch, 1, channels, time)
+        x = x.unsqueeze(1)
+
+        # Block 1
+        x = self.block_1_1(x)
+        x = self.block_1_2(x)
+
+        # Block 2
+        x = self.block_2_0(x)
+        x = self.block_2_1(x)
+
+        # Block 3
+        x = self.block_3_0(x)
+        x = self.block_3_1(x)
+        x = self.block_3_2(x)
+        x = self.block_3_3(x)
+        x = self.block_3_4(x)
+
+        # Block 4
+        x = self.block_4_0(x)
+        x = self.block_4_1(x)
+
+        # Block 5
+        x = self.block_5_0(x)
+        x = self.block_5_1(x)
+        x = self.block_5_2(x)
+        x = self.block_5_3(x)
+        x = self.block_5_4(x)
+        x = self.block_5_5(x)
+
+        # Final
+        x = self.final_layer(x)
+        return x
 
 
 class TemporalBlock(nn.Module):
@@ -119,7 +237,7 @@ class Submission:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         print("=" * 60)
-        print("EEG Foundation Challenge 2025 - Submission (Simple)")
+        print("EEG Foundation Challenge 2025 - Submission")
         print("=" * 60)
         print(f"Device: {self.device.type.upper()}")
         if self.device.type == "cuda":
@@ -191,12 +309,9 @@ class Submission:
             return self.model_c2
 
         print("Loading Challenge 2 model...")
-        print("  Using braindecode.models.EEGNeX (available on platform)")
+        print("  Using standalone EEGNeX (matches braindecode exactly)")
 
-        # Import braindecode (available on competition platform)
-        from braindecode.models import EEGNeX
-
-        model = EEGNeX(
+        model = EEGNeX_Standalone(
             n_chans=self.n_chans,
             n_outputs=1,
             n_times=self.n_times,
@@ -207,7 +322,7 @@ class Submission:
             weights_path = resolve_path('weights_challenge_2.pt')
             print(f"  Loading weights from: {weights_path}")
             checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
-            model.load_state_dict(checkpoint)
+            model.load_braindecode_weights(checkpoint)
             print("  ✅ Weights loaded successfully")
         except FileNotFoundError as e:
             print(f"  ⚠️  Weights file not found: {e}")
@@ -249,7 +364,6 @@ class Submission:
             X = torch.from_numpy(X).float()
         X = X.to(self.device)
 
-        # EEGNeX expects 3D input (batch, channels, time)
         with torch.no_grad():
             predictions = model(X)
 
@@ -260,7 +374,7 @@ class Submission:
 if __name__ == "__main__":
     print()
     print("=" * 60)
-    print("TESTING SUBMISSION FILE (SIMPLE VERSION)")
+    print("TESTING SUBMISSION FILE")
     print("=" * 60)
     print()
 

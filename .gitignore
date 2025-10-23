@@ -27,12 +27,19 @@ MANIFEST
 # Virtual Environments
 # ============================================================================
 venv/
+venv_*/
 env/
 ENV/
 .venv
+.venv/
 .pyenv/
 pipenv/
 poetry.lock
+Pipfile.lock
+.python-version
+# Specific venv directories in this project
+venv_rocm57/
+venv_rocm/
 
 # ============================================================================
 # Large Data Directories (EEG Data)
@@ -352,6 +359,7 @@ config/secrets.yaml
 *.db
 *.sqlite
 *.sqlite3
+!data/metadata.db
 
 # Pickle files (except specific ones)
 *.pkl
@@ -389,3 +397,50 @@ checkpoints/*_history.json
 *.bak
 *.swp
 *.swo
+
+# ============================================================================
+# Docker and Containers
+# ============================================================================
+docker/*.log
+docker/data/
+docker/cache/
+.dockerignore_backup
+
+# ============================================================================
+# Node/npm (if using any web tools)
+# ============================================================================
+node_modules/
+package-lock.json
+yarn.lock
+.npm/
+.yarn/
+
+# ============================================================================
+# Python Build and Distribution
+# ============================================================================
+*.whl
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+dist-info/
+
+# ============================================================================
+# ROCm and GPU specific
+# ============================================================================
+*.hsaco
+*.o
+*.so
+rocm_*.log
+gpu_test_*.log
+.rocm/
+.hip/
+
+# ============================================================================
+# Temporary test files
+# ============================================================================
+test_*.txt
+test_output/
+temp_*/
+tmp_*/
+scratch/
+experiments/

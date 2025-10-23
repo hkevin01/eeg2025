@@ -29,5 +29,6 @@
     "*.log": "plaintext"
   },
   "intellicode.enable.python": false,
-  "intellicode.enable.general": false
+  "intellicode.enable.general": false,
+  "makefile.configureOnOpen": false
 }

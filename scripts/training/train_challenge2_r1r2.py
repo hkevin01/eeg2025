@@ -107,6 +107,7 @@ warnings.filterwarnings("ignore")
 DEVICE = torch.device("cpu")
 
 GPU_HEALTH_TIMEOUT = 30  # seconds
+USE_ROCM_DEPTHWISE = False
 
 
 def _get_mp_context():
@@ -127,6 +128,17 @@ CACHE_DIR = REPO_ROOT / "data" / "cached"
 DB_FILE = REPO_ROOT / "data" / "metadata.db"
 CHECKPOINT_DIR = REPO_ROOT / "checkpoints" / "challenge2_r1r2"
 LOG_DIR = REPO_ROOT / "logs"
+
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+try:
+    from utils.gpu_detection import is_problematic_amd_gpu
+except Exception as e:  # pragma: no cover - fallback if utility missing
+    print(f"  ⚠️  Failed to import ROCm GPU detection utils: {e}")
+    def is_problematic_amd_gpu():
+        return False, ""
 
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -219,6 +231,13 @@ def parse_args(argv=None):
         default="auto",
         help="Device preference. 'auto' tries GPU first with health-check fallback to CPU, 'cuda' forces GPU, 'cpu' forces CPU.",
     )
+    parser.add_argument(
+        "--force-gpu-unsafe",
+        action="store_true",
+        help=(
+            "Override gfx1030 AMD safeguard and attempt GPU anyway (may crash with HSA memory aperture violation)."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -299,6 +318,7 @@ def run_gpu_health_check(device_index: int, timeout: int = GPU_HEALTH_TIMEOUT):
             pass
 
     return status == "ok", message
+
 
 
 class CachedEEGDataset(Dataset):
@@ -552,33 +572,55 @@ def main(args=None):
     DEVICE = torch.device("cpu")
 
     if prefer_gpu:
-        if not torch.cuda.is_available():
-            if requested_device == "cuda":
-                raise RuntimeError("CUDA/ROCm device requested but none are available.")
-            print("⚠️  CUDA/ROCm device not available; continuing on CPU.")
-            sys.stdout.flush()
-        else:
-            print(
-                f"🧪 Running GPU health check on cuda:{device_index} (timeout={GPU_HEALTH_TIMEOUT}s)..."
-            )
-            sys.stdout.flush()
-            healthy, failure_reason = run_gpu_health_check(device_index, GPU_HEALTH_TIMEOUT)
-            if healthy:
-                if args.device_index is not None:
-                    torch.cuda.set_device(args.device_index)
-                    DEVICE = torch.device(f"cuda:{args.device_index}")
-                else:
-                    DEVICE = torch.device("cuda")
-                print("✅ GPU health check passed; using GPU for training.")
+        # GFX1030 safeguard: force CPU unless explicitly overridden
+        problem_amd, amd_reason = is_problematic_amd_gpu()
+        if problem_amd and not getattr(args, "force_gpu_unsafe", False):
+            print(f"⚠️  GPU disabled due to known ROCm issue on this AMD GPU: {amd_reason}")
+            print("   Use --force-gpu-unsafe to override (may crash with memory aperture violation).")
+            prefer_gpu = False
+
+        # If safeguard disabled GPU, skip the GPU path entirely
+        if prefer_gpu:
+            if not torch.cuda.is_available():
+                if requested_device == "cuda":
+                    raise RuntimeError("CUDA/ROCm device requested but none are available.")
+                print("⚠️  CUDA/ROCm device not available; continuing on CPU.")
                 sys.stdout.flush()
             else:
-                print(f"⚠️  GPU health check failed: {failure_reason}")
-                if requested_device == "cuda":
-                    raise RuntimeError(
-                        "GPU was explicitly requested but health check failed; see logs for details."
+                # ROCm workaround: Skip health check if HSA_SKIP_GPU_CHECK is set
+                skip_check = os.environ.get('HSA_SKIP_GPU_CHECK', '0') == '1'
+
+                if skip_check:
+                    print("⚠️  Skipping GPU health check (HSA_SKIP_GPU_CHECK=1)")
+                    if args.device_index is not None:
+                        torch.cuda.set_device(args.device_index)
+                        DEVICE = torch.device(f"cuda:{args.device_index}")
+                    else:
+                        DEVICE = torch.device("cuda")
+                    print(f"✅ Using GPU directly: {DEVICE}")
+                    sys.stdout.flush()
+                else:
+                    print(
+                        f"🧪 Running GPU health check on cuda:{device_index} (timeout={GPU_HEALTH_TIMEOUT}s)..."
                     )
-                print("   Falling back to CPU execution.")
-                sys.stdout.flush()
+                    sys.stdout.flush()
+                    healthy, failure_reason = run_gpu_health_check(device_index, GPU_HEALTH_TIMEOUT)
+                    if healthy:
+                        if args.device_index is not None:
+                            torch.cuda.set_device(args.device_index)
+                            DEVICE = torch.device(f"cuda:{args.device_index}")
+                        else:
+                            DEVICE = torch.device("cuda")
+                        print("✅ GPU health check passed; using GPU for training.")
+                        sys.stdout.flush()
+                    else:
+                        print(f"⚠️  GPU health check failed: {failure_reason}")
+                        if requested_device == "cuda":
+                            raise RuntimeError(
+                                "GPU was explicitly requested but health check failed; see logs for details."
+                            )
+                        print("   Falling back to CPU execution.")
+                        sys.stdout.flush()
     else:
         print("🧠 CPU-only mode requested; skipping GPU checks.")
         sys.stdout.flush()

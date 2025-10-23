@@ -1,0 +1,14 @@
+--- a/scripts/training/train_challenge2_r1r2.py
++++ b/scripts/training/train_challenge2_r1r2.py
+@@ -567,6 +567,10 @@ def main(args):
+         else:
+             print("⚠️  CUDA/ROCm is available but not preferred; using CPU.")
+             sys.stdout.flush()
++    
++    # ROCm workaround: Skip health check if HSA_SKIP_GPU_CHECK is set
++    if prefer_gpu and torch.cuda.is_available() and os.environ.get('HSA_SKIP_GPU_CHECK') == '1':
++        DEVICE = torch.device("cuda" if args.device_index is None else f"cuda:{args.device_index}")
++        print("⚠️ Skipping GPU health check (HSA_SKIP_GPU_CHECK=1); using GPU directly.")
+     else:
+         if not torch.cuda.is_available():
+             if requested_device == "cuda":

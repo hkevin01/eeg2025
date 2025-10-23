@@ -6,34 +6,40 @@ Platform: CPU-only
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from pathlib import Path
+from typing import Union
 
 
-def resolve_path(name="model_file_name"):
-    """Resolve file path - matches starter kit exactly."""
-    if Path(f"/app/input/res/{name}").exists():
-        return f"/app/input/res/{name}"
-    elif Path(f"/app/input/{name}").exists():
-        return f"/app/input/{name}"
-    elif Path(f"{name}").exists():
-        return f"{name}"
-    elif Path(__file__).parent.joinpath(f"{name}").exists():
-        return str(Path(__file__).parent.joinpath(f"{name}"))
-    else:
-        raise FileNotFoundError(
-            f"Could not find {name} in /app/input/res/ or /app/input/ or current directory"
-        )
+def resolve_path(file_path: Union[str, Path]) -> Path:
+    """Resolve file path handling both container and local environments."""
+    path = Path(file_path)
+    
+    container_paths = [
+        Path('/app/ingestion_program') / path.name,
+        Path('/app') / path.name,
+        Path('.') / path.name,
+    ]
+    
+    if path.exists():
+        return path
+    
+    for container_path in container_paths:
+        if container_path.exists():
+            return container_path
+    
+    return path
 
 
 class TemporalBlock(nn.Module):
     """Temporal Convolutional Block from competition training."""
-
+    
     def __init__(self, n_inputs, n_outputs, kernel_size, dilation, dropout=0.2):
         super().__init__()
-
+        
         padding = (kernel_size - 1) * dilation
-
+        
         self.conv1 = nn.Conv1d(n_inputs, n_outputs, kernel_size,
                               padding=padding, dilation=dilation)
         self.bn1 = nn.BatchNorm1d(n_outputs)
@@ -99,56 +105,35 @@ class TCN_EEG(nn.Module):
 
 class Submission:
     """Main submission class for competition."""
-
-    def __init__(self, SFREQ: int, DEVICE):
-        """Initialize submission with device and constants.
-
-        Args:
-            SFREQ: Sampling frequency
-            DEVICE: Device provided by competition (may be string or torch.device)
-        """
-        # Auto-detect device: Use provided DEVICE if valid, otherwise CPU
-        # Competition uses: torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        # ROCm systems: CUDA calls work via HIP compatibility layer
-        if isinstance(DEVICE, str):
-            self.device = torch.device(DEVICE)
-        elif isinstance(DEVICE, torch.device):
-            self.device = DEVICE
-        else:
-            # Fallback: auto-detect
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    
+    def __init__(self):
+        """Initialize submission with device and constants."""
+        self.device = torch.device('cpu')
+        
         print("=" * 60)
         print("EEG Foundation Challenge 2025 - Submission (Simple)")
         print("=" * 60)
-        print(f"Device: {self.device.type.upper()}")
-        if self.device.type == "cuda":
-            if torch.cuda.is_available():
-                print(f"GPU: {torch.cuda.get_device_name(0)}")
-                print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
-            else:
-                print("⚠️  CUDA requested but not available - falling back to CPU")
-                self.device = torch.device("cpu")
-
-        self.sfreq = SFREQ
+        print(f"Device: CPU (forced for competition compatibility)")
+        
+        self.sfreq = 100
         self.n_chans = 129
-        self.n_times = int(2 * SFREQ)
-
+        self.n_times = 200
+        
         print(f"Sampling Frequency: {self.sfreq} Hz")
         print(f"Expected input shape: (batch, {self.n_chans} channels, {self.n_times} timepoints)")
         print("=" * 60)
         print()
-
+        
         self.model_c1 = None
         self.model_c2 = None
-
+    
     def get_model_challenge_1(self):
         """Load Challenge 1 model (TCN for CCD reaction time)."""
         if self.model_c1 is not None:
             return self.model_c1
-
+            
         print("Loading Challenge 1 model (TCN)...")
-
+        
         model = TCN_EEG(
             num_channels=129,
             num_outputs=1,
@@ -157,102 +142,102 @@ class Submission:
             dropout=0.3,
             num_levels=5
         )
-
-        try:
-            weights_path = resolve_path('weights_challenge_1.pt')
+        
+        weights_path = resolve_path('weights_challenge_1.pt')
+        if weights_path.exists():
             print(f"  Loading weights from: {weights_path}")
-            checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
-            if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-                model.load_state_dict(checkpoint['model_state_dict'])
-                print(f"  ✅ Weights loaded from epoch {checkpoint.get('epoch', '?')}")
-            else:
-                model.load_state_dict(checkpoint)
-                print("  ✅ Weights loaded successfully")
-        except FileNotFoundError as e:
-            print(f"  ⚠️  Weights file not found: {e}")
-            print("  Using untrained model")
-        except Exception as e:
-            print(f"  ⚠️  Error loading weights: {e}")
-            print("  Using untrained model")
-
+            try:
+                checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
+                if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+                    model.load_state_dict(checkpoint['model_state_dict'])
+                    print(f"  ✅ Weights loaded from epoch {checkpoint.get('epoch', '?')}")
+                else:
+                    model.load_state_dict(checkpoint)
+                    print(f"  ✅ Weights loaded successfully")
+            except Exception as e:
+                print(f"  ⚠️  Error loading weights: {e}")
+                print("  Using untrained model")
+        else:
+            print(f"  ⚠️  Weights file not found, using untrained model")
+        
         model = model.to(self.device)
         model.eval()
-
+        
         print(f"  Model parameters: {sum(p.numel() for p in model.parameters()):,}")
         print("  ✅ Challenge 1 model ready")
         print()
-
+        
         self.model_c1 = model
         return model
-
+    
     def get_model_challenge_2(self):
         """Load Challenge 2 model (EEGNeX for externalizing factor)."""
         if self.model_c2 is not None:
             return self.model_c2
-
+            
         print("Loading Challenge 2 model...")
         print("  Using braindecode.models.EEGNeX (available on platform)")
-
+        
         # Import braindecode (available on competition platform)
         from braindecode.models import EEGNeX
-
+        
         model = EEGNeX(
             n_chans=self.n_chans,
             n_outputs=1,
             n_times=self.n_times,
             sfreq=self.sfreq,
         )
-
-        try:
-            weights_path = resolve_path('weights_challenge_2.pt')
+        
+        weights_path = resolve_path('weights_challenge_2.pt')
+        if weights_path.exists():
             print(f"  Loading weights from: {weights_path}")
-            checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
-            model.load_state_dict(checkpoint)
-            print("  ✅ Weights loaded successfully")
-        except FileNotFoundError as e:
-            print(f"  ⚠️  Weights file not found: {e}")
-            print("  Using untrained model")
-        except Exception as e:
-            print(f"  ⚠️  Error loading weights: {e}")
-            import traceback
-            traceback.print_exc()
-            print("  Using untrained model")
-
+            try:
+                checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
+                model.load_state_dict(checkpoint)
+                print(f"  ✅ Weights loaded successfully")
+            except Exception as e:
+                print(f"  ⚠️  Error loading weights: {e}")
+                import traceback
+                traceback.print_exc()
+                print("  Using untrained model")
+        else:
+            print(f"  ⚠️  Weights file not found, using untrained model")
+        
         model = model.to(self.device)
         model.eval()
-
+        
         print(f"  Model parameters: {sum(p.numel() for p in model.parameters()):,}")
         print("  ✅ Challenge 2 model ready")
         print()
-
+        
         self.model_c2 = model
         return model
-
+    
     def predict_challenge_1(self, X: np.ndarray) -> np.ndarray:
         """Predict CCD reaction times (Challenge 1)."""
         model = self.get_model_challenge_1()
-
+        
         if not isinstance(X, torch.Tensor):
             X = torch.from_numpy(X).float()
         X = X.to(self.device)
-
+        
         with torch.no_grad():
             predictions = model(X)
-
+        
         return predictions.cpu().numpy()
-
+    
     def predict_challenge_2(self, X: np.ndarray) -> np.ndarray:
         """Predict externalizing factor (Challenge 2)."""
         model = self.get_model_challenge_2()
-
+        
         if not isinstance(X, torch.Tensor):
             X = torch.from_numpy(X).float()
         X = X.to(self.device)
-
+        
         # EEGNeX expects 3D input (batch, channels, time)
         with torch.no_grad():
             predictions = model(X)
-
+        
         return predictions.cpu().numpy()
 
 
@@ -263,12 +248,12 @@ if __name__ == "__main__":
     print("TESTING SUBMISSION FILE (SIMPLE VERSION)")
     print("=" * 60)
     print()
-
-    submission = Submission(SFREQ=100, DEVICE=torch.device('cpu'))
-
+    
+    submission = Submission()
+    
     batch_size = 4
     test_data = np.random.randn(batch_size, 129, 200).astype(np.float32)
-
+    
     print("Testing Challenge 1 model:")
     print("-" * 40)
     pred_c1 = submission.predict_challenge_1(test_data)
@@ -277,7 +262,7 @@ if __name__ == "__main__":
     print(f"Sample predictions: {pred_c1[:3, 0]}")
     print("✅ Challenge 1 model works!")
     print()
-
+    
     print("Testing Challenge 2 model:")
     print("-" * 40)
     pred_c2 = submission.predict_challenge_2(test_data)
@@ -285,7 +270,7 @@ if __name__ == "__main__":
     print(f"Sample predictions: {pred_c2[:3, 0]}")
     print("✅ Challenge 2 model works!")
     print()
-
+    
     print("=" * 60)
     print("ALL TESTS PASSED - SUBMISSION READY")
     print("=" * 60)
