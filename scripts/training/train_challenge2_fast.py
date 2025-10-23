@@ -65,22 +65,31 @@ def select_device():
         print("ℹ️  CUDA/ROCm not available, using CPU")
         return torch.device("cpu")
 
-    # Check for problematic AMD GPU (gfx1030)
+    # Check for AMD RX 5600 XT (gfx1010 - PyTorch doesn't have kernels for it)
     try:
         device_name = torch.cuda.get_device_name(0)
+        props = torch.cuda.get_device_properties(0)
         print(f"🔍 Detected GPU: {device_name}")
+        print(f"   Architecture: {props.gcnArchName}")
 
-        if "gfx1030" in device_name or "Radeon RX 6600" in device_name:
-            print("⚠️  AMD gfx1030 GPU detected - known ROCm compatibility issues")
-            print("   Checking if ROCm environment variables are set...")
+        # RX 5600 XT (gfx1010) - PyTorch 2.5.1+rocm6.2 has NO gfx1010 kernels
+        if "RX 5600 XT" in device_name or "gfx1010" in props.gcnArchName:
+            print("⚠️  AMD RX 5600 XT (gfx1010) detected")
+            print("   PyTorch 2.5.1+rocm6.2 was not compiled with gfx1010 support")
+            print("   Available targets: gfx900, gfx906, gfx908, gfx90a, gfx1030, gfx1100, gfx942")
+            print("   Using CPU for reliable training")
+            print()
+            print("   💡 See GPU_FINAL_SOLUTION.md for details and future GPU options")
+            return torch.device("cpu")
 
-            if os.environ.get('HSA_OVERRIDE_GFX_VERSION') == '10.3.0':
-                print("✅ HSA_OVERRIDE_GFX_VERSION=10.3.0 set - attempting GPU training")
-                return torch.device("cuda:0")
-            else:
-                print("ℹ️  HSA_OVERRIDE_GFX_VERSION not set, using CPU for stability")
-                print("   To enable GPU: export HSA_OVERRIDE_GFX_VERSION=10.3.0")
-                return torch.device("cpu")
+        # Other known problematic GPUs
+        problematic_gpus = ["RX 6600", "gfx1030"]
+        is_problematic = any(gpu in device_name for gpu in problematic_gpus)
+
+        if is_problematic:
+            print("⚠️  Potentially problematic AMD GPU detected")
+            print("   Using CPU for reliable training")
+            return torch.device("cpu")
 
         # Other GPUs should work fine
         print(f"✅ Using GPU: {device_name}")
