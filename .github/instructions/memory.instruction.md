@@ -546,3 +546,93 @@ eeg2025/
 ✅ Protected active processes
 ✅ Comprehensive documentation
 
+
+---
+
+## 📅 Recent Work Sessions
+
+### October 24, 2025 - Phase 2: SAM Optimizer & Crash Recovery
+
+**Status:** 🔄 TRAINING IN PROGRESS (Tmux Session)
+
+#### Completed Work
+1. **Phase 1: Core Components (14:00-15:30 UTC)** ✅
+   - Implemented SAM optimizer (Sharpness-Aware Minimization)
+   - Created subject-level GroupKFold cross-validation
+   - Added advanced augmentation (scaling, channel dropout, noise)
+   - Built focal loss option (asymmetric error weighting)
+
+2. **Phase 2A: Hybrid Implementation (15:30-16:15 UTC)** ✅
+   - Created `train_challenge1_advanced.py` (542 lines)
+   - Combined working data loader from train_challenge1_working.py
+   - Integrated SAM optimizer with full training pipeline
+   - Added crash-resistant checkpointing with JSON history
+
+3. **Phase 2B: Testing (16:15-16:30 UTC)** ✅
+   - Test run: 2 epochs, 6 subjects (5 train, 1 val)
+   - Results: Train NRMSE 0.3681 → 0.3206 (12.9% improvement in 1 epoch)
+   - 219 windows from 6 subjects, model trained successfully
+   - Validated: Data loader, SAM optimizer, checkpointing all working
+
+4. **Phase 2C: First Full Training Attempt (16:40-16:45 UTC)** ❌
+   - Started 100-epoch training with nohup
+   - VSCode crashed at 16:45 UTC → training died
+   - Lost: Only got to data loading stage (150 subjects)
+
+5. **Phase 2D: Second Training Attempt (16:59-17:30 UTC)** ❌
+   - Restarted training with nohup
+   - VSCode crashed again → training died again
+   - Insight: nohup insufficient, need true process isolation
+
+6. **Phase 2E: Tmux Solution (17:00-17:05 UTC)** ✅
+   - Created `start_training_tmux.sh` - tmux session launcher
+   - Created `monitor_training.sh` - training monitor with status checks
+   - Launched training in tmux session "eeg_training"
+   - Tmux survives VSCode crashes, terminal closes, SSH disconnects
+   - Professional solution for long-running ML training
+
+#### Current Training Status (17:05 UTC)
+- **Session:** tmux "eeg_training"
+- **Experiment:** experiments/sam_full_run/20251024_165931/
+- **Status:** �� Data loading (334 subjects: 150 + 184)
+- **Expected:** 5-10 min data load, 2-4 hours training (100 epochs)
+- **Configuration:**
+  - Epochs: 100, Batch: 32, LR: 1e-3, SAM rho: 0.05
+  - Device: AMD RX 5600 XT (5.98 GB VRAM)
+  - Early stopping: 15 epochs patience
+- **Monitor:** `./monitor_training.sh` or `tail -f training_tmux.log`
+
+#### Key Files Created
+- `train_challenge1_advanced.py` - Hybrid training with SAM + CV + augmentation
+- `start_training_tmux.sh` - Crash-resistant training launcher
+- `monitor_training.sh` - Training progress monitor
+- `TMUX_TRAINING_STATUS.md` - Comprehensive tmux documentation
+- `TODO_PHASE2_OCT24.md` - Detailed phase 2 TODO list
+- `TRAINING_SUCCESS.md` - Test run results (2 epochs)
+- `PHASE2_STATUS.md` - Investigation report
+
+#### Lessons Learned
+1. **nohup is insufficient** - Dies with parent process (VSCode)
+2. **tmux is industry standard** - True process persistence
+3. **Test before full training** - 2-epoch test saved debugging time
+4. **Document everything** - Critical for crash recovery
+5. **Data loading takes time** - 334 subjects = 5-10 minutes
+
+#### Next Steps
+1. ⏳ Wait for data loading (~5-10 min remaining)
+2. ⏳ Monitor training progress (2-4 hours)
+3. ⏳ Analyze results when complete
+4. ⏳ Create submission if Val NRMSE < 1.0
+5. ⏳ Upload to Codabench
+
+#### Success Criteria
+- **Minimum:** Val NRMSE < 0.30
+- **Target:** Val NRMSE < 0.25, Test NRMSE < 1.0
+- **Stretch:** Test NRMSE < 0.8 (beat Oct 16 baseline: 1.002)
+
+#### Competition Context
+- **Deadline:** November 3, 2025 (9 days remaining)
+- **Current Best:** C1: 1.002, C2: 1.460, Overall: 1.322
+- **This Attempt:** SAM + Subject-CV + Augmentation → Expected significant improvement
+
+---
