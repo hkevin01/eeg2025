@@ -1,0 +1,12 @@
+#!/bin/bash
+echo "🔍 Challenge 1 Training Monitor"
+echo "================================"
+echo ""
+echo "📊 Log file: training_c1.log"
+echo "Lines: $(wc -l < training_c1.log 2>/dev/null || echo '0')"
+echo ""
+echo "🏃 Running processes:"
+pgrep -a python | grep challenge1 || echo "No training process found"
+echo ""
+echo "📝 Last 20 lines:"
+tail -20 training_c1.log 2>/dev/null || echo "Log not found"

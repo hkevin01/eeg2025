@@ -50,6 +50,7 @@ data/processed/**
 data/cache/**
 data/eegdash/**
 data/hbn/**
+data/training/**
 
 # Subject data directories (BIDS format) - CRITICAL
 sub-NDAR*/
@@ -372,6 +373,10 @@ config/secrets.yaml
 # History and checkpoint JSON files
 *_history.json
 checkpoints/*_history.json
+
+# VS Code task configurations (generated)
+task-*.json
+.vscode/tasks/*.json
 
 # ============================================================================
 # Git and Version Control

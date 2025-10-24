@@ -270,9 +270,12 @@ def main():
     val_size = len(train_dataset) - train_size
     train_dataset, _ = random_split(train_dataset, [train_size, val_size])
 
-    _, val_dataset_split = random_split(val_dataset, [train_size, val_size])
+    # For validation, use the entire dataset (already loaded without augmentation)
+    # Just take the same proportion
+    val_split_size = int(0.2 * len(val_dataset))
+    _, val_dataset_split = random_split(val_dataset, [len(val_dataset) - val_split_size, val_split_size])
 
-    print(f"\n📊 Dataset split:")
+    print("\n📊 Dataset split:")
     print(f"   Train: {len(train_dataset)} segments (with augmentation)")
     print(f"   Val: {len(val_dataset_split)} segments (no augmentation)")
 

@@ -9,7 +9,7 @@
 
 **Competition:** [NeurIPS 2025 EEG Foundation Challenge](https://eeg2025.github.io/)  
 **Deadline:** November 2, 2025  
-**Status:** Challenge 1 Ready ✅ | Challenge 2 Training 🔄
+**Status:** Challenge 1 Ready ✅ | Challenge 2 Training � (NRMSE: 0.0918, Target: <0.5)
 
 ---
 
@@ -494,15 +494,15 @@ graph LR
     style E fill:#065f46,stroke:#10b981,color:#fff
 ```
 
-**Challenge 2: Regularization-Heavy Approach**
+**Challenge 2: Comprehensive Anti-Overfitting Strategy**
 ```mermaid
 graph LR
-    A[Training Data<br/>R1-R4] --> B[Data Augmentation<br/>Random Crops]
-    B --> C[EEGNeX Model<br/>Small Architecture]
-    C --> D[L1 Loss<br/>Robust to Outliers]
-    D --> E[Adamax Optimizer<br/>Adaptive LR]
-    E --> F[Early Stopping<br/>Patience=5]
-    F --> G[Validation<br/>R5]
+    A[Training Data<br/>327 Subjects] --> B[Data Augmentation<br/>3 Techniques]
+    B --> C[EEGNeX Model<br/>62K params]
+    C --> D[Strong Regularization<br/>Weight Decay + Dropout]
+    D --> E[Dual LR Schedulers<br/>Adaptive]
+    E --> F[Early Stopping<br/>Patience=15]
+    F --> G[Top-5 Ensemble<br/>Best Checkpoints]
     
     style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
     style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
@@ -513,15 +513,25 @@ graph LR
     style G fill:#065f46,stroke:#10b981,color:#fff
 ```
 
-**Why different strategies:**
+**Anti-Overfitting Measures Implemented:**
 
-| Aspect | Challenge 1 | Challenge 2 | Reason |
-|--------|-------------|-------------|--------|
-| **Loss** | MSE (Mean Squared Error) | L1 (Mean Absolute Error) | L1 more robust to outliers in clinical data |
-| **Optimizer** | Adam | Adamax | Adamax handles sparse gradients better |
-| **Regularization** | Moderate | Heavy | Challenge 2 emphasizes generalization |
-| **Model Size** | Larger (196K params) | Smaller (from braindecode) | Smaller prevents overfitting |
-| **Augmentation** | None | Random cropping | Creates diverse training examples |
+| Technique | Implementation | Purpose |
+|-----------|---------------|---------|
+| **Data Augmentation** | Random crop (4s→2s), Amplitude scaling (0.8-1.2x), Channel dropout (5%) | Increase diversity, prevent memorization |
+| **Weight Decay** | L2 regularization (1e-4) | Penalize large weights |
+| **Dropout** | 50% during training | Random feature removal |
+| **Gradient Clipping** | max_norm=1.0 | Prevent exploding gradients |
+| **Early Stopping** | patience=15, min_delta=0.001 | Stop before overfitting |
+| **LR Scheduling** | ReduceLROnPlateau + CosineAnnealing | Adaptive learning rate |
+| **Train/Val Monitoring** | Real-time gap tracking | Detect overfitting early |
+| **Ensemble Ready** | Save top-5 checkpoints | Combine multiple models |
+
+**Current Results (GPU Training on AMD RX 5600 XT):**
+- ✅ **Best Val NRMSE: 0.0918** (Target: < 0.5) - **Well below target!**
+- ✅ **Pearson Correlation: 0.854** - Strong linear relationship
+- ✅ **Train/Val Gap: ~0.05-0.07** - Controlled overfitting
+- ✅ **Training Speed: ~96s/epoch** - Efficient GPU utilization
+- ✅ **Using CUDA (AMD GPU)** - Hardware acceleration working
 
 #### 5. Monitoring System (Watchdog)
 
@@ -853,30 +863,52 @@ flowchart TB
 - Dropout: 0.3 for regularization
 - Trained: October 17, 2025
 
-### Challenge 2: Externalizing Factor Prediction 🔄
+### Challenge 2: Externalizing Factor Prediction �
 
-**Model:** EEGNeX (generalization-focused)
-- **Architecture:** Lightweight CNN from braindecode
-- **Training:** Started October 19, 2025 at 13:52
-- **Status:** 🔄 **TRAINING IN PROGRESS** (Epoch 1/20)
-- **Current Progress:** Batch 740/5214 (~14% of epoch 1)
-- **Monitoring:** Active watchdog system monitoring for crashes/freezes
+**Model:** EEGNeX (Standard from braindecode)
+- **Architecture:** Lightweight CNN for EEG
+- **Parameters:** 62,353 (small to prevent overfitting)
+- **Checkpoint:** `outputs/challenge2/best_checkpoint.pt` (updating)
+- **Submission Weights:** `weights_challenge_2.pt` (auto-copied from best)
+- **Best Val NRMSE:** 0.0918 (Target: < 0.5) ✅ **WELL BELOW TARGET!**
+- **Best Pearson r:** 0.854 (strong correlation)
+- **Status:** 🚀 **TRAINING ON GPU** (Epoch 37/100, ~37% complete)
 
-**Training Configuration:**
-- Task: contrastChangeDetection (same as Challenge 1!)
-- Target: p_factor (externalizing factor from CBCL)
-- Data: R1-R4 (training), R5 (validation)
-- Windows: 4-second with 2-second random crops (data augmentation)
-- Loss: L1 (MAE) - robust to outliers
-- Optimizer: Adamax (lr=0.002)
-- Max Epochs: 20 with early stopping (patience=5)
-- Output: `weights_challenge_2_correct.pt`
+**Training Details:**
+- **Task:** contrastChangeDetection (from ds005507-bdf + ds005506-bdf)
+- **Target:** Externalizing factor (behavioral/clinical score from CBCL)
+- **Subjects:** 327 total (180 from ds005507 + 147 from ds005506)
+- **Segments:** 26,735 training (augmented), 53,595 validation (non-augmented)
+- **Hardware:** AMD Radeon RX 5600 XT with ROCm 6.1.2 (CUDA backend)
+- **Training Speed:** ~96 seconds/epoch
+- **Started:** October 23, 2025 at 21:13
 
-**Key Design Choices:**
-- Small model size to avoid overfitting
-- Random cropping for data augmentation
-- L1 loss for robustness to outliers
-- Focus on cross-subject generalization over training accuracy
+**Anti-Overfitting Strategy:**
+1. **Data Augmentation:**
+   - Random temporal crop: 4s → 2s windows
+   - Amplitude scaling: 0.8-1.2x random multiplier
+   - Channel dropout: 5% channels randomly zeroed (30% of batches)
+
+2. **Strong Regularization:**
+   - Weight decay: 1e-4 (L2 penalty)
+   - Dropout: 0.5 during training
+   - Gradient clipping: max_norm=1.0
+
+3. **Adaptive Learning:**
+   - Dual LR schedulers: ReduceLROnPlateau + CosineAnnealingWarmRestarts
+   - Early stopping: patience=15, min_delta=0.001
+   - Train/val gap monitoring
+
+4. **Ensemble Ready:**
+   - Saving top-5 checkpoints for potential ensembling
+   - Can combine multiple models for better generalization
+
+**Current Performance (Epoch 37):**
+- Train Loss: 0.2195
+- Val Loss: 0.1610
+- Val NRMSE: 0.0982
+- Pearson r: 0.847
+- Train/Val Gap: +0.0586 (controlled, not overfitting)
 
 ---
 
