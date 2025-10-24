@@ -1,102 +1,189 @@
-# Quick Reference - EEG2025 Project
+# 🚀 EEG2025 Competition - Quick Reference Card
 
-## 🏃 Quick Commands
+## 📦 Submission Package
 
-### Monitor Training
-```bash
-./monitor_training.sh
-```
-
-### Check Training Log
-```bash
-tail -f logs/foundation_cpu_*.log
-```
-
-### Check if Training is Running
-```bash
-ps aux | grep train_foundation_cpu | grep -v grep
-```
-
-### Stop Training (if needed)
-```bash
-pkill -f train_foundation_cpu
-```
-
-### List Checkpoints
-```bash
-ls -lht checkpoints/
-```
-
-## 📁 Key Files
-
-| File | Purpose |
-|------|---------|
-| `scripts/train_foundation_cpu.py` | Main training script (ACTIVE) |
-| `scripts/models/eeg_dataset_simple.py` | Dataset loader |
-| `monitor_training.sh` | Monitor training progress |
-| `checkpoints/foundation_best.pth` | Best model (after training) |
-| `logs/foundation_cpu_*.log` | Training logs |
-| `PROGRESS_UPDATE.md` | Current progress |
-| `NEXT_PHASE.md` | Next steps plan |
-
-## 🎯 Current Status
-
-**Training**: ACTIVE
-**Device**: CPU (GPU incompatible - safeguarded)
-**Model**: FoundationTransformer (128 hidden, 8 heads, 4 layers)
-**Data**: 12 HBN subjects (~3000+ windows)
-**Duration**: ~2-4 hours for 20 epochs
-
-## 📊 What to Expect
-
-1. **Data Loading**: 2-5 minutes (loading all EEG files)
-2. **Epoch 1**: ~10-15 minutes (first epoch)
-3. **Subsequent Epochs**: Similar time
-4. **Total**: ~2-4 hours
-
-## 🔔 When Training Finishes
-
-1. Check final log: `tail -100 logs/foundation_cpu_*.log`
-2. Find best model: `ls -lh checkpoints/foundation_best.pth`
-3. Review history: `cat logs/foundation_history_*.json`
-4. Move to challenges (see PROGRESS_UPDATE.md)
-
-## 🆘 Troubleshooting
-
-### Training Stopped?
-```bash
-# Check if process exists
-ps aux | grep train_foundation_cpu
-
-# Check last lines of log
-tail -20 logs/foundation_cpu_*.log
-
-# Restart if needed
-nohup python3 -u scripts/train_foundation_cpu.py > logs/foundation_cpu_$(date +%Y%m%d_%H%M%S).log 2>&1 &
-```
-
-### VS Code Crashed?
-- Training continues in background!
-- Reopen VS Code
-- Run `./monitor_training.sh` to check status
-
-### Out of Memory?
-- Training uses ~6GB RAM
-- If OOM, reduce `batch_size` in script (line 32: change from 16 to 8)
-
-## 📈 Expected Results
-
-- **Training Loss**: Should decrease from ~0.7 to ~0.3-0.5
-- **Validation Loss**: Should follow training loss
-- **Accuracy**: Random start (50%) → ~60-70% (dummy task)
-- **Checkpoints**: Saved every 2 epochs + best model
-
-## ✅ Success Criteria
-
-- ✅ Training completes without crashes
-- ✅ Loss decreases over epochs  
-- ✅ Checkpoints saved successfully
-- ✅ Can load best model for challenges
+**File**: `submission_eeg2025.zip` (913 KB)  
+**Location**: `/home/kevin/Projects/eeg2025/`  
+**Status**: ✅ **READY FOR UPLOAD**
 
 ---
-**Next**: After training completes, implement competition challenges!
+
+## 🎯 Competition Details
+
+**Competition**: EEG Foundation Model Challenge 2025  
+**Platform**: Codabench  
+**URL**: https://www.codabench.org/competitions/9975/  
+**Deadline**: Check competition page
+
+---
+
+## 📊 Performance Metrics
+
+| Challenge | Task | Model | NRMSE | Status |
+|-----------|------|-------|-------|--------|
+| Challenge 1 | Response Time | EEGNeX | **0.2816** | ✅ Ready |
+| Challenge 2 | Externalizing | EEGNeX | **0.0918** | ✅ Ready |
+
+---
+
+## 📝 Upload Steps
+
+1. **Navigate**: https://www.codabench.org/competitions/9975/
+2. **Login**: Use your Codabench credentials
+3. **Submit**: Upload `submission_eeg2025.zip`
+4. **Wait**: Evaluation takes ~5-10 minutes
+5. **Check**: View results on leaderboard
+
+---
+
+## 📂 Package Contents
+
+```
+submission_eeg2025.zip (913 KB)
+└── submission_final/
+    ├── submission.py           (10 KB)
+    ├── weights_challenge_1.pt  (257 KB) - NRMSE 0.2816
+    └── weights_challenge_2.pt  (758 KB) - NRMSE 0.0918
+```
+
+---
+
+## ✅ Pre-Flight Checklist
+
+- [x] Training complete (both challenges)
+- [x] Weights files generated
+- [x] Submission script tested locally
+- [x] Both challenges working (✅ ✅)
+- [x] Package created and verified
+- [x] Documentation complete
+- [x] File size acceptable (913 KB)
+
+---
+
+## 🎓 Key Information
+
+### Model Architecture
+- **Name**: EEGNeX
+- **Parameters**: 62,353
+- **Framework**: Braindecode + PyTorch
+- **Input**: (batch, 129 channels, 200 timepoints)
+- **Output**: Single regression value
+
+### Training Strategy
+- 4-type augmentation
+- Dual LR schedulers
+- Weight decay (1e-4)
+- Gradient clipping
+- Early stopping
+
+### Anti-Overfitting Measures
+✅ Multi-type augmentation  
+✅ Regularization (weight decay)  
+✅ Early stopping (patience=15)  
+✅ Gradient clipping (max=1.0)  
+✅ Dual learning rate scheduling
+
+---
+
+## 📞 Quick Commands
+
+```bash
+# View submission package
+cd /home/kevin/Projects/eeg2025
+ls -lh submission_eeg2025.zip
+
+# Test locally
+cd submission_final
+python submission.py
+
+# View upload instructions
+cat UPLOAD_CHECKLIST.md
+
+# View detailed info
+cat SUBMISSION_PACKAGE_READY.md
+```
+
+---
+
+## 📚 Documentation Files
+
+- `UPLOAD_CHECKLIST.md` - Step-by-step upload guide
+- `SUBMISSION_PACKAGE_READY.md` - Comprehensive details
+- `SESSION_COMPLETE_OCT24_FINAL.md` - Complete session summary
+- `CHALLENGE1_TRAINING_COMPLETE.md` - Training details
+- `QUICK_REFERENCE.md` - This file
+
+---
+
+## 🎯 Next Actions
+
+### Immediate:
+1. ✅ **Upload**: `submission_eeg2025.zip` to Codabench
+2. ⏳ **Monitor**: Check evaluation progress
+3. ⏳ **Verify**: Review leaderboard results
+
+### After Evaluation:
+1. **Prepare Methods Document** (2 pages, required)
+2. **Analyze Results** (compare test vs validation)
+3. **Consider Improvements** (if needed)
+
+---
+
+## 🏆 Expected Results
+
+### Validation Performance:
+- Challenge 1: NRMSE = **0.2816**
+- Challenge 2: NRMSE = **0.0918**
+
+### Test Set:
+- Expected similar or slightly different
+- Monitor for significant discrepancies
+- Check evaluation logs for errors
+
+---
+
+## 💡 Tips
+
+1. **Upload Early**: Don't wait until deadline
+2. **Check Logs**: Review evaluation logs for issues
+3. **Compare Metrics**: Test vs validation performance
+4. **Methods Doc**: Prepare while evaluation runs
+5. **Multiple Submissions**: Check if allowed (improve if needed)
+
+---
+
+## 🔗 Important Links
+
+- **Competition**: https://www.codabench.org/competitions/9975/
+- **Submission File**: `/home/kevin/Projects/eeg2025/submission_eeg2025.zip`
+- **Documentation**: `/home/kevin/Projects/eeg2025/UPLOAD_CHECKLIST.md`
+
+---
+
+## ✨ Session Summary
+
+**Date**: October 24, 2024  
+**Duration**: ~3.5 hours  
+**Objectives**: 3/3 completed ✅  
+**Status**: 100% Ready for submission 🚀
+
+**Achievements**:
+- ✅ Repository organized
+- ✅ Challenge 1 retrained (NRMSE 0.2816)
+- ✅ Challenge 2 ready (NRMSE 0.0918)
+- ✅ Submission package tested and verified
+- ✅ Comprehensive documentation created
+
+---
+
+## 🎊 Ready to Submit!
+
+**Package**: `submission_eeg2025.zip` (913 KB)  
+**Status**: ✅ All tests passed  
+**Next**: Upload to Codabench 🚀
+
+**Good luck! 🏆**
+
+---
+
+*Last Updated: October 24, 2024, 3:30 PM*

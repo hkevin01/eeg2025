@@ -109,7 +109,7 @@ class Submission:
             )
 
             # Load trained weights
-            weights_path = resolve_path('weights_challenge_1_improved.pt')
+            weights_path = resolve_path('weights_challenge_1.pt')
             print(f"Loading weights: {Path(weights_path).name}")
 
             checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
