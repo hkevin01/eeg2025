@@ -207,8 +207,14 @@ class Submission:
             weights_path = resolve_path('weights_challenge_2.pt')
             print(f"  Loading weights from: {weights_path}")
             checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
-            model.load_state_dict(checkpoint)
-            print("  ✅ Weights loaded successfully")
+
+            # Handle both checkpoint formats
+            if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+                model.load_state_dict(checkpoint['model_state_dict'])
+                print(f"  ✅ Weights loaded from epoch {checkpoint.get('epoch', '?')}")
+            else:
+                model.load_state_dict(checkpoint)
+                print("  ✅ Weights loaded successfully")
         except FileNotFoundError as e:
             print(f"  ⚠️  Weights file not found: {e}")
             print("  Using untrained model")

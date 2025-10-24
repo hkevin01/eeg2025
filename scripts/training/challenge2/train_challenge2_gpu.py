@@ -6,7 +6,7 @@ Universal training script for NVIDIA CUDA and AMD ROCm
 
 Requirements:
 - Input: (batch, 129, 200) - 129 channels, 200 samples @ 100Hz
-- Output: (batch, 1) - externalizing score  
+- Output: (batch, 1) - externalizing score
 - Metric: NRMSE (target < 0.5)
 - GPU: Automatically detects CUDA or ROCm
 """
@@ -33,31 +33,40 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 # Import GPU utilities
 from utils.gpu_utils import setup_device
 
-# Import model
+# Import model - use standard braindecode EEGNeX for competition compatibility
+try:
+    from braindecode.models import EEGNeX
+    EEGNeX_AVAILABLE = True
+    print("✅ Using standard braindecode EEGNeX (competition-compatible)")
+except ImportError:
+    print("⚠️  Could not import braindecode EEGNeX")
+    EEGNeX_AVAILABLE = False
+
 try:
     from models.baseline.tcn import TemporalConvNet
+    TCN_AVAILABLE = True
 except ImportError:
-    print("⚠️  Could not import TCN, using simplified model")
-    TemporalConvNet = None
+    print("⚠️  Could not import TCN")
+    TCN_AVAILABLE = False
 
 
 class SimplifiedTCN(nn.Module):
     """Simplified TCN for Challenge 2 if full model unavailable"""
-    
+
     def __init__(self, n_channels=129, n_outputs=1):
         super().__init__()
-        
+
         # Temporal feature extraction
         self.conv1 = nn.Conv1d(n_channels, 64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv1d(64, 32, kernel_size=3, padding=1)
         self.pool = nn.AdaptiveAvgPool1d(1)
-        
+
         # Regression head
         self.fc = nn.Linear(32, n_outputs)
-        
+
         self.dropout = nn.Dropout(0.3)
         self.relu = nn.ReLU()
-    
+
     def forward(self, x):
         # x: (batch, channels, time)
         x = self.relu(self.conv1(x))
@@ -70,7 +79,7 @@ class SimplifiedTCN(nn.Module):
 
 class ExternalizingDataset(Dataset):
     """Simple EEG dataset for externalizing prediction"""
-    
+
     def __init__(self, data_dir, max_samples=None):
         """
         Args:
@@ -78,37 +87,37 @@ class ExternalizingDataset(Dataset):
             max_samples: Maximum number of samples (for quick testing)
         """
         self.data_dir = Path(data_dir)
-        
+
         print("\n📋 Loading externalizing scores...")
         participants_file = self.data_dir / "participants.tsv"
-        
+
         if not participants_file.exists():
             print(f"❌ participants.tsv not found at {participants_file}")
             print("   Using dummy data for testing...")
             self.use_dummy = True
             self.n_samples = max_samples if max_samples else 100
             return
-        
+
         self.use_dummy = False
         self.participants_df = pd.read_csv(participants_file, sep='\t')
-        
+
         # Filter for subjects with externalizing scores
         self.participants_df = self.participants_df.dropna(subset=['externalizing'])
-        
+
         if max_samples:
             self.participants_df = self.participants_df.head(max_samples)
-        
+
         print(f"   Found {len(self.participants_df)} participants with externalizing scores")
-        
+
         # TODO: Load actual EEG data
         # For now, generate dummy data to test GPU pipeline
         self.n_samples = len(self.participants_df)
-    
+
     def __len__(self):
         if self.use_dummy:
             return self.n_samples
         return len(self.participants_df)
-    
+
     def __getitem__(self, idx):
         if self.use_dummy:
             # Generate dummy data for testing
@@ -119,7 +128,7 @@ class ExternalizingDataset(Dataset):
             # For now, use dummy data
             eeg = torch.randn(129, 200)
             score = torch.tensor([self.participants_df.iloc[idx]['externalizing']], dtype=torch.float32)
-        
+
         return eeg, score
 
 
@@ -127,12 +136,12 @@ def calculate_nrmse(y_true, y_pred):
     """Calculate Normalized RMSE"""
     mse = mean_squared_error(y_true, y_pred)
     rmse = np.sqrt(mse)
-    
+
     # Normalize by range
     y_range = y_true.max() - y_true.min()
     if y_range == 0:
         return 0.0
-    
+
     nrmse = rmse / y_range
     return nrmse
 
@@ -141,19 +150,19 @@ def train_epoch(model, dataloader, criterion, optimizer, device):
     """Train for one epoch"""
     model.train()
     total_loss = 0
-    
+
     for eeg, scores in dataloader:
         eeg = eeg.to(device)
         scores = scores.to(device)
-        
+
         optimizer.zero_grad()
         outputs = model(eeg)
         loss = criterion(outputs, scores)
         loss.backward()
         optimizer.step()
-        
+
         total_loss += loss.item()
-    
+
     return total_loss / len(dataloader)
 
 
@@ -162,27 +171,27 @@ def evaluate(model, dataloader, device):
     model.eval()
     all_preds = []
     all_true = []
-    
+
     with torch.no_grad():
         for eeg, scores in dataloader:
             eeg = eeg.to(device)
             outputs = model(eeg)
-            
+
             all_preds.extend(outputs.cpu().numpy().flatten())
             all_true.extend(scores.numpy().flatten())
-    
+
     all_preds = np.array(all_preds)
     all_true = np.array(all_true)
-    
+
     # Calculate metrics
     nrmse = calculate_nrmse(all_true, all_preds)
     mae = mean_absolute_error(all_true, all_preds)
-    
+
     try:
         r, p_value = pearsonr(all_true, all_preds)
     except:
         r, p_value = 0.0, 1.0
-    
+
     return {
         'nrmse': nrmse,
         'mae': mae,
@@ -198,7 +207,7 @@ def main(args):
     print("Competition: https://eeg2025.github.io/")
     print("Metric: NRMSE (target < 0.5)")
     print("="*80)
-    
+
     # Setup device with GPU detection
     if args.cpu_only:
         device = torch.device('cpu')
@@ -209,20 +218,20 @@ def main(args):
             force_sdk=args.use_sdk,
             optimize=True
         )
-    
+
     # Create dataset
     print(f"\n📁 Loading data from: {args.data_dir}")
     dataset = ExternalizingDataset(args.data_dir, max_samples=args.max_samples)
-    
+
     # Split dataset
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-    
+
     print(f"\n📊 Dataset split:")
     print(f"   Train: {len(train_dataset)} samples")
     print(f"   Val:   {len(val_dataset)} samples")
-    
+
     # Create dataloaders
     train_loader = DataLoader(
         train_dataset,
@@ -231,7 +240,7 @@ def main(args):
         num_workers=2,
         pin_memory=(device.type == 'cuda')
     )
-    
+
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
@@ -239,52 +248,61 @@ def main(args):
         num_workers=2,
         pin_memory=(device.type == 'cuda')
     )
-    
+
     # Create model
-    print(f"\n🏗️  Creating model...")
-    if TemporalConvNet is not None:
+    print("\n🏗️  Creating model...")
+    if EEGNeX_AVAILABLE:
+        # Use standard braindecode EEGNeX - works on AMD GPU and compatible with competition platform
+        model = EEGNeX(
+            n_chans=129,
+            n_outputs=1,
+            n_times=200,  # 2 seconds at 100 Hz
+            sfreq=100
+        ).to(device)
+        print("   Using standard braindecode EEGNeX (competition-compatible)")
+    elif TCN_AVAILABLE:
         model = TemporalConvNet(n_channels=129, n_outputs=1).to(device)
         print("   Using TemporalConvNet")
     else:
         model = SimplifiedTCN(n_channels=129, n_outputs=1).to(device)
-        print("   Using SimplifiedTCN")
-    
+        print("   Using SimplifiedTCN (fallback)")
+
     # Count parameters
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"   Parameters: {n_params:,}")
-    
+
     # Setup training
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
-    
+
     # Training loop
     print(f"\n🚀 Starting training for {args.epochs} epochs...")
     print("="*80)
-    
+
     best_nrmse = float('inf')
-    
+
     for epoch in range(args.epochs):
         start_time = time.time()
-        
+
         # Train
         train_loss = train_epoch(model, train_loader, criterion, optimizer, device)
-        
+
         # Evaluate
         val_metrics = evaluate(model, val_loader, device)
-        
+
         epoch_time = time.time() - start_time
-        
+
         # Print progress
         print(f"Epoch {epoch+1}/{args.epochs} ({epoch_time:.1f}s)")
         print(f"  Train Loss: {train_loss:.4f}")
         print(f"  Val NRMSE:  {val_metrics['nrmse']:.4f}")
         print(f"  Val MAE:    {val_metrics['mae']:.2f}")
         print(f"  Pearson r:  {val_metrics['pearson_r']:.3f}")
-        
+
         # Update learning rate
         scheduler.step(val_metrics['nrmse'])
-        
+
         # Save best model
         if val_metrics['nrmse'] < best_nrmse:
             best_nrmse = val_metrics['nrmse']
@@ -298,9 +316,9 @@ def main(args):
                 'metrics': val_metrics
             }, checkpoint_path)
             print(f"  ✅ Saved best model (NRMSE: {best_nrmse:.4f})")
-        
+
         print()
-    
+
     print("="*80)
     print(f"✅ Training complete!")
     print(f"   Best NRMSE: {best_nrmse:.4f}")
@@ -319,6 +337,6 @@ if __name__ == "__main__":
     parser.add_argument("--cpu-only", action="store_true", help="Force CPU")
     parser.add_argument("--use-sdk", action="store_true", help="Use custom ROCm SDK")
     parser.add_argument("--max-samples", type=int, default=None, help="Max samples (for testing)")
-    
+
     args = parser.parse_args()
     main(args)
