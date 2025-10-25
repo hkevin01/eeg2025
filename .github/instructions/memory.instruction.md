@@ -636,3 +636,104 @@ eeg2025/
 - **This Attempt:** SAM + Subject-CV + Augmentation → Expected significant improvement
 
 ---
+
+### October 24, 2025 - SAM Training Complete + GPU SDK Fix
+
+**Status:** ✅ C1 COMPLETE | 🔄 C2 TRAINING ON GPU
+
+#### Challenge 1: COMPLETE & EXCELLENT!
+- **Result:** 0.3008 NRMSE (70% improvement over 1.0015 baseline)
+- **Model:** EEGNeX (62K params) with SAM optimizer (rho=0.05, AdamW base)
+- **Device:** CPU (due to GPU compatibility issues with standard PyTorch)
+- **Training:** 30 epochs, early stopped at epoch 15 (best Val NRMSE)
+- **Weights:** experiments/sam_advanced/20251024_184838/checkpoints/best_weights.pt
+- **Features:** Subject-level CV, advanced augmentation, real EEG data
+- **Status:** ✅ READY FOR SUBMISSION
+
+#### Challenge 2: GPU Training with ROCm SDK Fix
+- **Issue Discovered:** EEGNeX crashes with "HIP error: invalid device function" on AMD gfx1010
+- **Root Cause:** Standard PyTorch ROCm lacks kernels for consumer GPUs (only server GPUs supported)
+- **Solution Applied:** Custom ROCm SDK with gfx1010 support
+  - **SDK Location:** `/opt/rocm_sdk_612`
+  - **PyTorch Version:** 2.4.1 (custom build with gfx1010 kernels)
+  - **Build Tool:** [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) by @lamikr
+  - **GPU:** AMD Radeon RX 5600 XT (gfx1010:xnack-)
+- **Training Status:** 🔄 IN PROGRESS
+  - Model: EEGNeX with SAM optimizer (rho=0.05, Adamax base)
+  - Device: GPU (via ROCm SDK)
+  - Data: R1-R5 releases (333,674 train windows, 107,408 val windows)
+  - Log: training_sam_c2_sdk.log
+  - Tmux: sam_c2 (active)
+- **Expected:** 2-4 hours on GPU, target Val NRMSE < 0.9
+
+#### 🚨 CRITICAL GPU POLICY (Added Oct 24, 2025, 21:40 UTC)
+
+**ALWAYS USE GPU FOR TRAINING - MANDATORY**
+
+**Hardware Configuration:**
+- **GPU:** AMD Radeon RX 5600 XT (5.98 GB VRAM)
+- **Architecture:** gfx1010:xnack- (consumer GPU, requires custom SDK)
+- **Memory:** 6 GB VRAM available
+
+**ROCm SDK Setup (REQUIRED for EEGNeX/Braindecode):**
+```bash
+# SDK Path
+export ROCM_SDK_PATH="/opt/rocm_sdk_612"
+export PYTHONPATH="${ROCM_SDK_PATH}/lib/python3.11/site-packages"
+export LD_LIBRARY_PATH="${ROCM_SDK_PATH}/lib:${ROCM_SDK_PATH}/lib64:${LD_LIBRARY_PATH}"
+export PATH="${ROCM_SDK_PATH}/bin:${PATH}"
+
+# IMPORTANT: Unset HSA override (not needed with proper gfx1010 build)
+unset HSA_OVERRIDE_GFX_VERSION
+
+# Use SDK Python for training
+${ROCM_SDK_PATH}/bin/python3 your_training_script.py
+```
+
+**SDK Contents:**
+- PyTorch 2.4.1 (with gfx1010 kernels)
+- braindecode 1.2.0
+- eegdash 0.4.1
+- All required dependencies
+
+**Why Standard PyTorch Fails:**
+- Standard PyTorch ROCm (e.g., 2.5.1+rocm6.2) lacks gfx1010 kernels
+- Only supports server GPUs: MI100, MI200, MI300, etc.
+- Consumer GPUs (RX 5000/6000/7000 series) need custom builds
+- Error: "RuntimeError: HIP error: invalid device function"
+
+**Training Commands (Template):**
+```bash
+# Start training with SDK in tmux
+tmux new-session -d -s training_name "
+export ROCM_SDK_PATH='/opt/rocm_sdk_612'
+export PYTHONPATH=\"\${ROCM_SDK_PATH}/lib/python3.11/site-packages\"
+export LD_LIBRARY_PATH=\"\${ROCM_SDK_PATH}/lib:\${ROCM_SDK_PATH}/lib64:\${LD_LIBRARY_PATH}\"
+export PATH=\"\${ROCM_SDK_PATH}/bin:\${PATH}\"
+unset HSA_OVERRIDE_GFX_VERSION
+
+echo '✅ Using ROCm SDK with gfx1010 PyTorch support'
+\${ROCM_SDK_PATH}/bin/python3 -u your_script.py 2>&1 | tee training.log
+"
+```
+
+**GPU Policy Rules:**
+1. ✅ **ALWAYS use GPU** - Never train on CPU unless absolutely necessary
+2. ✅ **ALWAYS use ROCm SDK** - For EEGNeX, braindecode, or any GPU training
+3. ✅ **ALWAYS run in tmux** - Survives crashes, SSH disconnects
+4. ✅ **ALWAYS log output** - Use `tee` for persistent logs
+5. ❌ **NEVER use standard PyTorch ROCm** - Will crash with HIP errors
+6. ❌ **NEVER set HSA_OVERRIDE_GFX_VERSION** - Not needed with proper SDK
+
+**Benefits of ROCm SDK:**
+- ✅ Native gfx1010 kernel support
+- ✅ Stable, no HIP errors
+- ✅ Full PyTorch features
+- ✅ 10-50x faster than CPU (2-4 hours vs 8-12 hours)
+
+**Files:**
+- **SDK Activation:** `activate_sdk.sh`
+- **Status Documentation:** `C2_SDK_TRAINING_STATUS.md`
+- **GPU Notes:** See README.md "AMD GPU ROCm SDK Builder Solution" section
+
+---

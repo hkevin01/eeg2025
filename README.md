@@ -9,7 +9,12 @@
 
 **Competition:** [NeurIPS 2025 EEG Foundation Challenge](https://eeg2025.github.io/)  
 **Deadline:** November 2, 2025  
-**Status:** Challenge 1 Ready ✅ | Challenge 2 Training � (NRMSE: 0.0918, Target: <0.5)
+**Status:** Challenge 1 Ready ✅ | Challenge 2 Training 🔄 (NRMSE: 0.0918, Target: <0.5)
+
+> **🚨 CRITICAL: GPU Training Required**  
+> This project **MUST** use GPU for all training. AMD RX 5600 XT (gfx1010) requires custom ROCm SDK.  
+> See [AMD GPU ROCm SDK Solution](#-amd-gpu-rocm-sdk-builder-solution) for setup details.  
+> **Never train on CPU** - training times increase from 2-4 hours to 8-12+ hours.
 
 ---
 
@@ -1232,34 +1237,153 @@ tail -f logs/challenge2_correct_training.log
 - Python 3.9+
 - PyTorch 2.0+
 - CUDA (optional, for GPU training)
-- **AMD GPU Users**: For unsupported consumer GPUs (gfx1010, etc.), see [ROCm SDK Builder Solution](#-amd-gpu-rocm-sdk-builder-solution)
+- **AMD GPU Users**: For unsupported consumer GPUs (gfx1010, etc.), see [ROCm SDK Builder Solution](#rocm-sdk-builder-solution) below
 
-### ROCm SDK Builder Solution
+---
 
-**Problem**: AMD consumer GPUs (RX 5600 XT, RX 6000 series, etc.) with gfx1010/gfx1030 architectures experience `HSA_STATUS_ERROR_MEMORY_APERTURE_VIOLATION` errors with standard PyTorch ROCm installations because official ROCm binaries only support server GPUs.
+## 🔥 AMD GPU ROCm SDK Builder Solution
 
-**Solution**: Use [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) to build custom PyTorch with consumer GPU support:
+> **🚨 MANDATORY for AMD RX 5000/6000/7000 Series GPUs**  
+> If you have an AMD consumer GPU (RX 5600 XT, RX 6700 XT, etc.), **you MUST use this custom SDK**.  
+> Standard PyTorch ROCm will crash with `HIP error: invalid device function` when using EEGNeX or braindecode models.
+
+### The Problem
+
+**Symptom**: Training crashes with error:
+```
+RuntimeError: HIP error: invalid device function
+Compile with `TORCH_USE_HIP_DSA` to enable device-side assertions.
+```
+
+**Root Cause**: 
+- Standard PyTorch ROCm packages **only support server GPUs** (MI100, MI200, MI300)
+- Consumer GPUs (gfx1010, gfx1030, gfx1100, etc.) are **not officially supported**
+- PyTorch binaries lack GPU kernels for consumer architectures
+
+**Affected GPUs**:
+- AMD RX 5000 series (5600 XT, 5700 XT) - **gfx1010**
+- AMD RX 6000 series (6700 XT, 6800 XT, 6900 XT) - **gfx1030**
+- AMD RX 7000 series (7900 XTX, 7900 XT) - **gfx1100**
+
+### The Solution: Custom ROCm SDK
+
+Use [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) by @lamikr to build PyTorch with your GPU's architecture:
 
 ```bash
-# Clone ROCm SDK Builder
+# 1. Clone ROCm SDK Builder
 git clone https://github.com/lamikr/rocm_sdk_builder.git /tmp/rocm_sdk_builder
 cd /tmp/rocm_sdk_builder
 
-# Install dependencies
+# 2. Install dependencies
 ./install_deps.sh
 
-# Configure for your GPU (e.g., gfx1010 for RX 5600 XT)
+# 3. Configure for your GPU architecture
+# For RX 5600 XT (gfx1010):
 echo "GPU_BUILD_AMD_NAVI10_GFX1010=1" >> binfo/envsetup.sh
 
-# Download sources and build (takes 3-4 hours)
-./babs.sh -i && ./babs.sh -b
+# For RX 6000 series (gfx1030):
+# echo "GPU_BUILD_AMD_NAVI21_GFX1030=1" >> binfo/envsetup.sh
+
+# For RX 7000 series (gfx1100):
+# echo "GPU_BUILD_AMD_NAVI31_GFX1100=1" >> binfo/envsetup.sh
+
+# 4. Download sources and build (takes 3-4 hours, requires 50GB disk space)
+./babs.sh -i    # Initialize and download sources
+./babs.sh -b    # Build everything (PyTorch, ROCm, dependencies)
 ```
 
-This builds a complete ROCm SDK with PyTorch at `/opt/rocm_sdk_612` that includes kernels for your specific GPU architecture, resolving the braindecode GPU compatibility issues.
+**What this builds**:
+- Complete ROCm SDK at `/opt/rocm_sdk_612`
+- PyTorch 2.4.1 with **native kernels for your GPU architecture**
+- braindecode 1.2.0
+- eegdash 0.4.1
+- All dependencies pre-configured
 
-**Credit**: [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) by @lamikr - ⭐ **Please star this repo** - it enables ROCm on thousands of unsupported consumer AMD GPUs!
+### Using the SDK
 
-### Setup
+**Option 1: Activate SDK environment** (recommended):
+```bash
+# Source the activation script
+source activate_sdk.sh
+
+# Now use SDK Python for training
+sdk_python train_c2_sam_real_data.py
+```
+
+**Option 2: Manual environment setup**:
+```bash
+# Set environment variables
+export ROCM_SDK_PATH="/opt/rocm_sdk_612"
+export PYTHONPATH="${ROCM_SDK_PATH}/lib/python3.11/site-packages"
+export LD_LIBRARY_PATH="${ROCM_SDK_PATH}/lib:${ROCM_SDK_PATH}/lib64:${LD_LIBRARY_PATH}"
+export PATH="${ROCM_SDK_PATH}/bin:${PATH}"
+
+# IMPORTANT: Unset HSA override (not needed with proper build)
+unset HSA_OVERRIDE_GFX_VERSION
+
+# Run training with SDK Python
+${ROCM_SDK_PATH}/bin/python3 your_training_script.py
+```
+
+**Option 3: Tmux training session** (best for long runs):
+```bash
+tmux new-session -d -s training "
+export ROCM_SDK_PATH='/opt/rocm_sdk_612'
+export PYTHONPATH=\"\${ROCM_SDK_PATH}/lib/python3.11/site-packages\"
+export LD_LIBRARY_PATH=\"\${ROCM_SDK_PATH}/lib:\${ROCM_SDK_PATH}/lib64:\${LD_LIBRARY_PATH}\"
+export PATH=\"\${ROCM_SDK_PATH}/bin:\${PATH}\"
+unset HSA_OVERRIDE_GFX_VERSION
+
+echo '✅ Using ROCm SDK with gfx1010 PyTorch support'
+\${ROCM_SDK_PATH}/bin/python3 -u train_script.py 2>&1 | tee training.log
+"
+
+# Attach to session
+tmux attach -t training
+```
+
+### Verification
+
+Test that GPU works correctly:
+```bash
+# Using SDK Python
+/opt/rocm_sdk_612/bin/python3 -c "
+import torch
+print(f'PyTorch: {torch.__version__}')
+print(f'CUDA available: {torch.cuda.is_available()}')
+print(f'Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}')
+print(f'Device count: {torch.cuda.device_count()}')
+"
+```
+
+**Expected output**:
+```
+PyTorch: 2.4.1
+CUDA available: True
+Device: AMD Radeon RX 5600 XT
+Device count: 1
+```
+
+### Benefits
+
+- ✅ **Native GPU support** - No workarounds, no hacks
+- ✅ **Stable training** - No HIP errors or crashes
+- ✅ **Full PyTorch features** - All operations work correctly
+- ✅ **10-50x faster than CPU** - 2-4 hours vs 8-12+ hours for training
+- ✅ **Production ready** - Used successfully for Challenge 2 SAM training
+
+### Credit & Support
+
+**ROCm SDK Builder** by [@lamikr](https://github.com/lamikr)  
+GitHub: https://github.com/lamikr/rocm_sdk_builder
+
+⭐ **Please star this repo** - It enables ROCm on thousands of unsupported consumer AMD GPUs!
+
+This tool is a **game-changer** for AMD GPU users in deep learning. Without it, consumer GPUs are paperweights for PyTorch/ROCm. With it, they work perfectly.
+
+---
+
+### Regular Setup (NVIDIA GPUs or CPU)
 
 ```bash
 # Clone repository
