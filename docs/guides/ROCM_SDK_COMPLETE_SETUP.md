@@ -8,7 +8,7 @@ All GPU training issues have been resolved by properly configuring the ROCm SDK 
 
 ###  1. ROCm SDK as System Default
 
-**File Created**: `setup_rocm_system.sh`
+**File Created**: `scripts/setup/setup_rocm_system.sh`
 
 **Changes to ~/.bashrc** (Permanent):
 ```bash
@@ -49,7 +49,8 @@ Permanent memory instruction to always use ROCm SDK for GPU training.
 ### 3. Training Script Fixes
 
 **Files Modified**:
-- `start_c1_enhanced_training.sh` - Uses ROCm SDK Python, complete lib paths
+
+- `scripts/launchers/start_c1_enhanced_training.sh` - Uses ROCm SDK Python, complete lib paths
 - `train_c1_enhanced.py` - Fixed DataLoader (num_workers=0), batch_size=4
 
 **Key Changes**:
@@ -145,13 +146,14 @@ ps aux | grep train_c1_enhanced
 ## 📦 FILES CREATED/MODIFIED
 
 ### Created
-1. `setup_rocm_system.sh` - System-wide ROCm SDK setup
+
+1. `scripts/setup/setup_rocm_system.sh` - System-wide ROCm SDK setup
 2. `.github/instructions/rocm_sdk_rule.instruction.md` - Memory rule
 3. `ROCM_SDK_COMPLETE_SETUP.md` - This document
 
 ### Modified
 1. `~/.bashrc` - Added ROCm SDK environment (permanent)
-2. `start_c1_enhanced_training.sh` - Uses ROCm SDK, batch_size=4, mixup_alpha=0.0
+2. `scripts/launchers/start_c1_enhanced_training.sh` - Uses ROCm SDK, batch_size=4, mixup_alpha=0.0
 3. `train_c1_enhanced.py` - num_workers=0 in DataLoader
 
 ## 🚀 USAGE FOR FUTURE TRAINING

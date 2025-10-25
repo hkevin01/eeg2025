@@ -18,7 +18,16 @@ pytestmark = pytest.mark.skipif(
 
 
 def _get_device() -> torch.device:
-    return torch.device("cuda")
+    device = torch.device("cuda")
+    try:
+        a = torch.randn(4, 4, device=device)
+        b = torch.randn(4, 4, device=device)
+        _ = a @ b
+    except RuntimeError as exc:
+        if "invalid device function" in str(exc):
+            pytest.skip("ROCm kernel unavailable on this GPU build")
+        raise
+    return device
 
 
 def test_temporal_attention_forward_on_gpu():
