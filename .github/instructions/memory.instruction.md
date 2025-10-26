@@ -50,6 +50,44 @@ TODO_SUMMARY.txt (plain text backup)
 
 ---
 
+## 📂 REPOSITORY ORGANIZATION (Updated Oct 26, 2025)
+
+### Root Directory - Clean and Maintainable
+**Only 4 essential files in root:**
+- `submission_sam_fixed_v5.zip` - Latest submission (READY TO UPLOAD)
+- `submission.py` - Working submission script
+- `setup.py` - Python package setup
+- `README.md` - Main documentation
+- `DIRECTORY_INDEX.md` - Complete file location guide
+
+### Organized Subdirectories
+**docs/** - All documentation
+- `docs/status/` - Training progress reports
+- `docs/analysis/` - Technical investigations (v4 failure analysis, VS Code crash, etc.)
+- `docs/submissions/` - Submission guides and checklists
+
+**submissions/** - Submission packages
+- `submissions/versions/` - Archived packages (v3, v4)
+- `submissions/scripts/` - Helper scripts
+
+**tests/** - Test scripts
+- `tests/validation/` - Validation tests
+
+**scripts/** - Utility scripts
+- `scripts/testing/` - Testing utilities
+
+### What Got Cleaned Up (Oct 26, 2025)
+Moved 35+ files from root to organized locations:
+- 24 .md files → docs/ (categorized by type)
+- 3 .zip files → submissions/versions/
+- 2 .py files → submissions/scripts/
+- 6 test files → tests/validation/
+- 4 utilities → scripts/testing/
+
+**Quick Reference:** See `DIRECTORY_INDEX.md` in root for complete file location guide.
+
+---
+
 ## 🖥️ HARDWARE CONFIGURATION (VERIFIED Oct 25, 2025)
 
 ### GPU Specifications - **CONFIRMED**
@@ -179,21 +217,39 @@ Predict **externalizing factor (p_factor)** from EEG to enable objective mental 
   - Dropout throughout network
   - Early stopping on validation set
 
-### Current Model Status (As of October 19, 2025, 6:21 PM)
+### Current Model Status (As of October 26, 2025, 9:50 AM)
 - **Infrastructure:** ✅ COMPLETE - HDF5 cache + SQLite database + enhanced training
 - **VS Code Crash:** ✅ FIXED - Analyzed, documented, prevented (see VSCODE_CRASH_ANALYSIS.md)
-- **Cache Status:** 🔄 IN PROGRESS (tmux session 'cache_remaining')
+
+#### ✅ Challenge 1 Cached Data (READY)
+- **Location:** `data/cached/challenge1_R*.h5`
+- **Files:**
+  - R1: 660MB (7,276 windows) - `challenge1_R1_windows.h5`
+  - R2: 682MB (7,524 windows) - `challenge1_R2_windows.h5`
+  - R3: 853MB (9,551 windows) - `challenge1_R3_windows.h5`
+  - R4: 1.5GB (16,554 windows) - `challenge1_R4_windows.h5`
+  - **Total:** 40,905 windows ready for training
+- **H5 Structure:**
+  - Keys: `eeg` (not `segments`), `labels` (not `response_times`)
+  - Shape: `eeg` = (n_windows, 129, 200), `labels` = (n_windows,)
+  - Attributes: `n_channels=129`, `n_timepoints=200`, `sfreq=100`, `release`, `n_windows`
+- **Training Script:** ✅ `training/train_c1_cached.py` (uses H5 files directly)
+- **Status:** 🔄 TRAINING ACTIVE (PID 1847269, Epoch 1/50)
+- **Model:** ImprovedEEGModel (168K params) - EEGNeX + Attention + Frequency features
+- **Best Model Saves To:** `checkpoints/c1_improved_best.pt` (auto-save when Pearson improves)
+
+#### 🔄 Challenge 2 Cached Data (IN PROGRESS)
+- **Cache Status:** Previous session (may need update)
   - R1: ✅ 11GB (61,889 windows)
   - R2: ✅ 12GB (62,000+ windows)
-  - R3: 🔄 Loading dataset (in progress)
-  - R4: ⏳ Pending
-  - R5: ⏳ Pending
-  - Expected total: ~50GB HDF5 cache
+  - R3: ⏳ Status unknown
+  - R4: ⏳ Status unknown
+  - R5: ⏳ Status unknown
 - **Database:** ✅ READY (data/metadata.db, 56KB, 7 tables, 2 views)
 - **Training Script:** ✅ READY (train_challenge2_fast.py)
-- **TODO Lists:** ✅ CREATED (crash-resistant, in 4 parts)
-- **Benefits:** 10-15x faster data loading (seconds vs 15-30 minutes)
-- **Status:** WAITING for cache completion, then start training in tmux
+
+- **Benefits:** 10-15x faster data loading (seconds vs hours from raw BDF files)
+- **Critical Fix:** Changed H5 keys from `segments`/`response_times` to `eeg`/`labels`
 
 ### Infrastructure & Documentation Files
 - **create_challenge2_cache_remaining.py** - R3,R4,R5 cache (running in tmux)
@@ -475,6 +531,63 @@ eeg2025/
 ---
 
 ## 🕐 Recent Work Sessions
+
+### October 26, 2025 (9:00-10:00 AM) - Submission Validation & Training Fix ✅
+**Summary:** Fixed critical submission bug + debugged training issue + started C1 training
+
+**What Happened:**
+1. **Submission Validation Crisis:**
+   - User requested thorough validation of `submission_sam_fixed_v3.zip`
+   - Discovered CRITICAL FLAW: Used `challenge_1()` and `challenge_2()` (with underscores)
+   - Competition requires `challenge1()` and `challenge2()` (NO underscores)
+   - Submission would have been rejected immediately on platform
+
+2. **Training Issue Investigation:**
+   - Training kept stopping during data loading phase
+   - Previous scripts tried to load raw BDF files (extremely slow, hours per dataset)
+   - User asked to check on training status - found no processes running
+
+**Actions Taken:**
+1. ✅ Created corrected submission: `submission_sam_fixed_v4.zip`
+   - Fixed function names: `challenge1()` and `challenge2()` (no underscores)
+   - Fixed checkpoint loading: handles `model_state_dict` dict format
+   - Added `weights_only=False` for PyTorch 2.6+ compatibility
+   - Fixed input dimensions for braindecode compatibility
+   - All validation checks passed
+2. ✅ Discovered pre-cached Challenge 1 data in `data/cached/`
+   - 4 H5 files: R1-R4 (660MB + 682MB + 853MB + 1.5GB = ~3.6GB)
+   - Total: 40,905 pre-processed EEG windows ready to use
+3. ✅ Created `training/train_c1_cached.py` - uses H5 files directly
+   - Fixed H5 keys: `eeg` and `labels` (not `segments`/`response_times`)
+   - Loads 40K windows in ~2 minutes (vs hours from raw BDF)
+   - ImprovedEEGModel: EEGNeX + Channel Attention + Frequency features (168K params)
+4. ✅ Started Challenge 1 training (PID 1847269)
+   - Status: ACTIVE and running (Epoch 1/50)
+   - Target: Pearson r ≥ 0.91
+   - Expected: ~4-8 hours for 50 epochs
+5. ✅ Created monitoring tools:
+   - `monitor_training.sh` - Quick status check
+   - `TRAINING_STATUS_CURRENT.md` - Detailed status document
+   - `SUBMISSION_READY_V4.md` - Upload instructions
+
+**Key Discoveries:**
+- **H5 Cache Structure:** Keys are `eeg` and `labels`, not `segments`/`response_times`
+- **Cached data exists:** Challenge 1 fully cached (40K windows), Challenge 2 partially cached
+- **Training speedup:** 10-100x faster with cached data vs raw BDF loading
+
+**Files Created:**
+- `submission_sam_fixed_v4.zip` - Corrected submission (466 KB, READY)
+- `SUBMISSION_READY_V4.md` - Comprehensive validation report
+- `training/train_c1_cached.py` - Fast cached data training
+- `monitor_training.sh` - Training monitor script
+- `TRAINING_STATUS_CURRENT.md` - Current status
+
+**Current Status:**
+- ✅ Valid submission ready: `submission_sam_fixed_v4.zip`
+- 🔄 Challenge 1 training ACTIVE (using cached data)
+- ⏳ Expected completion: ~4-8 hours (or earlier if r ≥ 0.91 reached)
+
+---
 
 ### October 19, 2025 (6:30 PM) - Crash Recovery & Multi-Part Documentation ✅
 **Session Summary:** SESSION_OCT19_MASTER_INDEX.md (+ 5 detail parts)

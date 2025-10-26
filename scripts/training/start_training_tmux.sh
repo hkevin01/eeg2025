@@ -1,35 +1,89 @@
 #!/bin/bash
-# Start Challenge 2 training in tmux (independent of VS Code)
+set -e
 
-SESSION_NAME="challenge2_training"
+echo "╔══════════════════════════════════════════════════════════════════════╗"
+echo "║       🧠 EEG Challenge 2025 - TMUX Training Session                 ║"
+echo "╚══════════════════════════════════════════════════════════════════════╝"
+echo ""
 
-# Check if session already exists
-if tmux has-session -t $SESSION_NAME 2>/dev/null; then
-    echo "⚠️  Training session '$SESSION_NAME' already exists"
-    echo "Options:"
-    echo "  1. Attach: tmux attach -t $SESSION_NAME"
-    echo "  2. Kill and restart: tmux kill-session -t $SESSION_NAME && $0"
-    exit 1
+# Check if tmux is installed
+if ! command -v tmux &> /dev/null; then
+    echo "❌ tmux not found. Installing..."
+    sudo apt-get update && sudo apt-get install -y tmux
 fi
 
-# Create new tmux session
-echo "🚀 Starting Challenge 2 training in tmux session: $SESSION_NAME"
+# Kill any existing training sessions
+tmux kill-session -t eeg_c1_train 2>/dev/null || true
+tmux kill-session -t eeg_c2_train 2>/dev/null || true
 
-tmux new-session -d -s $SESSION_NAME
+# Create logs directory
+mkdir -p logs/training_$(date +%Y%m%d)
 
-# Send commands to the session
-tmux send-keys -t $SESSION_NAME "cd /home/kevin/Projects/eeg2025" C-m
-tmux send-keys -t $SESSION_NAME "echo '🧠 Challenge 2 Training Started: \$(date)'" C-m
-tmux send-keys -t $SESSION_NAME "echo 'Session: $SESSION_NAME'" C-m
-tmux send-keys -t $SESSION_NAME "echo ''" C-m
-tmux send-keys -t $SESSION_NAME "python3 train_challenge2_fast.py 2>&1 | tee logs/training_challenge2_fast.log" C-m
+echo "🚀 Starting Challenge 1 Training in tmux..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-echo "✅ Training started in tmux session: $SESSION_NAME"
+# Start Challenge 1 in tmux
+tmux new-session -d -s eeg_c1_train -n "C1_Training" \
+    "cd /home/kevin/Projects/eeg2025 && \
+     source venv_cpu/bin/activate && \
+     export OMP_NUM_THREADS=12 && \
+     export MKL_NUM_THREADS=12 && \
+     python training/train_c1_sam_simple.py \
+         --device cpu \
+         --epochs 50 \
+         --batch-size 32 \
+         --lr 0.001 \
+         --rho 0.05 \
+         --exp-name sam_c1_tmux_$(date +%Y%m%d) \
+         2>&1 | tee logs/training_$(date +%Y%m%d)/c1_tmux.log; \
+     echo ''; \
+     echo '✅ Challenge 1 Complete! Press ENTER to exit or wait for C2...'; \
+     read"
+
+echo "✅ Challenge 1 started in tmux session: eeg_c1_train"
 echo ""
-echo "📊 Monitor training:"
-echo "  • Attach to session: tmux attach -t $SESSION_NAME"
-echo "  • View log: tail -f logs/training_challenge2_fast.log"
-echo "  • Check database: sqlite3 data/metadata.db 'SELECT * FROM training_runs;'"
+
+echo "🚀 Starting Challenge 2 Training in tmux..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Start Challenge 2 in tmux
+tmux new-session -d -s eeg_c2_train -n "C2_Training" \
+    "cd /home/kevin/Projects/eeg2025 && \
+     source venv_cpu/bin/activate && \
+     export OMP_NUM_THREADS=12 && \
+     export MKL_NUM_THREADS=12 && \
+     python training/train_c2_sam_real_data.py \
+         --device cpu \
+         --epochs 20 \
+         --batch-size 8 \
+         --lr 0.001 \
+         --rho 0.05 \
+         --exp-name sam_c2_tmux_$(date +%Y%m%d) \
+         2>&1 | tee logs/training_$(date +%Y%m%d)/c2_tmux.log; \
+     echo ''; \
+     echo '✅ Challenge 2 Complete! Press ENTER to exit...'; \
+     read"
+
+echo "✅ Challenge 2 started in tmux session: eeg_c2_train"
 echo ""
-echo "🔌 Detach from session: Ctrl+B, then D"
-echo "📋 List sessions: tmux list-sessions"
+
+echo "╔══════════════════════════════════════════════════════════════════════╗"
+echo "║                   🎉 Both Trainings Started!                        ║"
+echo "╚══════════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "📺 View Training Sessions:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Challenge 1:  tmux attach -t eeg_c1_train"
+echo "  Challenge 2:  tmux attach -t eeg_c2_train"
+echo ""
+echo "  Detach: Ctrl+B, then D"
+echo "  Kill: tmux kill-session -t <session_name>"
+echo ""
+echo "📊 Check Status:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  List sessions:   tmux ls"
+echo "  View C1 log:     tail -f logs/training_$(date +%Y%m%d)/c1_tmux.log"
+echo "  View C2 log:     tail -f logs/training_$(date +%Y%m%d)/c2_tmux.log"
+echo ""
+echo "💡 Training persists even if VSCode crashes or terminal closes!"
+echo ""
