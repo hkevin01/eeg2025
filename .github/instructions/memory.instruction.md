@@ -50,6 +50,45 @@ TODO_SUMMARY.txt (plain text backup)
 
 ---
 
+## 🖥️ HARDWARE CONFIGURATION (VERIFIED Oct 25, 2025)
+
+### GPU Specifications - **CONFIRMED**
+- **Model:** AMD Radeon RX 5600 XT
+- **Hardware:** Navi 10 (cut-down variant)
+- **ISA Architecture:** **gfx1030** ← THIS IS THE CORRECT VALUE
+- **Compute Capability:** 10.3
+- **VRAM:** 6 GB (6128 MB usable)
+- **Compute Units:** 18
+- **ROCm Version:** 6.2.2 (system) + 6.1.2 SDK (legacy)
+
+### ⚠️ CRITICAL: Architecture Clarification
+**The GPU ISA is gfx1030, NOT gfx1010!**
+
+**Verification Commands:**
+```bash
+# ISA detection (what PyTorch uses)
+rocminfo | grep "Name:.*gfx"
+# Output: Name: gfx1030
+
+# PyTorch detection
+python -c "import torch; print(torch.cuda.get_device_properties(0).gcnArchName)"
+# Output: gfx1030
+```
+
+**Why the confusion?**
+- Hardware: Navi 10 (same chip as RX 5700 XT which is gfx1010)
+- ISA: gfx1030 (RX 5600 XT variant reports different ISA)
+- `rocm-smi` shows "GFX Version: gfx1010" (hardware detection)
+- `rocminfo` shows "ISA: gfx1030" (what compilers use) ← **USE THIS**
+
+**Correct Configuration:**
+```bash
+export HSA_OVERRIDE_GFX_VERSION=10.3.0  # Correct for gfx1030
+export PYTORCH_ROCM_ARCH="gfx1030"      # Must be gfx1030, not gfx1010!
+```
+
+---
+
 ## 🎯 CHALLENGE 1: Cross-Task Transfer Learning
 
 ### Goal

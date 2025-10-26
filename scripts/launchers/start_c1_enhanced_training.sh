@@ -19,7 +19,7 @@ export PATH="/opt/rocm_sdk_612/bin:$PATH"
 # ROCm GPU configuration
 export HIP_VISIBLE_DEVICES=0
 export HSA_OVERRIDE_GFX_VERSION=10.3.0
-export PYTORCH_ROCM_ARCH="gfx1010"
+export PYTORCH_ROCM_ARCH="gfx1030"
 
 # Memory optimization for ROCm
 export HSA_XNACK=0
@@ -34,6 +34,16 @@ echo "   Python: $(/opt/rocm_sdk_612/bin/python3 --version)"
 /opt/rocm_sdk_612/bin/python3 -c "import torch; print(f'   PyTorch: {torch.__version__}'); print(f'   ROCm/HIP: {torch.version.hip}'); print(f'   CUDA Available: {torch.cuda.is_available()}')"
 echo "================================================================================================"
 
+# Optional quick dry-run flag (usage: ./start_c1_enhanced_training.sh --quick)
+EXTRA_ARGS=()
+if [[ "$1" == "--quick" ]]; then
+    EXTRA_ARGS+=("--quick-dry-run")
+    shift
+fi
+
+# Allow callers to forward additional CLI arguments
+EXTRA_ARGS+=("$@")
+
 # Run training with logging using ROCm SDK Python
 cd /home/kevin/Projects/eeg2025
 
@@ -47,6 +57,7 @@ cd /home/kevin/Projects/eeg2025
     --mixup_alpha 0.0 \
     --exp_name enhanced_v4_rocm_nomixup_small \
     --early_stopping 15 \
+    "${EXTRA_ARGS[@]}" \
     2>&1 | tee training_c1_enhanced.log
 
 echo ""

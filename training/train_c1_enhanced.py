@@ -363,11 +363,21 @@ def main():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--rho', type=float, default=0.05)
-    parser.add_argument('--mixup_alpha', type=float, default=0.2)
+    parser.add_argument('--mixup_alpha', type=float, default=0.0)
     parser.add_argument('--exp_name', type=str, default='enhanced_v1')
     parser.add_argument('--early_stopping', type=int, default=15)
+    parser.add_argument('--quick_dry_run', action='store_true',
+                        help='Run a fast ROCm sanity check with tiny data and one epoch')
 
     args = parser.parse_args()
+
+    if args.quick_dry_run:
+        args.exp_name = f"{args.exp_name}_dry_run"
+        if args.max_subjects is None or args.max_subjects > 2:
+            args.max_subjects = 2
+        args.epochs = min(args.epochs, 1)
+        args.batch_size = min(args.batch_size, 8)
+        args.early_stopping = 1
 
     _print_banner()
 
@@ -381,10 +391,13 @@ def main():
     print(f"   batch_size: {args.batch_size}")
     print(f"   lr: {args.lr}")
     print(f"   rho: {args.rho}")
-    print(f"   mixup_alpha: {args.mixup_alpha}")
+    mixup_status = "ENABLED" if args.mixup_alpha > 0 else "DISABLED"
+    print(f"   mixup_alpha: {args.mixup_alpha} ({mixup_status})")
     print(f"   device: {device}")
     print(f"   exp_name: {args.exp_name}")
     print(f"   early_stopping: {args.early_stopping}")
+    if args.quick_dry_run:
+        print("   mode: QUICK DRY RUN (ROCm sanity check)")
 
     # Create experiment directory
     exp_dir = Path('experiments') / args.exp_name / datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -450,7 +463,7 @@ def main():
     print(f"   Learning rate: {args.lr}")
     print(f"   SAM rho: {args.rho}")
     print("   Weight decay: 1e-4")
-    print(f"   Mixup alpha: {args.mixup_alpha}")
+    print(f"   Mixup alpha: {args.mixup_alpha} ({'ENABLED' if args.mixup_alpha > 0 else 'DISABLED'})")
     print("   Temporal masking: 15%")
     print("   Magnitude warping: 30% chance")
 
@@ -465,9 +478,10 @@ def main():
 
     for epoch in range(args.epochs):
         # Train
+        use_mixup = args.mixup_alpha > 0
         train_loss = train_epoch_sam_enhanced(
             model, train_loader, optimizer, criterion, device,
-            use_mixup=True, mixup_alpha=args.mixup_alpha
+            use_mixup=use_mixup, mixup_alpha=args.mixup_alpha
         )
 
         # Validate

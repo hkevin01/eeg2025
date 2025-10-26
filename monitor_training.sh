@@ -1,28 +1,39 @@
 #!/bin/bash
-# Monitor training progress
 
-echo "╔══════════════════════════════════════════════════════════════════════════════╗"
-echo "║                        🔍 TRAINING MONITOR                                    ║"
-echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+echo "╔══════════════════════════════════════════════════════════════════════╗"
+echo "║          🧠 EEG Challenge Training Monitor                           ║"
+echo "╚══════════════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Check if tmux session exists
-if tmux has-session -t eeg_training 2>/dev/null; then
-    echo "✅ Tmux session 'eeg_training' is RUNNING"
-else
-    echo "❌ Tmux session 'eeg_training' is NOT RUNNING"
+# Check if training is running
+PID=$(ps aux | grep "train_c1_sam_simple" | grep -v grep | awk '{print $2}')
+
+if [ -z "$PID" ]; then
+    echo "❌ No training process found!"
+    echo ""
+    echo "Last 20 lines of log:"
+    tail -20 logs/training_20251026/c1_training_v2.log
     exit 1
 fi
 
+echo "✅ Training is RUNNING (PID: $PID)"
 echo ""
-echo "📊 Latest training output:"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-tail -20 training_tmux.log
+
+# Show CPU usage
+echo "�� CPU Usage:"
+ps -p $PID -o %cpu,%mem,etime,cmd | tail -n +2
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Show recent log lines
+echo "📊 Recent Training Output:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+tail -15 logs/training_20251026/c1_training_v2.log
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "💡 Commands:"
-echo "   Watch live:       tail -f training_tmux.log"
-echo "   Attach to session: tmux attach -t eeg_training"
-echo "   Check GPU:        rocm-smi"
-echo "   Stop training:    tmux kill-session -t eeg_training"
+
+echo "📝 To follow training in real-time:"
+echo "   tail -f logs/training_20251026/c1_training_v2.log"
+echo ""
+echo "⏹  To stop training:"
+echo "   kill $PID"
+echo ""

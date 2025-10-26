@@ -19,7 +19,7 @@ LOG_FILE="training_sam_c2.log"
 tmux kill-session -t $SESSION_NAME 2>/dev/null
 
 # Create new session with C2 training
-tmux new-session -d -s $SESSION_NAME "cd /home/kevin/Projects/eeg2025 && export PYTORCH_ROCM_ARCH=gfx1010 && export HSA_OVERRIDE_GFX_VERSION=10.1.0 && python train_c2_sam_eegnex.py --data-dir data/ds005505-bdf --epochs 50 --batch-size 16 --lr 1e-3 --rho 0.05 --device cuda 2>&1 | tee $LOG_FILE"
+tmux new-session -d -s $SESSION_NAME "cd /home/kevin/Projects/eeg2025 && export PYTORCH_ROCM_ARCH=gfx1030 && export HSA_OVERRIDE_GFX_VERSION=10.1.0 && python train_c2_sam_eegnex.py --data-dir data/ds005505-bdf --epochs 50 --batch-size 16 --lr 1e-3 --rho 0.05 --device cuda 2>&1 | tee $LOG_FILE"
 
 echo "✅ Training started in tmux session: $SESSION_NAME"
 echo ""

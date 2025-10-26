@@ -1,34 +1,35 @@
 {
   "files.watcherExclude": {
     "**/logs/**": true,
-    "**/data/cached/**": true,
+    "**/experiments/**": true,
     "**/checkpoints/**": true,
     "**/data/**": true,
-    "**/__pycache__/**": true,
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
-    "**/node_modules/*/**": true,
+    "**/node_modules/**": true,
     "**/.hg/store/**": true,
-    "**/archive/**": true
+    "**/venv*/**": true,
+    "**/__pycache__/**": true,
+    "**/archive/**": true,
+    "**/old_*/**": true
   },
   "files.exclude": {
-    "**/*.pyc": true,
-    "**/__pycache__": true
+    "**/__pycache__": true,
+    "**/*.pyc": true
   },
   "search.exclude": {
-    "**/logs/**": true,
-    "**/data/cached/**": true,
-    "**/archive/**": true,
-    "**/__pycache__": true
+    "**/venv*": true,
+    "**/data": true,
+    "**/logs": true,
+    "**/experiments": true,
+    "**/checkpoints": true,
+    "**/archive": true
   },
-  "search.followSymlinks": false,
-  "search.useIgnoreFiles": true,
-  "files.maxMemoryForLargeFilesMB": 4096,
-  "terminal.integrated.persistentSessionReviveProcess": "never",
-  "files.associations": {
-    "*.log": "plaintext"
-  },
-  "intellicode.enable.python": false,
-  "intellicode.enable.general": false,
-  "makefile.configureOnOpen": false
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "python.linting.enabled": false,
+  "python.formatting.provider": "none",
+  "files.watcherMaxFolderSize": 512000,
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.typeCheckingMode": "off"
 }

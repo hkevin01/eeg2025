@@ -23,7 +23,7 @@ tmux new-session -d -s $SESSION_NAME
 # Send commands to session
 tmux send-keys -t $SESSION_NAME "cd /home/kevin/Projects/eeg2025" C-m
 tmux send-keys -t $SESSION_NAME "source venv_rocm57/bin/activate 2>/dev/null || echo 'No venv'" C-m
-tmux send-keys -t $SESSION_NAME "export PYTORCH_ROCM_ARCH=gfx1010" C-m
+tmux send-keys -t $SESSION_NAME "export PYTORCH_ROCM_ARCH=gfx1030" C-m
 tmux send-keys -t $SESSION_NAME "export HSA_OVERRIDE_GFX_VERSION=10.1.0" C-m
 tmux send-keys -t $SESSION_NAME "python train_c1_sam_compactcnn.py --epochs 100 --batch-size 32 --lr 1e-3 --rho 0.05 --device cuda 2>&1 | tee $LOG_FILE" C-m
 

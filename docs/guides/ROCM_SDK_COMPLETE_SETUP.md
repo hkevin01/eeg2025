@@ -54,6 +54,7 @@ Permanent memory instruction to always use ROCm SDK for GPU training.
 - `train_c1_enhanced.py` - Fixed DataLoader (num_workers=0), batch_size=4
 
 **Key Changes**:
+
 ```bash
 # Training script now uses
 /opt/rocm_sdk_612/bin/python3 train_c1_enhanced.py \
@@ -71,6 +72,7 @@ DataLoader(..., num_workers=0, ...)  # Changed from 4 to 0
 **Issue**: `RuntimeError: HIP error: invalid device function` during mixup
 **Solution**: Disabled mixup (set mixup_alpha=0.0)
 **Impact**: Training still has:
+
 - ✅ Temporal Attention (4-head)
 - ✅ MultiScaleFeaturesExtractor (3 branches)
 - ✅ Temporal Masking (15%)
@@ -86,6 +88,7 @@ DataLoader(..., num_workers=0, ...)  # Changed from 4 to 0
 **Log**: `training_c1_enhanced.log` or `nohup.out`
 
 **Configuration**:
+
 - Batch size: 4
 - Epochs: 30
 - Learning rate: 0.001
@@ -110,6 +113,7 @@ DataLoader(..., num_workers=0, ...)  # Changed from 4 to 0
 ## 🔍 MONITORING
 
 **Check training progress**:
+
 ```bash
 tail -f training_c1_enhanced.log
 # or
@@ -117,12 +121,14 @@ tail -f nohup.out
 ```
 
 **Check GPU usage**:
+
 ```bash
 rocm-smi
 watch -n 1 'rocm-smi'
 ```
 
 **Check process**:
+
 ```bash
 ps aux | grep train_c1_enhanced
 ```
@@ -137,6 +143,7 @@ ps aux | grep train_c1_enhanced
 ## 🎯 EXPECTED RESULTS
 
 **Target Performance**:
+
 - Val NRMSE: 0.20-0.28 (vs 0.3008 SAM baseline)
 - Improvement: 0-25% better than SAM
 - Combined C1+C2: 0.20-0.25 overall
@@ -152,6 +159,7 @@ ps aux | grep train_c1_enhanced
 3. `ROCM_SDK_COMPLETE_SETUP.md` - This document
 
 ### Modified
+
 1. `~/.bashrc` - Added ROCm SDK environment (permanent)
 2. `scripts/launchers/start_c1_enhanced_training.sh` - Uses ROCm SDK, batch_size=4, mixup_alpha=0.0
 3. `train_c1_enhanced.py` - num_workers=0 in DataLoader
@@ -159,11 +167,13 @@ ps aux | grep train_c1_enhanced
 ## 🚀 USAGE FOR FUTURE TRAINING
 
 All future training scripts will automatically use ROCm SDK because:
+
 1. ✅ Environment variables in ~/.bashrc (loaded at terminal start)
 2. ✅ Python aliases point to ROCm SDK
 3. ✅ Memory rule ensures correct configuration
 
 **To train new models**:
+
 ```bash
 # Just run python3 - it will use ROCm SDK automatically
 python3 your_training_script.py

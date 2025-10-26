@@ -25,7 +25,7 @@ tmux send-keys -t $SESSION_NAME "export PATH='/opt/rocm_sdk_612/bin:\$PATH'" C-m
 
 # ROCm GPU configuration (will be enabled after data loading)
 tmux send-keys -t $SESSION_NAME "export HSA_OVERRIDE_GFX_VERSION=10.3.0" C-m
-tmux send-keys -t $SESSION_NAME "export PYTORCH_ROCM_ARCH='gfx1010'" C-m
+tmux send-keys -t $SESSION_NAME "export PYTORCH_ROCM_ARCH='gfx1030'" C-m
 tmux send-keys -t $SESSION_NAME "export HSA_XNACK=0" C-m
 tmux send-keys -t $SESSION_NAME "export HSA_FORCE_FINE_GRAIN_PCIE=1" C-m
 tmux send-keys -t $SESSION_NAME "export AMD_SERIALIZE_KERNEL=3" C-m

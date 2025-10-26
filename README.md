@@ -12,9 +12,12 @@
 **Status:** SAM Training Complete ✅ | Submission Ready ✅ (Overall: 1.0065, C1: 1.0015, C2: 1.0087)
 
 > **🚨 CRITICAL: GPU Training Required**  
-> This project **MUST** use GPU for all training. AMD RX 5600 XT (gfx1010) requires custom ROCm SDK.  
-> See [AMD GPU ROCm SDK Solution](#-amd-gpu-rocm-sdk-builder-solution) for setup details.  
+> This project **MUST** use GPU for all training. AMD RX 5600 XT uses **gfx1030** ISA (not gfx1010!) and requires ROCm 5.2.  
+> See [ROCm 5.2 System-Wide Installation](./ROCM_52_SYSTEM_INSTALL.md) for complete setup guide.  
 > **Never train on CPU** - training times increase from 2-4 hours to 8-12+ hours.
+> 
+> **⚠️ Known Limitations:** Convolution operations may fail with HSA errors on gfx1030. See installation guide for workarounds.  
+> **Note:** Hardware reports as "Navi 10" but ISA is **gfx1030**. Verify with: `rocminfo | grep "Name:.*gfx"`
 
 ---
 
@@ -902,10 +905,12 @@ flowchart TB
 - **Results:** 70% improvement on C1 validation (0.3008 vs 1.0015)
 - **Implementation:** Custom SAM class with AdamW/Adamax base optimizers
 
-#### 2. AMD GPU Support (gfx1010) ✅
+#### 2. AMD GPU Support (gfx1030) ✅
 - **Challenge:** Standard PyTorch ROCm doesn't support consumer AMD GPUs
-- **Solution:** Custom ROCm SDK with gfx1010 kernels
+- **Solution:** Custom ROCm SDK with gfx1030 kernels (RX 5600 XT ISA)
 - **Impact:** Enabled GPU training (3-8x faster than CPU)
+- **Architecture:** RX 5600 XT = Navi 10 hardware but **gfx1030 ISA** (verified via rocminfo)
+- **Details:** See [AMD GPU ROCm SDK Solution](#amd-gpu-rocm-sdk-builder-solution)
 - **Details:** See [AMD GPU ROCm SDK Solution](#amd-gpu-rocm-sdk-builder-solution)
 
 #### 3. Subject-Level Cross-Validation ✅
@@ -1280,11 +1285,12 @@ Compile with `TORCH_USE_HIP_DSA` to enable device-side assertions.
 
 **Root Cause**: 
 - Standard PyTorch ROCm packages **only support server GPUs** (MI100, MI200, MI300)
-- Consumer GPUs (gfx1010, gfx1030, gfx1100, etc.) are **not officially supported**
+- Consumer GPUs (gfx1030, gfx1100, etc.) are **not officially supported**
 - PyTorch binaries lack GPU kernels for consumer architectures
 
-**Affected GPUs**:
-- AMD RX 5000 series (5600 XT, 5700 XT) - **gfx1010**
+**Affected GPUs** (Verify with: `rocminfo | grep "Name:.*gfx"`):
+- AMD RX 5600 XT - **gfx1030** (NOT gfx1010! Hardware is Navi 10 but ISA is gfx1030)
+- AMD RX 5700 XT - **gfx1010** (True Navi 10)
 - AMD RX 6000 series (6700 XT, 6800 XT, 6900 XT) - **gfx1030**
 - AMD RX 7000 series (7900 XTX, 7900 XT) - **gfx1100**
 
@@ -1301,7 +1307,13 @@ cd /tmp/rocm_sdk_builder
 ./install_deps.sh
 
 # 3. Configure for your GPU architecture
-# For RX 5600 XT (gfx1010):
+# ⚠️ IMPORTANT: Verify your GPU ISA first!
+rocminfo | grep "Name:.*gfx"
+
+# For RX 5600 XT (gfx1030 - MOST COMMON):
+echo "GPU_BUILD_AMD_NAVI14_GFX1030=1" >> binfo/envsetup.sh
+
+# For RX 5700 XT (gfx1010):
 echo "GPU_BUILD_AMD_NAVI10_GFX1010=1" >> binfo/envsetup.sh
 
 # For RX 6000 series (gfx1030):
