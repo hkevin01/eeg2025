@@ -94,14 +94,30 @@ tests/
 ### `/scripts/` - Utility Scripts
 ```
 scripts/
-├── testing/                        ← Testing utilities
-│   ├── evaluate_existing_model.py
-│   ├── evaluate_simple.py
-│   ├── final_gpu_validation.py
-│   └── quick_gpu_status.py
+├── training/                       ← Training launch scripts (.sh)
+│   ├── start_training_tmux.sh
+│   ├── launch_training_tmux.sh
+│   ├── start_training.sh
+│   └── [other training scripts]
 │
-├── monitor_training.sh             ← Training monitor
-└── [other scripts]
+├── monitoring/                     ← Progress monitoring scripts (.sh)
+│   ├── monitor_training.sh
+│   ├── monitor_tmux.sh
+│   └── [other monitoring scripts]
+│
+├── setup/                          ← Environment setup scripts (.sh)
+│   ├── setup_cpu_training.sh
+│   ├── setup_gpu_training.sh
+│   └── [other setup scripts]
+│
+├── organization/                   ← Cleanup & organization scripts (.sh)
+│   └── organize_root.sh
+│
+└── testing/                        ← Testing utilities (.py)
+    ├── evaluate_existing_model.py
+    ├── evaluate_simple.py
+    ├── final_gpu_validation.py
+    └── quick_gpu_status.py
 ```
 
 ### `/training/` - Training Scripts
@@ -205,6 +221,12 @@ logs/
 **Best model checkpoint?**
 → `checkpoints/c1_improved_best.pt` (auto-saved during training)
 
+**Training scripts?**
+→ `scripts/training/` (all .sh training launch scripts)
+
+**Monitor training?**
+→ `scripts/monitoring/monitor_training.sh`
+
 ---
 
 ## 🗑️ What Got Cleaned Up
@@ -215,13 +237,15 @@ logs/
 - ✅ 2 submission .py → `submissions/scripts/`
 - ✅ 6 test .py → `tests/validation/`
 - ✅ 4 utility .py → `scripts/testing/`
+- ✅ ALL .sh files → `scripts/training/`, `scripts/monitoring/`, `scripts/setup/`
 
 ### Kept in Root (Essential Only)
 - ✅ `setup.py` - Package setup
 - ✅ `submission.py` - Working submission
 - ✅ `submission_sam_fixed_v5.zip` - Latest package
 - ✅ `README.md` - Main docs
-- ✅ Configuration files (requirements.txt, pyproject.toml, etc.)
+- ✅ `DIRECTORY_INDEX.md` - File location guide
+- ✅ Configuration files (requirements.txt, pyproject.toml, Makefile, LICENSE)
 
 ---
 

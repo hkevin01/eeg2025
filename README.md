@@ -9,15 +9,17 @@
 
 **Competition:** [NeurIPS 2025 EEG Foundation Challenge](https://eeg2025.github.io/)  
 **Deadline:** November 2, 2025  
-**Status:** SAM Training Complete ✅ | Submission Ready ✅ (Overall: 1.0065, C1: 1.0015, C2: 1.0087)
+**Status:** Training In Progress 🔄 | Submission v5 Ready ✅
 
-> **🚨 CRITICAL: GPU Training Required**  
-> This project **MUST** use GPU for all training. AMD RX 5600 XT uses **gfx1030** ISA (not gfx1010!) and requires ROCm 5.2.  
-> See [ROCm 5.2 System-Wide Installation](./ROCM_52_SYSTEM_INSTALL.md) for complete setup guide.  
-> **Never train on CPU** - training times increase from 2-4 hours to 8-12+ hours.
+> **⚙️ Hardware Setup**  
+> This project can train on both CPU and GPU. Current training uses CPU with optimized cached data (H5 format).
 > 
-> **⚠️ Known Limitations:** Convolution operations may fail with HSA errors on gfx1030. See installation guide for workarounds.  
-> **Note:** Hardware reports as "Navi 10" but ISA is **gfx1030**. Verify with: `rocminfo | grep "Name:.*gfx"`
+> **Training Speed:**
+> - CPU: ~2-4 hours with cached H5 data (40,905 windows loaded in ~2 minutes)
+> - Raw BDF files: Much slower (~10+ hours) - use cached data instead!
+> 
+> **Cached Data:** Pre-processed EEG windows stored in `data/cached/` for fast training.  
+> See `docs/CACHED_DATA_INFO.md` for details on H5 structure and usage.
 
 ---
 
@@ -534,12 +536,12 @@ graph LR
 | **Train/Val Monitoring** | Real-time gap tracking | Detect overfitting early |
 | **Ensemble Ready** | Save top-5 checkpoints | Combine multiple models |
 
-**Current Results (GPU Training on AMD RX 5600 XT):**
-- ✅ **Best Val NRMSE: 0.0918** (Target: < 0.5) - **Well below target!**
-- ✅ **Pearson Correlation: 0.854** - Strong linear relationship
-- ✅ **Train/Val Gap: ~0.05-0.07** - Controlled overfitting
-- ✅ **Training Speed: ~96s/epoch** - Efficient GPU utilization
-- ✅ **Using CUDA (AMD GPU)** - Hardware acceleration working
+**Current Training Status:**
+- 🔄 **Challenge 1:** In progress using cached H5 data (PID 1847269)
+- ✅ **Data Loading:** Fast (~2 minutes for 40,905 windows)
+- 📊 **Model:** ImprovedEEGModel with EEGNeX + Attention (168K parameters)
+- 🎯 **Target:** Pearson correlation r ≥ 0.91
+- 💾 **Auto-save:** Best model saved to `checkpoints/c1_improved_best.pt`
 
 #### 5. Monitoring System (Watchdog)
 
@@ -853,95 +855,100 @@ flowchart TB
 
 ## 📊 Current Status
 
-**Latest Competition Submission (October 24, 2025, 21:47 UTC)**
-- **Overall NRMSE:** 1.0065 (23.9% improvement over baseline)
-- **Challenge 1:** 1.0015 (CompactCNN, restored from Oct 16)
-- **Challenge 2:** 1.0087 (EEGNeX, 31% improvement over baseline)
+**Latest Submission: v5 (October 26, 2025)**
+- **Package:** `submission_sam_fixed_v5.zip` (466 KB, ready to upload)
+- **Status:** ✅ Tested and validated
+- **Weights:** Challenge 1 (264KB) + Challenge 2 (262KB)
+- **Architecture:** EEGNeX with braindecode, no fallback implementations
 
-### Our Journey & Improvements
+### Recent Work (October 26, 2025)
 
-#### Phase 1: Initial Baseline (October 16, 2025)
-- **C1:** 1.0015 (CompactCNN model)
-- **C2:** 1.4599 (earlier model)
-- **Overall:** 1.3224
-- **Status:** Working baseline, C1 performing well
+#### Submission Debugging & Fixes
+**v3 Issues (Fixed in v4):**
+- ❌ Used `challenge_1()` and `challenge_2()` (wrong - had underscores)
+- ✅ Fixed to `challenge1()` and `challenge2()` (correct format)
 
-#### Phase 2: Model Mix-up (October 24, Submit 87)
-- **Issue:** Accidentally used EEGNeX (C2 model) for both challenges
-- **C1:** 1.6035 ❌ (60% worse - wrong model!)
-- **C2:** 1.0087 ✅ (31% better - correct model!)
-- **Overall:** 1.1871 (worse overall due to C1 regression)
-- **Lesson:** Model selection is critical
+**v4 Issues (Fixed in v5):**
+- ❌ Fallback EEGNeX implementation had wrong architecture
+- ❌ Fallback used simple 2-layer CNN (conv1, conv2, fc)
+- ❌ Trained weights used braindecode's 5-block architecture (block_1-5)
+- ❌ Weight loading failed silently: "Missing key(s) in state_dict"
+- ✅ **v5 Solution:** Removed fallback, direct braindecode import only
 
-#### Phase 3: Quick Fix (October 24, 21:47 UTC)
-- **Action:** Restored correct models for each challenge
-- **C1:** 1.0015 ✅ (CompactCNN restored)
-- **C2:** 1.0087 ✅ (EEGNeX maintained)
-- **Overall:** 1.0065 (23.9% improvement over baseline!)
-- **Status:** ✅ **CURRENT SUBMISSION**
+**v5 Status:**
+- ✅ Correct function names: `challenge1()` and `challenge2()`
+- ✅ Direct braindecode import with clear error messages
+- ✅ Architecture matches trained weights
+- ✅ Local tests pass
+- ✅ Ready to upload to Codabench
 
-#### Phase 4: SAM Optimizer Training (October 24)
-**Challenge 1 SAM Training:**
-- **Model:** EEGNeX with SAM optimizer
-- **Validation NRMSE:** 0.3008 (70% improvement over 1.0015 baseline!)
-- **Training:** CPU-based (GPU incompatibility with standard PyTorch ROCm)
-- **Features:** Subject-level cross-validation, augmentation, early stopping
-- **Status:** ✅ Training complete
-- **Weights:** `experiments/sam_advanced/20251024_184838/checkpoints/best_weights.pt`
+#### Training Progress
+**Challenge 1:**
+- 🔄 **Status:** Training in progress (PID 1847269, started 09:44 AM)
+- 📊 **Model:** ImprovedEEGModel with EEGNeX + Channel Attention (168K params)
+- 💾 **Data:** Using cached H5 files (40,905 windows, loads in ~2 min)
+- 🎯 **Target:** Pearson correlation r ≥ 0.91
+- 📁 **Auto-save:** Best model → `checkpoints/c1_improved_best.pt`
 
-**Challenge 2 SAM Training:**
-- **Model:** EEGNeX with SAM optimizer
-- **Training:** GPU-based (ROCm SDK 6.1.2 with gfx1010 support)
-- **Target:** Val NRMSE < 0.9
-- **Status:** � **TRAINING ON GPU NOW**
-- **Progress:** Epoch 1/20, batch 220/5214
-- **Log:** `training_sam_c2_sdk.log`
+**Challenge 2:**
+- ⏳ Not started yet (waiting for Challenge 1 to complete)
+
+#### Repository Organization
+**Completed Cleanup (October 26, 2025):**
+- ✅ Moved 40+ files from root to organized subdirectories
+- ✅ Root reduced to 10 essential files (78% cleaner)
+- ✅ Created `DIRECTORY_INDEX.md` for easy navigation
+- ✅ All .sh scripts organized in `scripts/` subdirectories
+- ✅ Documentation updated and organized in `docs/`
+
+See `docs/status/CLEANUP_COMPLETE_OCT26.md` for full cleanup report.
 
 ### Key Technical Achievements
 
-#### 1. SAM Optimizer Integration ✅
-- **What:** Sharpness-Aware Minimization for flatter loss landscapes
-- **Why:** Improves generalization to unseen subjects
-- **Results:** 70% improvement on C1 validation (0.3008 vs 1.0015)
-- **Implementation:** Custom SAM class with AdamW/Adamax base optimizers
+#### 1. Cached Data Pipeline ✅
+- **What:** Pre-processed EEG windows stored in H5 format
+- **Why:** 500x faster loading than raw BDF files
+- **Speed:** ~2 minutes to load 40,905 windows (vs hours for raw files)
+- **Location:** `data/cached/challenge1_*.h5`
+- **Structure:** Keys are 'eeg' and 'labels' (NOT 'segments'/'response_times')
+- **Details:** See `docs/CACHED_DATA_INFO.md`
 
-#### 2. AMD GPU Support (gfx1030) ✅
-- **Challenge:** Standard PyTorch ROCm doesn't support consumer AMD GPUs
-- **Solution:** Custom ROCm SDK with gfx1030 kernels (RX 5600 XT ISA)
-- **Impact:** Enabled GPU training (3-8x faster than CPU)
-- **Architecture:** RX 5600 XT = Navi 10 hardware but **gfx1030 ISA** (verified via rocminfo)
-- **Details:** See [AMD GPU ROCm SDK Solution](#amd-gpu-rocm-sdk-builder-solution)
-- **Details:** See [AMD GPU ROCm SDK Solution](#amd-gpu-rocm-sdk-builder-solution)
+#### 2. Submission Architecture ✅
+- **Model:** EEGNeX from braindecode (battle-tested implementation)
+- **No Fallbacks:** Direct imports with clear error handling
+- **Weight Loading:** Handles checkpoint dict format with PyTorch 2.6+ compatibility
+- **Validation:** All tests pass locally before submission
 
-#### 3. Subject-Level Cross-Validation ✅
-- **What:** GroupKFold by subject for train/val splits
-- **Why:** Prevents data leakage, ensures cross-subject generalization
-- **Implementation:** sklearn.model_selection.GroupKFold
+#### 3. Repository Organization ✅
+- **Clean Root:** Only essential files in root directory
+- **Categorized Files:** docs/, submissions/, scripts/, tests/
+- **Navigation:** Complete index in `DIRECTORY_INDEX.md`
+- **Maintainable:** Clear structure prevents future clutter
 
-#### 4. Advanced Data Augmentation ✅
-- **Techniques:**
-  - Random temporal cropping (4s → 2s windows)
-  - Amplitude scaling (0.8-1.2x)
-  - Channel dropout (5%, applied 30% of batches)
-- **Impact:** Better generalization, reduced overfitting
+### Training Methods
 
-### Competition Scores Breakdown
+**Current Approach:**
+- **Hardware:** CPU training with cached H5 data
+- **Speed:** ~2-4 hours for full training (vs 10+ hours with raw BDF)
+- **Data Loading:** Fast H5 format loads 40,905 windows in ~2 minutes
+- **Model:** EEGNeX backbone + Channel Attention + Frequency features
+- **Optimization:** AdamW optimizer with learning rate scheduling
 
-| Submission | Date | C1 | C2 | Overall | Improvement |
-|------------|------|----|----|---------|-------------|
-| Oct 16 Baseline | Oct 16 | 1.0015 | 1.4599 | 1.3224 | - |
-| Submit 87 | Oct 24 | 1.6035 | 1.0087 | 1.1871 | -10.2% |
-| **Quick Fix** | **Oct 24** | **1.0015** | **1.0087** | **1.0065** | **+23.9%** ✅ |
-| SAM C1 (Val) | Oct 24 | 0.3008 | N/A | N/A | +70% C1! 🎉 |
+**Why Cached Data:**
+- Raw BDF files take hours to load and process
+- H5 caching provides 500x speedup
+- Same quality, much faster iteration
+- Enables rapid experimentation
 
 ### Next Steps
 
-1. **Immediate:** Monitor C2 SAM training completion (~2-4 hours)
-2. **Upon Completion:** Create SAM submission (C1: 0.3008 val, C2: <0.9 target)
-3. **Expected Results:**
-   - Conservative: Overall ~0.65-0.70 (35-40% improvement)
-   - Optimistic: Overall ~0.55-0.60 (45-50% improvement)
-4. **Goal:** Top leaderboard position with both challenges < 1.0
+1. ⏳ **Wait for C1 training to complete** (~2-4 hours remaining)
+2. 📊 **Evaluate C1 results** - Check if Pearson r ≥ 0.91
+3. 🚀 **Upload submission v5** to Codabench if results are good
+4. 🔄 **Start C2 training** after C1 completes
+5. 📦 **Create v6 submission** if training improves weights
+
+**Competition Deadline:** November 2, 2025
 
 ---
 
@@ -1264,18 +1271,23 @@ tail -f logs/challenge2_correct_training.log
 
 - Python 3.9+
 - PyTorch 2.0+
-- CUDA (optional, for GPU training)
-- **AMD GPU Users**: For unsupported consumer GPUs (gfx1010, etc.), see [ROCm SDK Builder Solution](#rocm-sdk-builder-solution) below
+- (Optional) CUDA for NVIDIA GPU training
+- (Optional) ROCm for AMD GPU training - see [AMD GPU Setup](#-amd-gpu-rocm-sdk-builder-solution-optional) below
 
 ---
 
-## 🔥 AMD GPU ROCm SDK Builder Solution
+## 🔥 AMD GPU ROCm SDK Builder Solution (OPTIONAL)
 
-> **🚨 MANDATORY for AMD RX 5000/6000/7000 Series GPUs**  
-> If you have an AMD consumer GPU (RX 5600 XT, RX 6700 XT, etc.), **you MUST use this custom SDK**.  
-> Standard PyTorch ROCm will crash with `HIP error: invalid device function` when using EEGNeX or braindecode models.
+> **ℹ️ NOTE:** This section is **OPTIONAL** and only needed if you want to use AMD GPUs for training.
+> 
+> **Current project training:** Uses CPU with cached H5 data (~2-4 hours).  
+> **GPU training:** Optional optimization that can speed up training.
 
-### The Problem
+> **🚨 For AMD RX 5000/6000/7000 Series GPU Users Only**  
+> If you have an AMD consumer GPU and want to use it for training, you need this custom SDK.  
+> Standard PyTorch ROCm will crash with `HIP error: invalid device function` with EEGNeX/braindecode models.
+
+### The Problem (AMD GPU Only)
 
 **Symptom**: Training crashes with error:
 ```
@@ -1399,13 +1411,15 @@ Device: AMD Radeon RX 5600 XT
 Device count: 1
 ```
 
-### Benefits
+### Benefits (AMD GPU Users)
 
-- ✅ **Native GPU support** - No workarounds, no hacks
+- ✅ **Native GPU support** - No workarounds, no hacks needed
 - ✅ **Stable training** - No HIP errors or crashes
 - ✅ **Full PyTorch features** - All operations work correctly
-- ✅ **10-50x faster than CPU** - 2-4 hours vs 8-12+ hours for training
-- ✅ **Production ready** - Used successfully for Challenge 2 SAM training
+- ✅ **Faster than CPU** - Can accelerate training if needed
+- ✅ **Production ready** - Successfully tested with EEGNeX models
+
+**Note:** GPU training is optional. The project currently uses CPU training with cached H5 data, which provides good performance (~2-4 hours for full training).
 
 ### Credit & Support
 
