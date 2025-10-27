@@ -1,0 +1,17 @@
+[
+  {
+    "seed": 42,
+    "checkpoint": "checkpoints/compact_ensemble/compact_cnn_seed42_best.pth",
+    "best_pearson_r": 0.01784445886080813
+  },
+  {
+    "seed": 123,
+    "checkpoint": "checkpoints/compact_ensemble/compact_cnn_seed123_best.pth",
+    "best_pearson_r": 0.017243443344093484
+  },
+  {
+    "seed": 456,
+    "checkpoint": "checkpoints/compact_ensemble/compact_cnn_seed456_best.pth",
+    "best_pearson_r": 0.021108039192822996
+  }
+]

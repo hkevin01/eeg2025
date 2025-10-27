@@ -1,0 +1,23 @@
+{
+  "data_path": "data/cached",
+  "output_dir": "checkpoints/compact_ensemble",
+  "train_releases": [
+    1,
+    2,
+    3
+  ],
+  "val_release": 4,
+  "epochs": 30,
+  "batch_size": 64,
+  "learning_rate": 0.001,
+  "weight_decay": 1e-05,
+  "patience": 10,
+  "time_jitter_ms": 10,
+  "noise_std": 0.02,
+  "channel_dropout_prob": 0.05,
+  "seeds": [
+    42,
+    123,
+    456
+  ]
+}
