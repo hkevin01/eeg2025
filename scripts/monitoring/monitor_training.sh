@@ -2,19 +2,34 @@
 # Monitor training progress in tmux session
 
 echo "🔍 EEG Training Monitor"
-echo "======================"
+echo "======================="
 echo ""
-echo "📊 Latest log output:"
-echo "---"
-tail -30 logs/train_all_rsets_20251028_145812.log
+
+# Check if tmux session exists
+if ! tmux has-session -t eeg_training 2>/dev/null; then
+    echo "❌ Training session 'eeg_training' not found!"
+    echo ""
+    echo "Available sessions:"
+    tmux list-sessions
+    exit 1
+fi
+
+echo "✅ Training session 'eeg_training' is running"
 echo ""
-echo "---"
-echo ""
-echo "⏱️  Training time: $(ps -o etime= -p $(pgrep -f train_c1_all_rsets.py | head -1) 2>/dev/null || echo 'Not running')"
-echo "💾 Memory: $(ps -o rss= -p $(pgrep -f train_c1_all_rsets.py | head -1) 2>/dev/null | awk '{print $1/1024 " MB"}' || echo 'N/A')"
-echo ""
-echo "Commands:"
-echo "  Watch live:    tmux attach -t eeg_training"
-echo "  Detach:        Ctrl+B then D"
-echo "  Kill training: tmux kill-session -t eeg_training"
-echo "  This monitor:  bash monitor_training.sh"
+
+# Show latest log file
+LATEST_LOG=$(ls -t logs/training_subject_aware_*.log 2>/dev/null | head -1)
+if [ -n "$LATEST_LOG" ]; then
+    echo "📄 Latest log: $LATEST_LOG"
+    echo ""
+    echo "Last 30 lines:"
+    echo "----------------------------------------"
+    tail -30 "$LATEST_LOG"
+    echo "----------------------------------------"
+    echo ""
+    echo "💡 To attach to session: tmux attach -t eeg_training"
+    echo "💡 To detach from session: Press Ctrl+B then D"
+    echo "💡 To kill session: tmux kill-session -t eeg_training"
+else
+    echo "⚠️  No log file found yet"
+fi

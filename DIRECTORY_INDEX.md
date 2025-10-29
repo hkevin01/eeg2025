@@ -119,35 +119,68 @@ tests/
 ### `/scripts/` - Utility Scripts
 ```
 scripts/
-├── training/                       ← Training launch scripts (.sh)
+├── submission/                     ← Submission creation scripts (NEW)
+│   ├── create_submission_all_rsets.py    (moved from root)
+│   └── submission_quickfix_reference.py  (moved from root)
+│
+├── monitoring/                     ← Progress monitoring scripts (NEW)
+│   └── monitor_training.sh             (moved from root)
+│
+├── training/                       ← Training launch scripts
+│   ├── RUN_TRAINING_OCT28.sh           (moved from root)
 │   ├── start_training_tmux.sh
 │   ├── launch_training_tmux.sh
-│   ├── start_training.sh
-│   └── [other training scripts]
+│   └── start_training.sh
 │
-├── monitoring/                     ← Progress monitoring scripts (.sh)
-│   ├── monitor_training.sh
-│   ├── monitor_tmux.sh
-│   └── [other monitoring scripts]
+├── preprocessing/                  ← Data preprocessing
+│   ├── cache_challenge1_with_subjects.py  (subject-aware validation)
+│   └── cache_challenge1_windows.py
 │
-├── setup/                          ← Environment setup scripts (.sh)
+├── experiments/                    ← Training experiments
+│   ├── train_c1_all_rsets.py
+│   └── train_c1_subject_aware.py       (to be created)
+│
+├── setup/                          ← Environment setup scripts
 │   ├── setup_cpu_training.sh
 │   ├── setup_gpu_training.sh
 │   └── [other setup scripts]
 │
-├── organization/                   ← Cleanup & organization scripts (.sh)
+├── organization/                   ← Cleanup & organization scripts
 │   └── organize_root.sh
 │
-└── testing/                        ← Testing utilities (.py)
+└── testing/                        ← Testing utilities
     ├── evaluate_existing_model.py
     ├── evaluate_simple.py
     ├── final_gpu_validation.py
     └── quick_gpu_status.py
 ```
 
-### `/training/` - Training Scripts
+### `/submissions/` - Submission Packages
 ```
-training/
+submissions/
+├── submission_all_rsets_v1.zip     ← LATEST (957 KB) - ALL R-sets training
+├── submission_cross_rset_v6.zip    ← Previous (C1 regression)
+├── submission_v10_single_FIXED.zip ← Backup
+├── submission_all_rsets_v1/        ← Unpacked latest submission
+│
+├── versions/                       ← Previous versions (archived)
+│   ├── submission_sam_fixed_v3.zip
+│   ├── submission_sam_fixed_v3.py
+│   └── submission_sam_fixed_v4.zip  (failed - fallback issue)
+│
+└── scripts/                        ← Helper scripts
+    └── submission_correct.py        (template for v5)
+```
+
+### `/weights/` - Model Weights
+```
+weights/
+├── compact_cnn_all_rsets_state.pt      ← LATEST (304 KB) - ALL R-sets training
+├── weights_challenge_1.pt              ← Challenge 1 weights (moved from root)  
+├── weights_challenge_2.pt              ← Challenge 2 weights (moved from root)
+├── weights_challenge_2_BAD_compactcnn.pt ← Bad weights (moved from root)
+└── [other weight files]
+```
 ├── train_c1_cached.py              ← Challenge 1 (uses cached H5 data)
 ├── train_c1_improved_fast.py
 ├── train_c1_improved_v2.py

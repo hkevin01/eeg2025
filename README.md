@@ -900,6 +900,40 @@ Untrained model    N/A       →  1.0015    ✅ BEST!
 3. Re-train with proper subject splits
 4. Target: C1 < 0.93 for top 3 placement
 
+### 💥 CRITICAL FAILURE: Combined Best v1 (October 29, 2025)
+
+**Submission Result:** ❌ DISASTER - Score increased to 1.1313
+
+**Score Breakdown:**
+```json
+{
+  "overall": 1.1313,   (+12.5% worse than baseline)
+  "challenge1": 1.4175,  (+41.6% WORSE - hypothesis rejected!)
+  "challenge2": 1.0087   (maintained as expected)
+}
+```
+
+**What We Tried:**
+- Hypothesis: Test set is uniform mixture of all R-sets (R1-R4)
+- Strategy: Train CompactCNN on ALL 41,071 samples
+- Validation NRMSE: 0.9954 (looked excellent!)
+- Expected: Better than 1.0015 baseline
+
+**What Actually Happened:**
+- ❌ Test C1 score WORSE by 41.6% (1.0015 → 1.4175)
+- ❌ Validation metric 0.9954 was completely misleading
+- ❌ Hypothesis REJECTED: Test is NOT uniform R1-R4 mixture
+- ✅ Original cross-validation (R1-R3/R4) was actually BETTER
+
+**Critical Learnings:**
+1. **Validation metrics are unreliable** - NO correlation with test scores
+2. **Subject leakage confirmed** - Val 0.9954 → Test 1.4175 disconnect
+3. **More data ≠ better** - 41K samples performed worse than 30K samples  
+4. **Test distribution unknown** - Cross-validation matched it better
+5. **Must fix validation FIRST** - Can't optimize what we can't measure
+
+**Status:** Baseline (1.0015) remains our best score. See `docs/validation/SUBMISSION_FAILURE_ANALYSIS_OCT29.md` for complete post-mortem.
+
 ### 🏆 Competition Context (October 28, 2025)
 
 **Leaderboard Analysis (Top 4):**
@@ -943,24 +977,70 @@ Rank  Team             Overall    C1 Score   C2 Score   Gap to Us
 - Val NRMSE: 0.9954 (but may not predict test due to subject leakage)
 - Submission ready, awaiting competition evaluation
 
-#### Submission Debugging & Fixes (October 26)
-**v3 Issues (Fixed in v4):**
-- ❌ Used `challenge_1()` and `challenge_2()` (wrong - had underscores)
-- ✅ Fixed to `challenge1()` and `challenge2()` (correct format)
+#### Submission Debugging & Fixes (October 29, 2025)
 
-**v4 Issues (Fixed in v5):**
-- ❌ Fallback EEGNeX implementation had wrong architecture
-- ❌ Fallback used simple 2-layer CNN (conv1, conv2, fc)
-- ❌ Trained weights used braindecode's 5-block architecture (block_1-5)
-- ❌ Weight loading failed silently: "Missing key(s) in state_dict"
-- ✅ **v5 Solution:** Removed fallback, direct braindecode import only
+**🔥 ROOT CAUSE FOUND - V1-V4 Failures:**
+- ❌ Used `__call__(X, challenge)` method (competition doesn't call this!)
+- ❌ Competition expects `challenge_1(X)` and `challenge_2(X)` methods WITH underscores
+- ❌ Our methods were never invoked → empty predictions → 0-byte scoring files
+- ❌ No error messages, just silent failure
 
-**v5 Status:**
-- ✅ Correct function names: `challenge1()` and `challenge2()`
-- ✅ Direct braindecode import with clear error messages
-- ✅ Architecture matches trained weights
-- ✅ Local tests pass
-- ✅ Ready to upload to Codabench
+**Submission History:**
+- **V1 (Oct 29):** ❌ Failed - Checkpoint dict format (fixed, but API still wrong)
+- **V2 (Oct 29):** ❌ Failed - Architecture mismatch kernel sizes (fixed, but API still wrong)
+- **V3 (Oct 29):** ❌ Failed (0 bytes) - Device handling string vs object (fixed, but API still wrong)
+- **V4 (Oct 29):** ❌ Failed (0 bytes) - Better error handling (fixed, but API STILL wrong)
+- **V5 (Oct 29):** ✅ **API FIXED** - Replaced `__call__()` with `challenge_1()` and `challenge_2()`
+
+**V5 Solution - Correct Competition API:**
+```python
+class Submission:
+    def __init__(self, SFREQ, DEVICE):
+        """Competition passes SFREQ (int) and DEVICE (str)"""
+        self.device = torch.device(DEVICE) if isinstance(DEVICE, str) else DEVICE
+        self.sfreq = SFREQ
+        self.n_times = int(2 * SFREQ)  # 200 timepoints for SFREQ=100
+    
+    def get_model_challenge_1(self):
+        """Return Challenge 1 model"""
+        return self.model_c1
+    
+    def get_model_challenge_2(self):
+        """Return Challenge 2 model"""
+        return self.model_c2
+    
+    def challenge_1(self, X):
+        """Competition calls THIS for Challenge 1
+        Args: X (torch.Tensor) - shape [batch, channels, timepoints]
+        Returns: torch.Tensor - shape [batch,]
+        """
+        model = self.get_model_challenge_1()
+        X = X.to(self.device)
+        with torch.no_grad():
+            predictions = model(X).squeeze(-1)
+        return predictions
+    
+    def challenge_2(self, X):
+        """Competition calls THIS for Challenge 2
+        Args: X (torch.Tensor) - shape [batch, channels, timepoints]
+        Returns: torch.Tensor - shape [batch,]
+        """
+        model = self.get_model_challenge_2()
+        X = X.to(self.device)
+        with torch.no_grad():
+            predictions = model(X).squeeze(-1)
+        return predictions
+```
+
+**V5 Status (Oct 29, 2025):**
+- ✅ **Correct API:** `challenge_1(X)` and `challenge_2(X)` WITH underscores
+- ✅ **Correct I/O:** Input torch.Tensor, output torch.Tensor
+- ✅ Device handling fixed (string → torch.device conversion)
+- ✅ Architecture matches trained weights (kernel_size=5 all layers)
+- ✅ Checkpoint loading fixed (handles dict format)
+- ✅ Numpy import added
+- ✅ Local tests pass for Challenge 1
+- ✅ Ready to submit: `submissions/phase1_v5/submission_c1_all_rsets_v5.zip`
 
 #### Training Progress
 **Challenge 1:**
@@ -1291,15 +1371,22 @@ tail -f logs/challenge2_correct_training.log
 # 1. Copy trained weights
 cp weights_challenge_2_correct.pt weights_challenge_2.pt
 
-# 2. Test submission
+# 2. Ensure submission.py has correct API (see Competition API Reference section)
+#    - Must have challenge_1(X) and challenge_2(X) methods
+#    - Must have get_model_challenge_1() and get_model_challenge_2()
+#    - Must accept torch.Tensor and return torch.Tensor
+
+# 3. Test submission locally
 python test_submission_verbose.py
 
-# 3. Create submission package
+# 4. Create submission package
 zip -j submission.zip submission.py weights_challenge_1.pt weights_challenge_2.pt
 
-# 4. Submit to competition
+# 5. Submit to competition
 # Upload submission.zip to competition platform
 ```
+
+**⚠️ Critical:** See the **Competition API Reference** section above for the exact interface your `submission.py` must implement. Using `__call__(X, challenge)` instead of `challenge_1(X)` and `challenge_2(X)` will cause silent failures (0-byte results).
 
 ---
 
@@ -1607,7 +1694,169 @@ See `CHALLENGE2_TRAINING_STATUS.md` for detailed training configuration and `scr
 
 ---
 
-## 📚 Documentation
+## � Competition API Reference
+
+### Required Submission Interface
+
+The competition expects your `submission.py` to implement this **EXACT API**:
+
+```python
+import numpy as np
+import torch
+import torch.nn as nn
+from pathlib import Path
+
+class Submission:
+    """Competition submission class - MUST match this interface exactly"""
+    
+    def __init__(self, SFREQ, DEVICE):
+        """Initialize submission
+        
+        Args:
+            SFREQ (int): Sampling frequency in Hz (typically 100)
+            DEVICE (str): Device string 'cpu' or 'cuda'
+        """
+        # Convert DEVICE string to torch.device
+        if isinstance(DEVICE, str):
+            self.device = torch.device(DEVICE)
+        elif isinstance(DEVICE, torch.device):
+            self.device = DEVICE
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        self.sfreq = SFREQ
+        self.n_chans = 129
+        self.n_times = int(2 * SFREQ)  # 200 timepoints for SFREQ=100
+        
+        # Models (lazy loading)
+        self.model_c1 = None
+        self.model_c2 = None
+    
+    def get_model_challenge_1(self):
+        """Load and return Challenge 1 model
+        
+        Returns:
+            torch.nn.Module: Model for response time prediction
+        """
+        if self.model_c1 is None:
+            # Load model here
+            self.model_c1 = YourModel()
+            weights = torch.load('weights_challenge_1.pt', map_location=self.device)
+            self.model_c1.load_state_dict(weights)
+            self.model_c1 = self.model_c1.to(self.device)
+            self.model_c1.eval()
+        return self.model_c1
+    
+    def get_model_challenge_2(self):
+        """Load and return Challenge 2 model
+        
+        Returns:
+            torch.nn.Module: Model for externalizing factor prediction
+        """
+        if self.model_c2 is None:
+            # Load model here
+            self.model_c2 = YourModel()
+            weights = torch.load('weights_challenge_2.pt', map_location=self.device)
+            self.model_c2.load_state_dict(weights)
+            self.model_c2 = self.model_c2.to(self.device)
+            self.model_c2.eval()
+        return self.model_c2
+    
+    def challenge_1(self, X):
+        """Make predictions for Challenge 1
+        
+        ⚠️ CRITICAL: Competition calls THIS method, not __call__()
+        
+        Args:
+            X (torch.Tensor): EEG data, shape [batch, n_chans, n_times]
+                            e.g., [32, 129, 200]
+        
+        Returns:
+            torch.Tensor: Predictions, shape [batch,]
+                         e.g., [32,] with response times
+        """
+        model = self.get_model_challenge_1()
+        X = X.to(self.device)
+        
+        with torch.no_grad():
+            predictions = model(X)
+            # Ensure output is [batch,] not [batch, 1]
+            if predictions.dim() > 1:
+                predictions = predictions.squeeze(-1)
+        
+        return predictions
+    
+    def challenge_2(self, X):
+        """Make predictions for Challenge 2
+        
+        ⚠️ CRITICAL: Competition calls THIS method, not __call__()
+        
+        Args:
+            X (torch.Tensor): EEG data, shape [batch, n_chans, n_times]
+                            e.g., [32, 129, 200]
+        
+        Returns:
+            torch.Tensor: Predictions, shape [batch,]
+                         e.g., [32,] with externalizing scores
+        """
+        model = self.get_model_challenge_2()
+        X = X.to(self.device)
+        
+        with torch.no_grad():
+            predictions = model(X)
+            # Ensure output is [batch,] not [batch, 1]
+            if predictions.dim() > 1:
+                predictions = predictions.squeeze(-1)
+        
+        return predictions
+```
+
+### Critical Points
+
+**✅ MUST HAVE:**
+- `__init__(self, SFREQ, DEVICE)` - Exact signature
+- `get_model_challenge_1(self)` - Returns model object
+- `get_model_challenge_2(self)` - Returns model object
+- `challenge_1(self, X)` - Takes torch.Tensor, returns torch.Tensor
+- `challenge_2(self, X)` - Takes torch.Tensor, returns torch.Tensor
+- Methods named with **underscores**: `challenge_1` not `challenge1`
+
+**❌ DO NOT:**
+- Use `__call__(self, X, challenge)` - Competition doesn't call this!
+- Return numpy arrays - Must return torch.Tensor
+- Expect numpy input - Input is torch.Tensor
+- Hardcode `n_times` - Calculate from SFREQ
+
+**📦 Submission Package:**
+```
+submission.zip
+├── submission.py          # Your Submission class
+├── weights_challenge_1.pt # Challenge 1 model weights
+└── weights_challenge_2.pt # Challenge 2 model weights
+```
+
+**🧪 Test Your Submission Locally:**
+```python
+# Test that your submission works
+submission = Submission(SFREQ=100, DEVICE='cpu')
+
+# Test Challenge 1
+X = torch.randn(4, 129, 200)  # Batch of 4
+pred1 = submission.challenge_1(X)
+assert pred1.shape == (4,), f"Expected (4,), got {pred1.shape}"
+assert isinstance(pred1, torch.Tensor), "Must return torch.Tensor"
+
+# Test Challenge 2
+pred2 = submission.challenge_2(X)
+assert pred2.shape == (4,), f"Expected (4,), got {pred2.shape}"
+assert isinstance(pred2, torch.Tensor), "Must return torch.Tensor"
+
+print("✅ Submission API correct!")
+```
+
+---
+
+## �📚 Documentation
 
 ### Core Documentation
 

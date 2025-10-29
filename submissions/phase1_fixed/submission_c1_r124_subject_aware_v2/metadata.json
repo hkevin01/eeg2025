@@ -1,0 +1,9 @@
+{
+  "submission_name": "submission_c1_r124_subject_aware_v2",
+  "c1_model": "r124_subject_aware",
+  "c1_source": "checkpoints/c1_subject_aware/r124_subject_aware_best.pth",
+  "c2_model": "EEGNeX_quickfix",
+  "c2_source": "weights/BACKUP_C2_SUBMIT87_1.00867.pt",
+  "c2_best_score": 1.00867,
+  "notes": "Subject-aware C1 with best C2 - CORRECTED submission.py"
+}
