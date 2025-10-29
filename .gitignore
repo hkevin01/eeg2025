@@ -107,11 +107,17 @@ checkpoints/*.pt
 *.pth
 *.pt
 
+# Keep organized weights
+!weights/ensemble/*.pt
+!weights/single_models/*.pt
+!weights/challenge_specific/*.pt
+
 # Keep specific important checkpoints
 !weights_challenge_1_multi_release.pt
 !weights_challenge_2_multi_release.pt
 !*_best.pth
 !*_final.pt
+!checkpoints/compact_ensemble/*_best.pth
 
 # Submission weights (keep these small ones)
 !submission_weights.pt
@@ -119,12 +125,18 @@ checkpoints/*.pt
 # ============================================================================
 # Submission Packages
 # ============================================================================
-# Zip files and packages
+# Zip files and packages (keep organized submissions)
 *.zip
 !starter_kit_*.zip
+!submissions/**/*.zip
 submission_complete.zip
 submission_package/
 eeg2025_submission_*.zip
+
+# Keep specific organized submissions
+!submissions/v9_ensemble/*.zip
+!submissions/v8_tcn/*.zip
+!submissions/v7_sam/*.zip
 
 # Archive folder - EVERYTHING (old experiments, logs, weights)
 archive/
@@ -256,6 +268,15 @@ progress_*.txt
 docs/analysis/**
 docs/status/**
 docs/planning/**
+
+# Keep organized status reports and analysis
+!docs/status_reports/**
+!docs/analysis/QUICK_FIX_SUCCESS_ANALYSIS.md
+!docs/analysis/NEXT_SUBMISSION_PLAN.md
+!docs/analysis/PATH_B_ENSEMBLE_ANALYSIS.md
+!docs/CLEANUP_SUMMARY_OCT27.md
+
+# Temporary status files
 *_ANALYSIS.md
 *_STATUS.md
 *_TODO.md
@@ -291,6 +312,8 @@ READY_TO_*.md
 !MY_NORMALIZATION_METHODS.md
 !TRAINING_DATA_ANALYSIS.md
 !SESSION_SUMMARY.md
+!QUICK_REFERENCE.md
+!DIRECTORY_INDEX.md
 
 # Old/archived documentation (too many files)
 docs/archive/
@@ -449,3 +472,59 @@ temp_*/
 tmp_*/
 scratch/
 experiments/
+
+# ============================================================================
+# Organized Structure (October 2025 Cleanup)
+# ============================================================================
+
+# Submission builder scripts in root (moved to scripts/)
+create_*.py
+submission_*.py
+!submissions/**/*.py
+
+# Weights in root (moved to weights/)
+weights_*.pt
+!weights/**/*.pt
+
+# Status reports in root (moved to docs/)
+*_READY.md
+*_COMPLETE.md
+*_CHECKLIST.md
+!docs/status_reports/**/*.md
+
+# Keep organized submissions
+submissions/v9_ensemble/**
+submissions/v8_tcn/**
+submissions/v7_sam/**
+submissions/old/**
+
+# Keep organized weights
+weights/ensemble/**
+weights/single_models/**
+weights/challenge_specific/**
+
+# Keep organized documentation
+docs/status_reports/**
+docs/analysis/**
+scripts/submission_builders/**
+
+# Temporary build artifacts in root
+submission.py
+submission_single.py
+!submissions/**/submission*.py
+
+
+# Ignore old submission packages and backups
+submissions/packages/**
+submissions/archives/**
+submissions/versions/**
+submissions/fixed_submission_correct/**
+
+# Ignore old weights
+weights/challenge1/**
+weights/challenge2/**
+weights/BACKUP_*.pt
+weights/weights_challenge_*.pt
+
+# Duplicate/old directories
+starter_kit_integration/

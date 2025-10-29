@@ -1,28 +1,20 @@
 #!/bin/bash
+# Monitor training progress in tmux session
 
-echo "🎯 Training Monitor"
-echo "=" "=" "=" "=" "=" | tr -d ' '
-
-# Check if training is running
-if ps aux | grep "train_c1_cached" | grep -v grep > /dev/null; then
-    PID=$(ps aux | grep "train_c1_cached" | grep -v grep | awk '{print $2}')
-    CPU=$(ps aux | grep "train_c1_cached" | grep -v grep | awk '{print $3}')
-    MEM=$(ps aux | grep "train_c1_cached" | grep -v grep | awk '{print $4}')
-    RSS=$(ps aux | grep "train_c1_cached" | grep -v grep | awk '{print $6/1024}')
-    
-    echo "✅ Training ACTIVE"
-    echo "   PID: $PID"
-    echo "   CPU: ${CPU}%"
-    echo "   MEM: ${MEM}% (${RSS}MB)"
-    echo ""
-    echo "📋 Latest output:"
-    echo "---"
-    tail -30 logs/c1_cached_training.log 2>/dev/null || echo "Log not ready yet..."
-else
-    echo "❌ Training NOT running"
-    echo ""
-    echo "📋 Last log output:"
-    echo "---"
-    tail -50 logs/c1_cached_training.log 2>/dev/null || echo "No log file found"
-fi
-
+echo "🔍 EEG Training Monitor"
+echo "======================"
+echo ""
+echo "📊 Latest log output:"
+echo "---"
+tail -30 logs/train_all_rsets_20251028_145812.log
+echo ""
+echo "---"
+echo ""
+echo "⏱️  Training time: $(ps -o etime= -p $(pgrep -f train_c1_all_rsets.py | head -1) 2>/dev/null || echo 'Not running')"
+echo "💾 Memory: $(ps -o rss= -p $(pgrep -f train_c1_all_rsets.py | head -1) 2>/dev/null | awk '{print $1/1024 " MB"}' || echo 'N/A')"
+echo ""
+echo "Commands:"
+echo "  Watch live:    tmux attach -t eeg_training"
+echo "  Detach:        Ctrl+B then D"
+echo "  Kill training: tmux kill-session -t eeg_training"
+echo "  This monitor:  bash monitor_training.sh"

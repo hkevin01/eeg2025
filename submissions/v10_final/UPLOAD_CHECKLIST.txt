@@ -1,0 +1,53 @@
+═══════════════════════════════════════════════════════════════════════
+V10 FINAL SUBMISSION - UPLOAD CHECKLIST
+═══════════════════════════════════════════════════════════════════════
+
+FILE TO UPLOAD:
+  📦 submission_v10_FINAL.zip (0.93 MB)
+  Location: /home/kevin/Projects/eeg2025/submissions/v10_final/
+
+EXPECTED SCORE:
+  🎯 Overall: 0.95-1.0 (better than quick_fix's 1.01)
+  🎯 Challenge 1: 0.95-1.0 (trained model, r=0.0211 validation)
+  🎯 Challenge 2: 1.00 (same as quick_fix, EEGNeX)
+
+═══════════════════════════════════════════════════════════════════════
+
+WHAT'S INSIDE:
+  ✅ submission.py (4.4 KB) - Both models with correct filenames
+  ✅ weights_challenge_1.pt (304 KB) - Trained CompactCNN seed 456
+  ✅ weights_challenge_2.pt (758 KB) - EEGNeX from quick_fix
+
+FIXES FROM V9:
+  ✅ Filename consistency (no renaming in zip)
+  ✅ Correct Challenge 2 weights (EEGNeX)
+  ✅ Proper error handling (fails loudly)
+  ✅ Isolated testing (works standalone)
+
+═══════════════════════════════════════════════════════════════════════
+
+AFTER UPLOAD:
+
+1. Note submission ID
+2. Wait for results
+3. Record scores:
+   • Overall: _______
+   • Challenge 1: _______
+   • Challenge 2: _______
+
+4. Compare with expected:
+   • Better than 1.01? → SUCCESS! Training helped!
+   • Around 1.01? → Training didn't improve test performance
+   • Worse than 1.01? → Investigate what went wrong
+
+═══════════════════════════════════════════════════════════════════════
+
+DOCUMENTATION:
+  📄 docs/postmortem/V9_FAILURE_ANALYSIS.md
+  📄 docs/SUBMISSION_HISTORY_OCT27.md
+  📄 STATUS_OCT27_FINAL.md
+
+═══════════════════════════════════════════════════════════════════════
+
+Ready to upload! 🚀
+

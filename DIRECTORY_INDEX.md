@@ -1,25 +1,33 @@
 # 📂 EEG2025 Directory Index
 
-**Last Updated:** October 26, 2025  
-**Status:** Root directory cleaned and organized
+**Last Updated:** October 29, 2025, 11:00 AM  
+**Status:** Root directory cleaned and organized (Oct 29 validation cleanup)
 
 ---
 
 ## 🎯 Quick Access
 
-### Current Work
+### Ready-to-Upload Submissions (Oct 28-29)
 ```bash
-./submission_sam_fixed_v5.zip      # Latest submission (READY TO UPLOAD)
-./submission.py                    # Active submission script
-./README.md                        # Main project documentation
+submissions/submission_all_rsets_v1.zip          # LATEST (957 KB) - ALL R-sets training
+submissions/submission_cross_rset_v6.zip         # Previous (C1 regression)
+submissions/submission_v10_single_FIXED.zip      # Backup
 ```
 
 ### Key Documentation
 ```bash
-docs/analysis/SUBMISSION_V5_ANALYSIS.md    # Why v4 failed, how v5 fixes it
-docs/status/TRAINING_STATUS_CURRENT.md     # Current training status
-docs/CACHED_DATA_INFO.md                   # H5 cache structure and usage
-docs/analysis/VSCODE_CRASH_ANALYSIS.md     # VS Code crash investigation
+docs/validation/VALIDATION_PROBLEM_ANALYSIS.md  # Critical validation discovery
+docs/validation/VALIDATION_ACTION_PLAN.md       # Implementation plan
+docs/status/SUBMISSION_READY_ALL_RSETS_V1.md    # Latest submission info
+docs/QUICK_REFERENCE.md                          # Command reference
+```
+
+### Essential Root Files
+```bash
+./README.md                        # Main project documentation (UPDATED with validation learnings)
+./submission.py                    # Working submission script
+./setup.py                         # Python package setup
+./DIRECTORY_INDEX.md               # This file
 ```
 
 ---
@@ -29,11 +37,13 @@ docs/analysis/VSCODE_CRASH_ANALYSIS.md     # VS Code crash investigation
 ### `/` (Root - Essential Files Only)
 ```
 eeg2025/
-├── submission_sam_fixed_v5.zip    ← Latest submission (466 KB, ready)
+├── README.md                       ← Main documentation (updated Oct 29)
 ├── submission.py                   ← Working submission script
 ├── setup.py                        ← Python package setup
-├── README.md                       ← Main documentation
+├── LICENSE                         ← MIT license
+├── Makefile                        ← Build automation
 ├── requirements.txt                ← Dependencies
+├── requirements-dev.txt            ← Development dependencies
 ├── pyproject.toml                  ← Project configuration
 └── DIRECTORY_INDEX.md              ← This file
 ```
@@ -41,6 +51,21 @@ eeg2025/
 ### `/docs/` - Documentation
 ```
 docs/
+├── status/                         ← Status and analysis documents (NEW)
+│   ├── ACTION_PLAN_OCT28.md
+│   ├── CROSS_RSET_ANALYSIS_OCT28.md
+│   ├── LEADERBOARD_ANALYSIS_OCT28.md
+│   ├── STATUS_SUMMARY_OCT28_3PM.md
+│   ├── SUBMISSION_READY_ALL_RSETS_V1.md
+│   └── [18 status documents total]
+├── validation/                     ← Validation analysis documents (NEW)
+│   ├── VALIDATION_PROBLEM_ANALYSIS.md    ← Critical discovery
+│   ├── VALIDATION_ACTION_PLAN.md
+│   ├── VALIDATION_STRATEGY_SUMMARY.md
+│   ├── TODO_VALIDATION_IMPROVEMENT.md
+│   └── QUICK_VALIDATION_GUIDE.md
+├── QUICK_REFERENCE.md              ← Command reference (moved from root)
+├── README_UPDATE_SUMMARY.md        ← Recent README changes (moved from root)
 ├── status/                         ← Training and progress reports
 │   ├── TRAINING_STATUS_CURRENT.md    (Active training info)
 │   ├── TRAINING_STATUS.md

@@ -31,6 +31,8 @@
 - [Technology Stack](#-technology-stack)
 - [Competition Overview](#-competition-overview)
 - [Current Status](#-current-status)
+- [Key Insights](#-key-insights)
+  - [Critical: Subject Leakage Problem](#5-subject-leakage-destroys-validation-reliability--new-discovery)
 - [Project Structure](#-project-structure)
 - [Models](#-models)
 - [Training](#-training)
@@ -855,15 +857,93 @@ flowchart TB
 
 ## 📊 Current Status
 
-**Latest Submission: v5 (October 26, 2025)**
-- **Package:** `submission_sam_fixed_v5.zip` (466 KB, ready to upload)
-- **Status:** ✅ Tested and validated
-- **Weights:** Challenge 1 (264KB) + Challenge 2 (262KB)
-- **Architecture:** EEGNeX with braindecode, no fallback implementations
+**Latest Submission: all_rsets_v1 (October 28, 2025)**
+- **Package:** `submission_all_rsets_v1.zip` (957 KB, ready to upload)
+- **Status:** ✅ Trained and packaged, awaiting test results
+- **Training:** ALL R-sets (R1+R2+R3+R4, 41,071 samples) with random 90/10 split
+- **Model:** CompactCNN (75K params)
+- **Validation NRMSE:** 0.9954 (⚠️ may not predict test - see validation issue below)
 
-### Recent Work (October 26, 2025)
+### 🚨 Critical Discovery: Validation Reliability Problem (October 28-29, 2025)
 
-#### Submission Debugging & Fixes
+**Problem Identified:** Random train/val splits cause **subject leakage**
+- Same subject appears in BOTH training and validation sets
+- Model memorizes subject-specific patterns instead of generalizing
+- **Result:** Validation metrics DO NOT correlate with test performance
+
+**Evidence:**
+```
+Submission         Val NRMSE    Test C1    Correlation
+─────────────────────────────────────────────────────
+R4-only training   0.1607    →  1.0020    ❌ None
+R1-R3 cross-train  0.1625    →  1.1398    ❌ Negative!
+Untrained model    N/A       →  1.0015    ✅ BEST!
+```
+
+**Key Insight:** Lower validation ≠ better test! Subject leakage makes validation meaningless.
+
+**Solution Designed:** Subject-aware validation
+- Split by subject ID, not by samples
+- Zero subject overlap between train/val sets
+- Validation becomes predictive of test performance
+- See `VALIDATION_PROBLEM_ANALYSIS.md` for full technical details
+
+**Implementation Ready:**
+- ✅ Root cause analysis complete (13KB documentation)
+- ✅ Solution designed and documented
+- ✅ Re-caching script ready: `scripts/preprocessing/cache_challenge1_with_subjects.py`
+- ⏳ Awaiting test results from `all_rsets_v1` to decide next steps
+
+**Next Steps:**
+1. Upload `all_rsets_v1` and check test C1 score
+2. If C1 > 1.0: Implement subject-aware validation (3-4 hours)
+3. Re-train with proper subject splits
+4. Target: C1 < 0.93 for top 3 placement
+
+### 🏆 Competition Context (October 28, 2025)
+
+**Leaderboard Analysis (Top 4):**
+```
+Rank  Team             Overall    C1 Score   C2 Score   Gap to Us
+─────────────────────────────────────────────────────────────────
+1st   MBZUAI           0.9388     0.91865    1.00003    -8.0% (C1)
+2nd   bluewater        0.9426     0.92215    1.00145    -7.7% (C1)  
+3rd   CyberBobBeta     0.9468     0.9273     1.00576    -7.4% (C1)
+4th   Us (quick_fix)   1.0065     1.0015     1.0087     baseline
+```
+
+**Key Findings:**
+- Challenge 1 IS trainable (top teams: 0.918-0.927 vs our 1.0015)
+- We're 8-9% behind on C1 (need to close ~0.08 NRMSE gap)
+- Challenge 2 already competitive (1.0087 vs 1.00003-1.00576)
+- Overall gap to top 3: ~3% (achievable with better C1!)
+- Current baseline: `quick_fix` submission (untrained model)
+
+**Target:** Top 3 placement requires C1 < 0.93
+
+### Recent Work (October 26-29, 2025)
+
+#### Validation Analysis (October 28-29)
+**Discovered:**
+- Random splits cause subject leakage → unreliable validation
+- Previous training attempts made C1 worse (1.0015 → 1.1398)
+- Untrained model performs better than some trained models!
+
+**Created Documentation:**
+- `VALIDATION_PROBLEM_ANALYSIS.md` - Complete technical analysis
+- `VALIDATION_ACTION_PLAN.md` - Step-by-step implementation plan
+- `VALIDATION_STRATEGY_SUMMARY.md` - Quick reference guide
+- `TODO_VALIDATION_IMPROVEMENT.md` - Detailed action checklist
+
+#### Training Experiments (October 28)
+**all_rsets_v1:**
+- Trained on ALL R-sets (41,071 samples) with random 90/10 split
+- Hypothesis: Test set is random mixture of R1-R4 (not R4-only)
+- CompactCNN, AdamW optimizer, early stopping at epoch 25/30
+- Val NRMSE: 0.9954 (but may not predict test due to subject leakage)
+- Submission ready, awaiting competition evaluation
+
+#### Submission Debugging & Fixes (October 26)
 **v3 Issues (Fixed in v4):**
 - ❌ Used `challenge_1()` and `challenge_2()` (wrong - had underscores)
 - ✅ Fixed to `challenge1()` and `challenge2()` (correct format)
@@ -1633,13 +1713,40 @@ See `CHALLENGE2_TRAINING_STATUS.md` for detailed training configuration and `scr
 - **Lesson:** Smaller models often generalize better for clinical targets
 - **Evidence:** Submit 87 used wrong model (EEGNeX for C1) → 60% worse (1.6035)
 
-#### 4. Subject-Level Cross-Validation Essential
+#### 4. Subject-Level Cross-Validation Essential ⚠️ CRITICAL
 - **Why:** Prevents data leakage from same subjects in train/val
 - **Method:** GroupKFold by subject ID
 - **Impact:** More realistic validation scores that match test performance
 - **Proof:** C1 val → test scores very close (proper CV working)
 
-#### 5. Data Augmentation Prevents Overfitting
+#### 5. Subject Leakage Destroys Validation Reliability 🚨 NEW DISCOVERY
+- **Problem Discovered:** Random train/val splits put same subject in BOTH sets
+- **Catastrophic Impact:** Validation metrics DO NOT predict test performance
+  - R4-only: Val NRMSE 0.1607 → Test 1.0020 (no correlation ❌)
+  - R1-R3 cross: Val NRMSE 0.1625 → Test 1.1398 (negative correlation! ❌)
+  - **Untrained model: Test 1.0015** (BEST score! ✅)
+- **Root Cause:** Model memorizes subject-specific patterns, fails on new subjects
+- **Evidence:** Lower validation NRMSE ≠ better test score
+- **Solution:** **Subject-aware validation** - split by subject ID, not samples
+  ```python
+  # ❌ WRONG: Random split (subject leakage)
+  train, val = train_test_split(data, test_size=0.1)
+  
+  # ✅ RIGHT: Subject-aware split (no leakage)
+  subjects = get_unique_subjects(data)
+  train_subj, val_subj = train_test_split(subjects, test_size=0.1)
+  train_data = data[data.subject.isin(train_subj)]
+  val_data = data[data.subject.isin(val_subj)]
+  ```
+- **Expected Improvement:** Validation scores will be HIGHER but PREDICTIVE
+  - Random split: Val 0.16 → Test 1.14 (useless)
+  - Subject-aware: Val 1.05 → Test 1.00 (trustworthy!)
+- **Key Insight:** Validation doesn't have to look good - it has to predict test!
+- **Status:** Implementation ready in `scripts/preprocessing/cache_challenge1_with_subjects.py`
+- **Next Step:** Re-cache data with subject IDs, train with subject-aware splits
+- **Documentation:** See `VALIDATION_PROBLEM_ANALYSIS.md` for full technical analysis
+
+#### 6. Data Augmentation Prevents Overfitting
 - **Temporal cropping:** 4s → 2s random windows
 - **Amplitude scaling:** 0.8-1.2x multiplier
 - **Channel dropout:** 5% channels zeroed (30% of batches)
