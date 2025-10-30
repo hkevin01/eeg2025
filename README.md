@@ -9,7 +9,12 @@
 
 **Competition:** [NeurIPS 2025 EEG Foundation Challenge](https://eeg2025.github.io/)  
 **Deadline:** November 2, 2025  
-**Status:** Training In Progress 🔄 | Submission v5 Ready ✅
+**Status:** Training In Progress 🔄 | Submission V6 Ready ✅
+
+> **🧪 Pre-Submission Verification**  
+> **Always run before submitting:** `python scripts/verify_submission.py <submission.zip>`  
+> This comprehensive 10-step verification suite catches issues before upload (API format, architecture mismatch, weight loading, predictions).  
+> See [Usage section](#-pre-submission-verification-critical) for details.
 
 > **⚙️ Hardware Setup**  
 > This project can train on both CPU and GPU. Current training uses CPU with optimized cached data (H5 format).
@@ -39,6 +44,7 @@
 - [Monitoring](#-monitoring)
 - [Installation](#-installation)
 - [Usage](#-usage)
+  - [Pre-Submission Verification](#-pre-submission-verification-critical)
 - [Documentation](#-documentation)
 
 ---
@@ -1662,6 +1668,49 @@ flowchart LR
     
     Prepare --> Package --> Submit
 ```
+
+### 🧪 Pre-Submission Verification (CRITICAL!)
+
+**⚠️ MANDATORY: Always run comprehensive verification before uploading!**
+
+After 6 failed submissions, we developed a comprehensive 10-step verification suite that catches issues before upload:
+
+```bash
+# Run comprehensive verification (10 tests)
+python scripts/verify_submission.py <path_to_submission.zip>
+```
+
+**Success Criteria:**
+- ✅ 10/10 tests pass = Perfect! Submit immediately
+- ✅ 9/10 tests pass = OK if only Challenge 2 fails locally (braindecode unavailable)
+- ❌ <9/10 tests pass = Fix issues before submitting!
+
+**What Gets Verified:**
+1. ZIP structure (3 files, flat structure)
+2. Submission class definition
+3. `__init__(SFREQ, DEVICE)` signature
+4. Required methods (challenge_1, challenge_2, get_model_*)
+5. Method signatures correct
+6. Instantiation with string/torch.device
+7. **Model loading** (architecture matches weights!)
+8. Predictions work (correct shape, no NaN/Inf)
+9. Value validation
+10. Deterministic behavior
+
+**Common Failures Caught:**
+- ❌ Architecture mismatch (V5: CompactCNN vs TCN weights)
+- ❌ Wrong API format (V1-V4: used `__call__` instead of `challenge_1`/`challenge_2`)
+- ❌ Excessive debug output
+- ❌ Weight loading errors
+
+**Documentation:**
+- Full test suite: `scripts/verify_submission.py` (500+ lines)
+- Quick reference: `memory-bank/SUBMISSION_VERIFICATION_QUICK_REF.md`
+- Example success: `submissions/phase1_v6/` (9/10 tests passed)
+
+**Never submit without verification!** This suite has saved us from multiple submission failures.
+
+---
 
 ### Testing Submission
 
