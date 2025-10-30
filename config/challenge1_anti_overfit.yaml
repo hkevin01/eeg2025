@@ -1,0 +1,106 @@
+# Challenge 1: Anti-Overfitting Configuration
+# Focus: Prevent overfitting while maintaining performance
+# Target: Beat 1.0015 (untrained baseline)
+
+model:
+  name: "CompactResponseTimeCNN"
+  architecture:
+    # Same as winning untrained model
+    conv_channels: [32, 64, 128]
+    kernel_sizes: [7, 5, 3]
+    strides: [2, 2, 2]
+    
+    # AGGRESSIVE REGULARIZATION
+    dropout: [0.5, 0.6, 0.7]  # Increase from 0.3, 0.4, 0.5
+    use_batchnorm: true
+    
+    # Regressor
+    fc_layers: [128, 64, 32, 1]
+    fc_dropout: [0.6, 0.5]  # Increase from 0.5, 0.4
+
+training:
+  # CONSERVATIVE TRAINING
+  batch_size: 64  # Larger batch = more stable gradients
+  max_epochs: 15  # Much shorter! Stop before overfitting
+  learning_rate: 1e-4  # Lower LR
+  weight_decay: 0.05  # Strong L2 regularization (up from 0.01)
+  
+  # Early stopping
+  early_stopping:
+    patience: 5  # Stop quickly if not improving
+    min_delta: 0.001
+    monitor: "val_nrmse"
+    mode: "min"
+  
+  # Learning rate schedule
+  scheduler:
+    type: "cosine"
+    T_max: 15
+    eta_min: 1e-6
+  
+  # Gradient clipping
+  clip_grad_norm: 1.0
+
+data:
+  # Subject-aware split (CRITICAL!)
+  split_by_subject: true  # Zero subject overlap
+  val_subjects_ratio: 0.2
+  
+  # Data augmentation
+  augmentation:
+    # Time domain
+    time_shift: 0.05  # Small shifts only
+    time_stretch: [0.95, 1.05]  # Subtle time warping
+    
+    # Amplitude
+    amplitude_scale: [0.9, 1.1]  # Small amplitude changes
+    add_noise: 0.01  # Small gaussian noise
+    
+    # Channel dropout
+    channel_dropout: 0.1  # Randomly drop 10% channels
+    
+    # Probability of applying each
+    p_augment: 0.5
+
+validation:
+  # Monitor multiple metrics
+  metrics:
+    - nrmse
+    - pearson_r
+    - mse
+  
+  # Validation frequency
+  val_every_n_epochs: 1
+  
+  # Save best models
+  save_top_k: 3
+  save_on_metric: "val_nrmse"
+
+# Ensemble (optional - for even better results)
+ensemble:
+  enabled: false  # Start with single model
+  n_models: 5
+  vary_init: true  # Different random seeds
+  vary_augmentation: true
+
+# Mixup/CutMix (advanced regularization)
+mixup:
+  enabled: true
+  alpha: 0.2  # Conservative mixing
+
+# Label smoothing
+label_smoothing: 0.1
+
+notes: |
+  This config addresses overfitting through:
+  1. MUCH stronger dropout (0.5-0.7 vs 0.3-0.5)
+  2. Stronger weight decay (0.05 vs 0.01)
+  3. Much shorter training (15 vs 100 epochs)
+  4. Subject-aware validation (zero overlap)
+  5. Data augmentation
+  6. Early stopping
+  7. Gradient clipping
+  8. Mixup
+  9. Label smoothing
+  
+  Goal: Learn useful patterns without memorizing training set
