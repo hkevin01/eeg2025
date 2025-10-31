@@ -1,11 +1,24 @@
 # EEG2025 Project Directory Structure
-Generated: 2025-10-31 10:19:14
+Last Updated: 2025-10-31 (Enhanced Cleanup)
 
-## Root Directory
-Keep only essential files:
-- Configuration files (requirements.txt, pyproject.toml, setup.py)
-- Main documentation (README.md, LICENSE)
-- Current submission (phase1_v9_submission.zip)
+## Root Directory (Essential Files Only)
+The root now contains ONLY essential files - all scripts, logs, and docs moved to proper locations:
+
+**Configuration & Build:**
+- `requirements.txt`, `requirements-dev.txt` - Python dependencies
+- `pyproject.toml` - Project metadata
+- `setup.py` - Installation script
+- `Makefile` - Build automation
+
+**Documentation:**
+- `README.md` - Main project documentation
+- `LICENSE` - Project license
+- `DIRECTORY_INDEX.md` - This structure guide (you are here)
+- `PROJECT_ORGANIZATION_COMPLETE.md` - Cleanup report
+- `QUICK_REFERENCE.md` - Quick navigation guide
+
+**Current Submission:**
+- `phase1_v9_submission.zip` - Ready-to-submit package
 
 ## Active Directories
 
