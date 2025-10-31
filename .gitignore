@@ -104,8 +104,15 @@ wandb/**
 # Model checkpoints (large files)
 checkpoints/*.pth
 checkpoints/*.pt
+checkpoints/*.ppth
 *.pth
 *.pt
+*.ppth
+
+# C2 Phase 1 and Phase 2 checkpoints (training artifacts)
+checkpoints/c2_phase1_*.pt
+checkpoints/c2_phase2_*.pt
+train_c2_*.py.bak
 
 # Keep organized weights
 !weights/ensemble/*.pt
@@ -119,6 +126,9 @@ checkpoints/*.pt
 !*_final.pt
 !checkpoints/compact_ensemble/*_best.pth
 
+# Keep C2 Phase 1 best checkpoint (if successful)
+!checkpoints/c2_phase1_best.pt
+
 # Submission weights (keep these small ones)
 !submission_weights.pt
 
@@ -127,16 +137,24 @@ checkpoints/*.pt
 # ============================================================================
 # Zip files and packages (keep organized submissions)
 *.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
 !starter_kit_*.zip
 !submissions/**/*.zip
 submission_complete.zip
 submission_package/
 eeg2025_submission_*.zip
+*_submission.zip
+temp_submission/
 
 # Keep specific organized submissions
 !submissions/v9_ensemble/*.zip
 !submissions/v8_tcn/*.zip
 !submissions/v7_sam/*.zip
+!submissions/phase1_v*/*.zip
 
 # Archive folder - EVERYTHING (old experiments, logs, weights)
 archive/
@@ -243,6 +261,14 @@ logs/training_*.log
 logs/monitoring_*.log
 monitor_*.sh.log
 
+# C2 Training logs (overnight runs)
+logs/c2_phase1_*.log
+logs/c2_phase2_*.log
+logs/c2_*_cpu_*.log
+logs/c2_*_gpu_*.log
+logs/train_c2_*.log
+logs/training_c2_*.log
+
 # Script outputs
 status_*.txt
 progress_*.txt
@@ -298,6 +324,15 @@ SUBMISSION_*.md
 *_ORGANIZED.md
 *_UPDATE.md
 *_REFERENCE.md
+
+# C2 Training status documents (ephemeral)
+C2_TRAINING_STATUS.md
+C2_OVERNIGHT_STATUS.md
+C2_IMPROVEMENT_STRATEGY.md
+OVERNIGHT_PLAN.md
+ROOT_CAUSE_FOUND.md
+ENSEMBLE_FAILURE_ANALYSIS.md
+INVESTIGATION_AND_TTA_RESULTS.md
 WORKSPACE_*.md
 MEMORY_BANK_*.md
 ATTENTION_*.md
@@ -368,6 +403,13 @@ scripts/deprecated/**
 scripts/testing/**
 tests/old/**
 tests/deprecated/**
+
+# C2 Training scripts (generated, kept in root temporarily)
+train_c2_phase1.py
+train_c2_phase1_bids.py
+train_c2_phase2_ensemble.py
+morning_check_c2.sh
+test_c2_improved.py
 
 # Memory bank (AI assistant memory)
 memory-bank/**

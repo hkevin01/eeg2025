@@ -1405,3 +1405,66 @@ submission_sam_combined.zip
 **Expected Outcome:** Overall NRMSE 0.25-0.45 (60-75% improvement over baseline)
 
 ---
+
+## 🔑 CRITICAL: Data File Key Names (Updated Oct 30, 2025)
+
+**THIS HAS CAUSED ISSUES 4+ TIMES - ALWAYS CHECK FIRST!**
+
+### Challenge 1 Data Keys:
+```python
+# Challenge 1 uses:
+with h5py.File('data/cached/challenge1_RX_windows.h5', 'r') as f:
+    X = f['eeg'][:]      # NOT 'data'!
+    y = f['labels'][:]   # NOT 'targets'!
+```
+
+**Available files:**
+- `data/cached/challenge1_R1_windows.h5` (training)
+- `data/cached/challenge1_R2_windows.h5` (training)
+- `data/cached/challenge1_R3_windows.h5` (training)
+- `data/cached/challenge1_R4_windows.h5` (validation)
+
+**Shape**: (N, 129, 200) - 129 channels, 200 timepoints
+
+### Challenge 2 Data Keys:
+```python
+# Challenge 2 uses:
+with h5py.File('data/cached/challenge2_RX_windows.h5', 'r') as f:
+    X = f['data'][:]      # NOT 'eeg'!
+    y = f['targets'][:]   # NOT 'labels'! (but all -1, unlabeled test data)
+```
+
+**Available files:**
+- `data/cached/challenge2_R1_windows.h5` (11GB, test data, targets=-1)
+- `data/cached/challenge2_R2_windows.h5` (12GB, test data, targets=-1)
+
+**Shape**: (N, 129, 400) - 129 channels, 400 timepoints (longer!)
+
+**IMPORTANT**: C2 H5 files have NO LABELS (targets all -1). For C2 training, must use original EEG files with `eegdash` library to get p_factor labels.
+
+### Quick Verification Script:
+```python
+import h5py
+
+# Check C1
+with h5py.File('data/cached/challenge1_R1_windows.h5', 'r') as f:
+    print(f"C1 keys: {list(f.keys())}")  # ['eeg', 'labels', 'neuro_features', 'subject_ids']
+    print(f"C1 shape: {f['eeg'].shape}")  # (N, 129, 200)
+
+# Check C2
+with h5py.File('data/cached/challenge2_R1_windows.h5', 'r') as f:
+    print(f"C2 keys: {list(f.keys())}")  # ['data', 'p_factors', 'subjects', 'targets']
+    print(f"C2 shape: {f['data'].shape}")  # (N, 129, 400)
+```
+
+### Common Mistake Pattern:
+❌ **WRONG**: Assuming both use 'data' and 'targets'
+❌ **WRONG**: Assuming both use 'eeg' and 'labels'
+✅ **CORRECT**: Always check keys first with `list(f.keys())`
+
+### How to Remember:
+- **C1** = **'eeg'** (e for eeg, 1 for first letter)
+- **C2** = **'data'** (d for data, 2 for second letter)
+
+---
+
