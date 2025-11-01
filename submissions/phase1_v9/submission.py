@@ -90,11 +90,10 @@ class Submission:
             DEVICE (str or torch.device): 'cuda' or 'cpu'
         """
         self.sfreq = SFREQ
-        # Convert string to torch.device if needed
-        if isinstance(DEVICE, str):
-            self.device = torch.device(DEVICE)
-        else:
-            self.device = DEVICE
+        # FORCE CPU for stability - GPU causes memory errors on platform
+        # V9 submission failed twice with GPU memory violations
+        # CPU version works perfectly in all tests
+        self.device = torch.device('cpu')
         self.n_chans = 129
         self.n_times = 200  # 2 seconds at 100 Hz
         self.model_c1 = None

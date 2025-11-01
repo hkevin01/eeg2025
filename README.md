@@ -1,1120 +1,93 @@
-# 🧠 EEG 2025 NeurIPS Competition Solution
+# 🧠 NeurIPS 2025 EEG Foundation Challenge
 
-[![NeurIPS 2025](https://img.shields.io/badge/NeurIPS-2025-blue.svg)](https://eeg2025.github.io/)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-**Deep learning solution for EEG-based brain decoding challenges: response time prediction and behavioral factor assessment.**
-
-**Competition:** [NeurIPS 2025 EEG Foundation Challenge](https://eeg2025.github.io/)  
-**Deadline:** November 2, 2025  
-**Status:** Training In Progress 🔄 | Submission V6 Ready ✅
-
-> **🧪 Pre-Submission Verification**  
-> **Always run before submitting:** `python scripts/verify_submission.py <submission.zip>`  
-> This comprehensive 10-step verification suite catches issues before upload (API format, architecture mismatch, weight loading, predictions).  
-> See [Usage section](#-pre-submission-verification-critical) for details.
-
-> **⚙️ Hardware Setup**  
-> This project can train on both CPU and GPU. Current training uses CPU with optimized cached data (H5 format).
-> 
-> **Training Speed:**
-> - CPU: ~2-4 hours with cached H5 data (40,905 windows loaded in ~2 minutes)
-> - Raw BDF files: Much slower (~10+ hours) - use cached data instead!
-> 
-> **Cached Data:** Pre-processed EEG windows stored in `data/cached/` for fast training.  
-> See `docs/CACHED_DATA_INFO.md` for details on H5 structure and usage.
+**Competition:** [EEG Foundation Challenge](https://www.codabench.org/competitions/3350/)  
+**Team:** hkevin01  
+**Current Status:** V12 Ready for Upload  
+**Best Verified Score:** V10 - Overall 1.00052, Rank #72/150
 
 ---
 
-## 📋 Table of Contents
+## 📊 Competition Tasks
 
-- [Why This Project Exists](#-why-this-project-exists)
-- [Project Purpose](#-project-purpose)
-- [System Architecture](#-system-architecture)
-- [Technology Stack](#-technology-stack)
-- [Competition Overview](#-competition-overview)
-- [Current Status](#-current-status)
-- [Key Insights](#-key-insights)
-  - [Critical: Subject Leakage Problem](#5-subject-leakage-destroys-validation-reliability--new-discovery)
-- [Project Structure](#-project-structure)
-- [Models](#-models)
-- [Training](#-training)
-- [Monitoring](#-monitoring)
-- [Installation](#-installation)
-- [Usage](#-usage)
-  - [Pre-Submission Verification](#-pre-submission-verification-critical)
-- [Documentation](#-documentation)
-
----
-
-## 🎯 Why This Project Exists
-
-### The Challenge: Brain-Computer Interfaces
-
-Brain-computer interfaces (BCIs) and EEG-based brain decoding face critical challenges:
-
-```mermaid
-mindmap
-  root((EEG Challenges))
-    Signal Quality
-      Low SNR
-      Artifacts
-      Individual Variability
-    Computational
-      High Dimensionality
-      Long Sequences
-      Real-time Processing
-    Generalization
-      Cross-Subject
-      Cross-Task
-      Cross-Site
-    Clinical Application
-      Behavioral Prediction
-      Mental Health Assessment
-      Objective Biomarkers
-```
-
-### Our Solution: Foundation Models for EEG
-
-This project addresses these challenges through:
-
-1. **Cross-Task Transfer Learning** - Models that work across different cognitive tasks
-2. **Subject-Invariant Representations** - Features robust to individual differences
-3. **Efficient Architectures** - Lightweight models for real-world deployment
-4. **Clinical Applicability** - Predicting behavioral and mental health factors
-
----
-
-## 🚀 Project Purpose
-
-### What We're Building
-
-```mermaid
-graph TB
-    subgraph Input["🧠 EEG Input"]
-        A[129-Channel EEG<br/>100 Hz Sampling]
-        style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    end
-    
-    subgraph Processing["⚙️ Processing Pipeline"]
-        B[Preprocessing<br/>Bandpass Filter]
-        C[Window Extraction<br/>Task-Specific]
-        D[Feature Extraction<br/>Deep Learning]
-        style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style D fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    end
-    
-    subgraph Models["🤖 Neural Models"]
-        E1[Challenge 1<br/>TCN Model]
-        E2[Challenge 2<br/>EEGNeX Model]
-        style E1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style E2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    end
-    
-    subgraph Outputs["📊 Predictions"]
-        F1[Response Time<br/>Behavioral]
-        F2[Externalizing Factor<br/>Clinical]
-        style F1 fill:#065f46,stroke:#10b981,color:#fff
-        style F2 fill:#065f46,stroke:#10b981,color:#fff
-    end
-    
-    A --> B
-    B --> C
-    C --> D
-    D --> E1
-    D --> E2
-    E1 --> F1
-    E2 --> F2
-```
-
-### Why This Matters
-
-| Impact Area | Description | Benefit |
-|-------------|-------------|---------|
-| 🧬 **Neuroscience** | Foundation models for EEG analysis | Accelerate research with pretrained models |
-| 🏥 **Clinical** | Objective behavioral assessment | Early detection of mental health issues |
-| 🎮 **BCI Applications** | Real-time brain decoding | Enable next-gen brain-computer interfaces |
-| 📊 **Methodology** | Cross-task generalization | Models that work across different paradigms |
-| 🌍 **Accessibility** | Lightweight architectures | Deployable on standard hardware |
-
----
-
-## 🏗️ System Architecture
-
-### High-Level Data Flow
-
-```mermaid
-flowchart LR
-    subgraph Data["📁 Data Layer"]
-        D1[Raw EEG<br/>BIDS Format]
-        D2[HBN Dataset<br/>3000+ Subjects]
-        style D1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style D2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    end
-    
-    subgraph Prep["🔧 Preprocessing"]
-        P1[MNE Python<br/>Signal Processing]
-        P2[Bandpass Filter<br/>0.5-50 Hz]
-        P3[Window Creation<br/>Task-Specific]
-        style P1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style P2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style P3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    end
-    
-    subgraph Train["🎓 Training"]
-        T1[PyTorch<br/>Deep Learning]
-        T2[Custom Models<br/>TCN & EEGNeX]
-        T3[Optimization<br/>Adamax & Adam]
-        style T1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style T2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style T3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    end
-    
-    subgraph Monitor["📊 Monitoring"]
-        M1[Watchdog<br/>Crash Detection]
-        M2[Live Metrics<br/>Loss & Progress]
-        M3[Logs<br/>Debugging]
-        style M1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style M2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style M3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    end
-    
-    subgraph Output["🎯 Output"]
-        O1[Trained Models<br/>Checkpoints]
-        O2[Submission<br/>Competition]
-        style O1 fill:#065f46,stroke:#10b981,color:#fff
-        style O2 fill:#065f46,stroke:#10b981,color:#fff
-    end
-    
-    D1 --> D2
-    D2 --> P1
-    P1 --> P2
-    P2 --> P3
-    P3 --> T1
-    T1 --> T2
-    T2 --> T3
-    T3 --> M1
-    M1 --> M2
-    M2 --> M3
-    M3 --> O1
-    O1 --> O2
-```
-
-### Model Architecture Comparison
-
-```mermaid
-graph TB
-    subgraph Challenge1["Challenge 1: TCN Architecture"]
-        C1A[Input<br/>129×200 samples]
-        C1B[TemporalBlock 1<br/>Dilation=1]
-        C1C[TemporalBlock 2<br/>Dilation=2]
-        C1D[TemporalBlock 3<br/>Dilation=4]
-        C1E[TemporalBlock 4<br/>Dilation=8]
-        C1F[TemporalBlock 5<br/>Dilation=16]
-        C1G[Output<br/>Response Time]
-        
-        C1A --> C1B
-        C1B --> C1C
-        C1C --> C1D
-        C1D --> C1E
-        C1E --> C1F
-        C1F --> C1G
-        
-        style C1A fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C1B fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C1C fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C1D fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C1E fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C1F fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C1G fill:#065f46,stroke:#10b981,color:#fff
-    end
-    
-    subgraph Challenge2["Challenge 2: EEGNeX Architecture"]
-        C2A[Input<br/>129×200 samples]
-        C2B[Depthwise Conv<br/>Channel Features]
-        C2C[Pointwise Conv<br/>Feature Mixing]
-        C2D[Temporal Pool<br/>Aggregation]
-        C2E[Dense Layers<br/>Classification]
-        C2F[Output<br/>p_factor Score]
-        
-        C2A --> C2B
-        C2B --> C2C
-        C2C --> C2D
-        C2D --> C2E
-        C2E --> C2F
-        
-        style C2A fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C2B fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C2C fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C2D fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C2E fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        style C2F fill:#065f46,stroke:#10b981,color:#fff
-    end
-```
-
----
-
-## 💻 Technology Stack
-
-### Core Technologies & Why We Chose Them
-
-| Technology | Version | Purpose | Why Chosen |
-|------------|---------|---------|------------|
-| **Python** | 3.9+ | Primary language | Industry standard for ML/neuroscience |
-| **PyTorch** | 2.0+ | Deep learning framework | Dynamic graphs, excellent debugging, research-friendly |
-| **MNE-Python** | Latest | EEG processing | Gold standard for electrophysiology analysis |
-| **NumPy** | Latest | Numerical computing | Fast array operations, scientific computing base |
-| **Braindecode** | Latest | EEG-specific models | Pre-built architectures for EEG (EEGNeX) |
-| **MongoDB** | 7.0 | Experiment tracking database | Concurrent writes, rich queries, flexible schema |
-
-### Data Infrastructure
-
-#### MongoDB - Experiment Tracking Database
-
-**What it is:** A NoSQL database that stores all training experiments, metrics, and model checkpoints.
-
-**Why we added it:**
-
-| Problem (SQLite) | Solution (MongoDB) | Impact |
-|------------------|-------------------|---------|
-| ❌ Single-writer lock | ✅ Unlimited concurrent writes | Run multiple experiments simultaneously |
-| ❌ Local file only | ✅ Network accessible | Query experiments from any machine |
-| ❌ Basic SQL queries | ✅ Rich aggregation pipelines | Complex analytics and comparisons |
-| ❌ Fixed schema | ✅ Flexible document model | Add custom metrics without migrations |
-| ❌ No UI | ✅ Web-based Mongo Express | Visual data exploration |
-
-**What it does:**
-
-```mermaid
-graph TB
-    subgraph Training["🎯 Training Process"]
-        T1[Start Experiment]
-        T2[Epoch Loop]
-        T3[Save Checkpoint]
-        T4[Complete Training]
-    end
-    
-    subgraph MongoDB["🗄️ MongoDB Database"]
-        M1[(experiments<br/>Training runs)]
-        M2[(epochs<br/>Per-epoch metrics)]
-        M3[(checkpoints<br/>Model files)]
-    end
-    
-    subgraph Analysis["📊 Analysis & Monitoring"]
-        A1[Best Model Query]
-        A2[Training History]
-        A3[Experiment Comparison]
-        A4[Web UI Dashboard]
-    end
-    
-    T1 --> M1
-    T2 --> M2
-    T3 --> M3
-    T4 --> M1
-    
-    M1 --> A1
-    M2 --> A2
-    M3 --> A2
-    M1 --> A3
-    M2 --> A3
-    M1 --> A4
-    M2 --> A4
-    
-    style T1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style T2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style T3 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style T4 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style M1 fill:#7c2d12,stroke:#ea580c,color:#fff
-    style M2 fill:#7c2d12,stroke:#ea580c,color:#fff
-    style M3 fill:#7c2d12,stroke:#ea580c,color:#fff
-    style A1 fill:#065f46,stroke:#10b981,color:#fff
-    style A2 fill:#065f46,stroke:#10b981,color:#fff
-    style A3 fill:#065f46,stroke:#10b981,color:#fff
-    style A4 fill:#065f46,stroke:#10b981,color:#fff
-```
-
-**Database Schema:**
-
-```javascript
-// experiments collection - One document per training run
-{
-  _id: ObjectId("..."),
-  experiment_name: "eegnex_r1r2_20251020",
-  challenge: 2,
-  status: "completed",
+- **Challenge 1 (CCD):** Predict response time from EEG
+  - Input: 129 channels, 200 timepoints (100 Hz, 2 seconds)
+  - Output: Single response time per trial
   
-  model: {
-    name: "EEGNeX",
-    parameters: 2457821
-  },
-  
-  config: {
-    batch_size: 16,
-    learning_rate: 0.002,
-    optimizer: "Adamax"
-  },
-  
-  dataset: {
-    releases: ["R1", "R2"],
-    train_windows: 103724
-  },
-  
-  metrics: {
-    best_val_loss: 0.0452,
-    best_epoch: 15
-  },
-  
-  tags: ["baseline", "cpu"]
-}
+- **Challenge 2 (RSVP):** Predict externalizing factor from EEG
+  - Input: 129 channels, 200 timepoints (100 Hz, 2 seconds)
+  - Output: Single externalizing score per trial
 
-// epochs collection - Per-epoch training metrics
-{
-  experiment_id: ObjectId("..."),
-  epoch: 15,
-  metrics: {
-    train_loss: 0.0389,
-    val_loss: 0.0452,
-    learning_rate: 0.002
-  },
-  timing: {
-    duration_seconds: 3240.5
-  }
-}
-
-// checkpoints collection - Model checkpoint tracking
-{
-  experiment_id: ObjectId("..."),
-  epoch: 15,
-  is_best: true,
-  metrics: {val_loss: 0.0452},
-  file: {
-    path: "checkpoints/best_model.pt",
-    size_mb: 9.8
-  }
-}
-```
-
-**Usage Example:**
-
-```python
-from src.data.nosql_backend import MongoExperimentTracker
-
-# Start experiment
-tracker = MongoExperimentTracker()
-exp_id = tracker.create_experiment(
-    experiment_name="my_experiment",
-    challenge=2,
-    model={'name': 'EEGNeX'},
-    config={'batch_size': 16}
-)
-
-# Log epoch metrics
-for epoch in range(20):
-    train_loss, val_loss = train_epoch(...)
-    tracker.log_epoch(exp_id, epoch, {
-        'train_loss': train_loss,
-        'val_loss': val_loss
-    })
-
-# Query best models
-best_models = tracker.get_best_models(challenge=2, n=5)
-for model in best_models:
-    print(f"{model['experiment_name']}: {model['metrics']['best_val_loss']}")
-```
-
-**Improvements enabled by MongoDB:**
-
-1. **Concurrent Training**: Run multiple experiments simultaneously without database locks
-2. **Rich Queries**: Find best models, compare hyperparameters, analyze trends
-3. **Experiment Tracking**: Complete history of all training runs with searchable tags
-4. **Real-time Monitoring**: Web UI at http://localhost:8082 for live progress
-5. **Reproducibility**: Full configuration and environment captured per experiment
-6. **Scalability**: Ready for distributed training and cloud deployment
-
-**Access:**
-- **MongoDB**: `mongodb://localhost:27017/eeg2025`
-- **Web UI**: http://localhost:8082 (admin/pass123)
-- **Documentation**: `docs/DATABASE_DESIGN.md`
+- **Metric:** NRMSE (Normalized Root Mean Square Error, lower is better)
+- **Key Insight:** NRMSE normalized to 1.0 baseline (scores ≥ 1.0)
 
 ---
 
-### Architecture Components Explained
+## 🎯 Verified Results
 
-#### 1. Temporal Convolutional Network (TCN)
+### Submission History
+| Version | C1 Score | C2 Score | Overall | Rank | Status |
+|---------|----------|----------|---------|------|--------|
+| V9 | 1.00077 | 1.00870 | 1.00648 | #88 | ✅ Verified |
+| V10 | 1.00019 | 1.00066 | 1.00052 | #72 | ✅ Verified |
+| V11 | TBD | TBD | TBD | TBD | 📦 Ready |
+| V11.5 | TBD | TBD | TBD | TBD | 📦 Ready |
+| V12 | TBD | TBD | TBD | TBD | 📦 Ready |
 
-**What it is:** A CNN architecture designed for sequence modeling with causal convolutions.
-
-**Why we chose it:**
-- ✅ **Parallelizable**: Unlike RNNs, can process entire sequences at once
-- ✅ **Long-range dependencies**: Dilated convolutions capture long temporal patterns
-- ✅ **Stable training**: No vanishing gradient issues like RNNs
-- ✅ **Efficient**: Fixed-size filters reduce parameters vs. transformers
-
-**How it works:**
-```
-Dilation Pattern: [1, 2, 4, 8, 16]
-Receptive Field: 1 + 2×6×(1+2+4+8+16) = 373 time points
-Coverage: 3.73 seconds of EEG at 100 Hz
-```
-
-#### 2. EEGNeX Model
-
-**What it is:** A modern, efficient CNN architecture specifically designed for EEG.
-
-**Why we chose it:**
-- ✅ **Lightweight**: Small parameter count prevents overfitting
-- ✅ **Generalization-focused**: Designed for cross-subject robustness
-- ✅ **Proven**: From braindecode library with validated performance
-- ✅ **Efficient**: Depthwise separable convolutions reduce computation
-
-**Architecture pattern:**
-```
-Depthwise Conv → Pointwise Conv → Pooling → Dense
-(Channel-wise)   (Cross-channel)  (Temporal)  (Prediction)
-```
-
-#### 3. Preprocessing Pipeline (MNE-Python)
-
-**What it is:** Signal processing for raw EEG to clean, usable data.
-
-**Components:**
-
-| Step | Tool | Purpose | Parameters |
-|------|------|---------|------------|
-| **Filtering** | MNE Bandpass | Remove noise | 0.5-50 Hz (keeps neural signals) |
-| **Referencing** | MNE Rereference | Common reference | Cz electrode (center) |
-| **Windowing** | Custom | Extract epochs | Task-specific timing |
-| **Normalization** | NumPy | Standardize | Per-channel z-score |
-
-**Why this pipeline:**
-- 0.5 Hz highpass removes slow drifts
-- 50 Hz lowpass removes electrical noise (50 Hz in Europe)
-- Cz reference is standard in clinical EEG
-- Z-score normalization handles amplitude differences
-
-#### 4. Training Strategy
-
-**Challenge 1: Standard Supervised Learning**
-```mermaid
-graph LR
-    A[Training Data<br/>R1-R4] --> B[TCN Model]
-    B --> C[MSE Loss]
-    C --> D[Adam Optimizer]
-    D --> E[Validation<br/>R5]
-    
-    style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style C fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style D fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style E fill:#065f46,stroke:#10b981,color:#fff
-```
-
-**Challenge 2: Comprehensive Anti-Overfitting Strategy**
-```mermaid
-graph LR
-    A[Training Data<br/>327 Subjects] --> B[Data Augmentation<br/>3 Techniques]
-    B --> C[EEGNeX Model<br/>62K params]
-    C --> D[Strong Regularization<br/>Weight Decay + Dropout]
-    D --> E[Dual LR Schedulers<br/>Adaptive]
-    E --> F[Early Stopping<br/>Patience=15]
-    F --> G[Top-5 Ensemble<br/>Best Checkpoints]
-    
-    style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style C fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style D fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style E fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style F fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style G fill:#065f46,stroke:#10b981,color:#fff
-```
-
-**Anti-Overfitting Measures Implemented:**
-
-| Technique | Implementation | Purpose |
-|-----------|---------------|---------|
-| **Data Augmentation** | Random crop (4s→2s), Amplitude scaling (0.8-1.2x), Channel dropout (5%) | Increase diversity, prevent memorization |
-| **Weight Decay** | L2 regularization (1e-4) | Penalize large weights |
-| **Dropout** | 50% during training | Random feature removal |
-| **Gradient Clipping** | max_norm=1.0 | Prevent exploding gradients |
-| **Early Stopping** | patience=15, min_delta=0.001 | Stop before overfitting |
-| **LR Scheduling** | ReduceLROnPlateau + CosineAnnealing | Adaptive learning rate |
-| **Train/Val Monitoring** | Real-time gap tracking | Detect overfitting early |
-| **Ensemble Ready** | Save top-5 checkpoints | Combine multiple models |
-
-**Current Training Status:**
-- 🔄 **Challenge 1:** In progress using cached H5 data (PID 1847269)
-- ✅ **Data Loading:** Fast (~2 minutes for 40,905 windows)
-- 📊 **Model:** ImprovedEEGModel with EEGNeX + Attention (168K parameters)
-- 🎯 **Target:** Pearson correlation r ≥ 0.91
-- 💾 **Auto-save:** Best model saved to `checkpoints/c1_improved_best.pt`
-
-#### 5. Monitoring System (Watchdog)
-
-**What it is:** Automated system that monitors training 24/7.
-
-**Why we built it:**
-- ⏱️ **Long training times**: Epochs take 2-3 hours each
-- 💻 **Unattended running**: Training continues overnight
-- 🚨 **Early problem detection**: Catch crashes/freezes immediately
-- 📊 **Progress tracking**: Know when training will complete
-
-**How it works:**
-```mermaid
-stateDiagram-v2
-    [*] --> Monitoring
-    
-    Monitoring --> CheckProcess: Every 60s
-    CheckProcess --> ProcessAlive: Check if running
-    
-    ProcessAlive --> CheckLogs: Yes
-    ProcessAlive --> CrashAlert: No
-    
-    CheckLogs --> LogUpdated: New content?
-    LogUpdated --> MonitorMetrics: Yes
-    LogUpdated --> FreezeAlert: No (>5 min)
-    
-    MonitorMetrics --> CheckMemory
-    CheckMemory --> MemoryWarning: >90%
-    CheckMemory --> Monitoring: Normal
-    
-    MemoryWarning --> Monitoring
-    FreezeAlert --> Monitoring
-    CrashAlert --> [*]
-    
-    MonitorMetrics --> Success: Training complete
-    Success --> [*]
-```
-
-**Features:**
-- 🚨 Crash detection with error diagnosis
-- ❄️ Freeze detection (no updates for 5+ minutes)
-- 💾 Memory monitoring (warns at 90%)
-- ✅ Automatic completion detection
-- 🔊 Visual + audio alerts
+### Key Milestones
+- **V10 Achievement:** C1 only 1.9e-4 above baseline (1.00019)
+- **Challenge:** At this margin, variance reduction > architecture changes
+- **Strategy Shift:** Focus on ensemble + TTA + calibration
 
 ---
 
-## 📦 Complete Module Reference
+## 🚀 Ready for Upload
 
-### Core Dependencies
+### V12 - Full Variance Reduction Stack
+**Challenge 1: EnhancedCompactCNN**
+- 5-seed ensemble (Seeds: 42, 123, 456, 789, 1337)
+- Test-Time Augmentation: 3 time shifts (-2, 0, +2)
+- Linear calibration (a=0.988, b=0.027)
+- Total: 15 predictions per input (5 seeds × 3 TTA)
 
-| Module | Version | Purpose | Why This Module? | Key Functions Used |
-|--------|---------|---------|------------------|-------------------|
-| **torch** | 2.0+ | Deep learning framework | Industry standard, CUDA support, dynamic graphs | `nn.Module`, `optim.Adam`, `DataLoader` |
-| **mne** | Latest | EEG data processing | Gold standard in neuroscience, BIDS support | `io.read_raw_fif`, `filter`, `set_eeg_reference` |
-| **numpy** | Latest | Numerical operations | Fast arrays, scientific computing foundation | `array`, `mean`, `std`, `random` |
-| **braindecode** | Latest | EEG neural networks | Pre-built EEG architectures, validated models | `EEGNeX`, `EEGClassifier` |
-| **scipy** | Latest | Signal processing | Advanced filtering, statistical functions | `signal.butter`, `stats` |
-| **pandas** | Latest | Data manipulation | CSV/tabular data handling, metadata | `DataFrame`, `read_csv`, `merge` |
-| **scikit-learn** | Latest | ML utilities | Train/test splitting, metrics | `train_test_split`, `mean_absolute_error` |
+**Challenge 2: EEGNeX**
+- 2-seed ensemble (Seeds: 42, 123)
+- EMA weights (decay 0.999)
 
-### Model Architecture Modules
-
-| Module | Purpose | Used In | Design Choice |
-|--------|---------|---------|---------------|
-| **torch.nn.Conv1d** | Temporal convolution | TCN, EEGNeX | Efficient 1D sequence processing |
-| **torch.nn.BatchNorm1d** | Normalize activations | TCN | Stabilizes training, faster convergence |
-| **torch.nn.Dropout** | Regularization | TCN | Prevents overfitting (p=0.3) |
-| **torch.nn.AdaptiveAvgPool1d** | Adaptive pooling | Both models | Handles variable-length inputs |
-| **torch.nn.Linear** | Fully connected | Both models | Final regression layer |
-
-### Data Processing Modules
-
-| Module | Purpose | Implementation | Rationale |
-|--------|---------|----------------|-----------|
-| **mne.io.read_raw_fif** | Load BIDS EEG | Data loading | HBN dataset format |
-| **mne.filter.filter_data** | Bandpass filtering | Preprocessing | 0.5-50 Hz removes artifacts |
-| **mne.set_eeg_reference** | Re-referencing | Preprocessing | Cz reference for consistency |
-| **torch.utils.data.Dataset** | Custom dataset | DataLoader | Efficient batch loading |
-| **torch.utils.data.DataLoader** | Batch iteration | Training loop | Parallel loading, shuffling |
-
-### Training Utilities
-
-| Module | Purpose | Configuration | Why This Choice? |
-|--------|---------|--------------|------------------|
-| **torch.optim.Adam** | Optimizer (Challenge 1) | lr=0.001, betas=(0.9,0.999) | Adaptive learning, fast convergence |
-| **torch.optim.Adamax** | Optimizer (Challenge 2) | lr=0.002 | Variant of Adam, more stable |
-| **torch.nn.MSELoss** | Loss (Challenge 1) | reduction='mean' | Standard for regression, differentiable |
-| **torch.nn.L1Loss** | Loss (Challenge 2) | reduction='mean' | Robust to outliers in clinical data |
-| **EarlyStopping** | Prevent overfitting | patience=5 | Stops when validation stops improving |
-
-### Monitoring & Logging
-
-| Tool | Purpose | Implementation | Features |
-|------|---------|----------------|----------|
-| **Custom Watchdog** | Training monitor | Bash script | Crash/freeze detection, alerts |
-| **Python logging** | Event logging | Standard library | Timestamped training logs |
-| **tqdm** | Progress bars | Optional | Visual progress in notebooks |
+**Files:**
+- `submissions/phase1_v12.zip` (6.1 MB) ✅ Verified
+- `submissions/phase1_v11.5.zip` (6.1 MB) ✅ Verified  
+- `submissions/phase1_v11.zip` (1.7 MB) ✅ Verified
 
 ---
 
-## ✅ What Worked vs ❌ What Didn't Work
-
-### ✅ What Worked (Kept in Final Solution)
-
-#### Architecture Decisions
-
-| Decision | Challenge | Why It Worked |
-|----------|-----------|---------------|
-| **TCN with Dilated Convolutions** | 1 | Multi-scale temporal features captured both fast ERPs and slow dynamics |
-| **Small Model (EEGNeX)** | 2 | Prevented overfitting on training subjects, better generalization |
-| **Batch Normalization** | 1 | Stabilized training, allowed higher learning rates |
-| **Residual Connections** | 1 | Helped gradient flow in deep TCN |
-
-#### Training Strategies
-
-| Strategy | Challenge | Impact |
-|----------|-----------|--------|
-| **Random Cropping (4s→2s)** | 2 | Effective data augmentation, doubled training samples |
-| **L1 Loss** | 2 | More robust to outliers in clinical p_factor data |
-| **Early Stopping (patience=5)** | 2 | Prevented overfitting, saved training time |
-| **Adamax Optimizer** | 2 | More stable than Adam for this task |
-| **MSE Loss** | 1 | Standard choice worked well for response time |
-
-#### Data Processing
-
-| Approach | Both | Result |
-|----------|------|--------|
-| **0.5-50 Hz Bandpass** | ✅ | Removed low-freq drift and high-freq noise effectively |
-| **Cz Reference** | ✅ | Consistent reference across all subjects |
-| **Stimulus-Locked Windows** | 1 | Aligned ERPs correctly for response time prediction |
-| **Per-Channel Normalization** | ✅ | Handled channel amplitude differences |
-
-#### Monitoring Solutions
-
-| Tool | Purpose | Success |
-|------|---------|---------|
-| **Watchdog System** | Automated monitoring | Caught 2 training freezes, 100% uptime detection |
-| **Progress Logging** | Track training | Clear visibility into epoch/batch progress |
-| **Verbose Testing** | Submission validation | Caught dimension mismatches before submission |
-
-### ❌ What Didn't Work (Abandoned Approaches)
-
-#### Failed Architecture Attempts
-
-| Approach | Challenge | Why It Failed | Lesson Learned |
-|----------|-----------|---------------|----------------|
-| **Large Transformer** | 2 | Overfitted heavily, poor validation | Transformers need massive data or heavy regularization |
-| **Deep LSTM (4+ layers)** | 1 | Gradient vanishing, slow training | TCNs are more stable for long sequences |
-| **Plain CNN (no dilation)** | 1 | Limited receptive field, missed long-range patterns | Dilated convs essential for EEG temporal structure |
-| **Very Deep Models (10+ layers)** | 2 | Severe overfitting on training subjects | Depth helps less than architecture design for small datasets |
-
-#### Failed Training Strategies
-
-| Strategy | Challenge | Issue | Fix Applied |
-|----------|-----------|-------|-------------|
-| **MSE Loss** | 2 | Sensitive to outliers in p_factor | Switched to L1 (MAE) |
-| **High Learning Rate (0.01)** | Both | Training instability, divergence | Lowered to 0.001-0.002 |
-| **No Data Augmentation** | 2 | Quick overfitting | Added random cropping |
-| **Long Training (50+ epochs)** | 2 | Overfitting after epoch 10 | Early stopping at patience=5 |
-| **Adam without weight decay** | 2 | Slight overfitting | Considered Adamax variant |
-
-#### Failed Data Approaches
-
-| Approach | Challenge | Problem | Solution |
-|----------|-----------|---------|----------|
-| **Using Resting Task** | 2 | Wrong task! Competition requires contrastChangeDetection | Read instructions more carefully |
-| **No Normalization** | Both | Poor convergence, scale issues | Added per-channel z-score |
-| **Fixed 2s Windows** | 2 | No data diversity | Random cropping from 4s |
-| **All Data in Memory** | Both | RAM overflow (3000+ subjects) | On-demand loading with DataLoader |
-
-#### Failed Preprocessing
-
-| Technique | Issue | Why Abandoned |
-|-----------|-------|---------------|
-| **ICA Artifact Removal** | Too slow (hours per subject) | Not feasible for 3000+ subjects |
-| **Notch Filter (50/60 Hz)** | Removed useful information | Bandpass already handles line noise |
-| **Surface Laplacian** | Degraded signal quality | Standard referencing sufficient |
-| **Aggressive Smoothing** | Blurred important high-freq features | Lost ERP temporal precision |
-
-### 🎓 Key Lessons Learned
-
-#### Challenge 1 Insights
-1. ✅ **Stimulus-locked windows are critical** - Proper alignment is everything
-2. ✅ **Multi-scale features matter** - Both fast and slow dynamics contribute
-3. ❌ **Don't overcomplicate** - TCN outperformed complex transformers
-4. ✅ **Regularization helps** - Dropout=0.3 was optimal sweet spot
-
-#### Challenge 2 Insights
-1. ✅ **Smaller is better for generalization** - Large models memorize subjects
-2. ✅ **Data augmentation is essential** - Random cropping doubled effective data
-3. ❌ **Wrong task = disaster** - Using resting task initially wasted days
-4. ✅ **L1 > MSE for clinical data** - Outliers exist in p_factor
-5. ✅ **Early stopping saves time** - Model peaks around epoch 5-8
-
-#### General Insights
-1. 🐕 **Monitoring is not optional** - Watchdog caught multiple issues
-2. 📊 **Log everything** - Debugging impossible without good logs
-3. 🧪 **Test early and often** - Submission validation caught many bugs
-4. 📚 **Read competition docs carefully** - Avoided costly mistakes
-5. ⚡ **Start simple, then optimize** - Complex models failed, simple ones worked
-
----
-
-## 🎯 Competition Overview
-
-### Challenge Comparison
-
-```mermaid
-flowchart LR
-    subgraph C1["Challenge 1: Response Time Prediction"]
-        style C1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C1Input["129-ch EEG<br/>2s windows<br/>Stimulus-locked"]
-        style C1Input fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C1Model["TCN Model<br/>196K params<br/>Multi-scale"]
-        style C1Model fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C1Output["RT Prediction<br/>NRMSE metric<br/>30% weight"]
-        style C1Output fill:#065f46,stroke:#10b981,color:#fff
-        C1Input --> C1Model --> C1Output
-    end
-    
-    subgraph C2["Challenge 2: Externalizing Factor"]
-        style C2 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C2Input["129-ch EEG<br/>4s → 2s crop<br/>Random windows"]
-        style C2Input fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C2Model["EEGNeX Model<br/>Small size<br/>Robust"]
-        style C2Model fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C2Output["p_factor Prediction<br/>L1 metric<br/>70% weight"]
-        style C2Output fill:#065f46,stroke:#10b981,color:#fff
-        C2Input --> C2Model --> C2Output
-    end
-```
-
-### Challenges
-
-**Challenge 1: Cross-Task Transfer Learning**
-- **Goal:** Predict response time from EEG during contrastChangeDetection task
-- **Input:** 129-channel EEG, 2-second stimulus-locked windows
-- **Target:** Response time (RT) in seconds
-- **Metric:** NRMSE (Normalized Root Mean Square Error)
-- **Weight:** 30% of final score
-- **Key Insight:** Temporal dynamics of task-evoked responses
-
-**Challenge 2: Subject-Invariant Representation**
-- **Goal:** Predict externalizing factor (p_factor) from EEG
-- **Input:** 129-channel EEG, 4-second windows with 2-second random crops
-- **Target:** Clinical externalizing measure from CBCL
-- **Metric:** L1 loss (Mean Absolute Error)
-- **Weight:** 70% of final score
-- **Emphasis:** Cross-subject generalization, avoid overfitting
-- **Key Insight:** Robust features that generalize across individuals
-
-### Dataset Pipeline
-
-```mermaid
-flowchart TB
-    subgraph Data["HBN-EEG Dataset"]
-        style Data fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Participants["3000+ Children<br/>Age 5-21 years"]
-        style Participants fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Recording["129 Channels<br/>100 Hz sampling"]
-        style Recording fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Tasks["6 Tasks<br/>Focus: contrastChangeDetection"]
-        style Tasks fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Participants --> Recording --> Tasks
-    end
-    
-    subgraph Splits["Data Splits"]
-        style Splits fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        R1["R1-R4<br/>Training"]
-        style R1 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        R5["R5<br/>Validation"]
-        style R5 fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Hidden["Hidden<br/>Test Set"]
-        style Hidden fill:#7c2d12,stroke:#ea580c,color:#fff
-    end
-    
-    subgraph Prep["Preprocessing"]
-        style Prep fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Filter["0.5-50 Hz<br/>Bandpass"]
-        style Filter fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Ref["Cz Reference<br/>Re-reference"]
-        style Ref fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Format["BIDS Format<br/>MNE Raw"]
-        style Format fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Filter --> Ref --> Format
-    end
-    
-    Data --> Splits
-    Splits --> Prep
-    Prep --> Models["Models"]
-    style Models fill:#065f46,stroke:#10b981,color:#fff
-```
-
-**Healthy Brain Network (HBN) EEG Dataset**
-- **Participants:** 3,000+ children and adolescents (ages 5-21)
-- **Channels:** 129 EEG channels (high-density net)
-- **Sampling Rate:** 100 Hz
-- **Preprocessing:** 0.5-50 Hz bandpass filter, Cz reference
-- **Format:** BIDS-compliant, MNE Raw objects
-- **Tasks:** 6 cognitive tasks (focus on contrastChangeDetection)
-- **Releases:** R1-R5 for training/validation, hidden test set for evaluation
-
-| Release | Purpose | Subjects | Usage |
-|---------|---------|----------|-------|
-| R1-R4 | Training | ~2400 | Model training |
-| R5 | Validation | ~600 | Early stopping, hyperparameter tuning |
-| Hidden | Testing | Unknown | Final evaluation (competition organizers) |
-
----
-
-## 📊 Current Status
-
-**Latest Submission: all_rsets_v1 (October 28, 2025)**
-- **Package:** `submission_all_rsets_v1.zip` (957 KB, ready to upload)
-- **Status:** ✅ Trained and packaged, awaiting test results
-- **Training:** ALL R-sets (R1+R2+R3+R4, 41,071 samples) with random 90/10 split
-- **Model:** CompactCNN (75K params)
-- **Validation NRMSE:** 0.9954 (⚠️ may not predict test - see validation issue below)
-
-### 🚨 Critical Discovery: Validation Reliability Problem (October 28-29, 2025)
-
-**Problem Identified:** Random train/val splits cause **subject leakage**
-- Same subject appears in BOTH training and validation sets
-- Model memorizes subject-specific patterns instead of generalizing
-- **Result:** Validation metrics DO NOT correlate with test performance
-
-**Evidence:**
-```
-Submission         Val NRMSE    Test C1    Correlation
-─────────────────────────────────────────────────────
-R4-only training   0.1607    →  1.0020    ❌ None
-R1-R3 cross-train  0.1625    →  1.1398    ❌ Negative!
-Untrained model    N/A       →  1.0015    ✅ BEST!
-```
-
-**Key Insight:** Lower validation ≠ better test! Subject leakage makes validation meaningless.
-
-**Solution Designed:** Subject-aware validation
-- Split by subject ID, not by samples
-- Zero subject overlap between train/val sets
-- Validation becomes predictive of test performance
-- See `VALIDATION_PROBLEM_ANALYSIS.md` for full technical details
-
-**Implementation Ready:**
-- ✅ Root cause analysis complete (13KB documentation)
-- ✅ Solution designed and documented
-- ✅ Re-caching script ready: `scripts/preprocessing/cache_challenge1_with_subjects.py`
-- ⏳ Awaiting test results from `all_rsets_v1` to decide next steps
-
-**Next Steps:**
-1. Upload `all_rsets_v1` and check test C1 score
-2. If C1 > 1.0: Implement subject-aware validation (3-4 hours)
-3. Re-train with proper subject splits
-4. Target: C1 < 0.93 for top 3 placement
-
-### 💥 CRITICAL FAILURE: Combined Best v1 (October 29, 2025)
-
-**Submission Result:** ❌ DISASTER - Score increased to 1.1313
-
-**Score Breakdown:**
-```json
-{
-  "overall": 1.1313,   (+12.5% worse than baseline)
-  "challenge1": 1.4175,  (+41.6% WORSE - hypothesis rejected!)
-  "challenge2": 1.0087   (maintained as expected)
-}
-```
-
-**What We Tried:**
-- Hypothesis: Test set is uniform mixture of all R-sets (R1-R4)
-- Strategy: Train CompactCNN on ALL 41,071 samples
-- Validation NRMSE: 0.9954 (looked excellent!)
-- Expected: Better than 1.0015 baseline
-
-**What Actually Happened:**
-- ❌ Test C1 score WORSE by 41.6% (1.0015 → 1.4175)
-- ❌ Validation metric 0.9954 was completely misleading
-- ❌ Hypothesis REJECTED: Test is NOT uniform R1-R4 mixture
-- ✅ Original cross-validation (R1-R3/R4) was actually BETTER
-
-**Critical Learnings:**
-1. **Validation metrics are unreliable** - NO correlation with test scores
-2. **Subject leakage confirmed** - Val 0.9954 → Test 1.4175 disconnect
-3. **More data ≠ better** - 41K samples performed worse than 30K samples  
-4. **Test distribution unknown** - Cross-validation matched it better
-5. **Must fix validation FIRST** - Can't optimize what we can't measure
-
-**Status:** Baseline (1.0015) remains our best score. See `docs/validation/SUBMISSION_FAILURE_ANALYSIS_OCT29.md` for complete post-mortem.
-
-### 🏆 Competition Context (October 28, 2025)
-
-**Leaderboard Analysis (Top 4):**
-```
-Rank  Team             Overall    C1 Score   C2 Score   Gap to Us
-─────────────────────────────────────────────────────────────────
-1st   MBZUAI           0.9388     0.91865    1.00003    -8.0% (C1)
-2nd   bluewater        0.9426     0.92215    1.00145    -7.7% (C1)  
-3rd   CyberBobBeta     0.9468     0.9273     1.00576    -7.4% (C1)
-4th   Us (quick_fix)   1.0065     1.0015     1.0087     baseline
-```
-
-**Key Findings:**
-- Challenge 1 IS trainable (top teams: 0.918-0.927 vs our 1.0015)
-- We're 8-9% behind on C1 (need to close ~0.08 NRMSE gap)
-- Challenge 2 already competitive (1.0087 vs 1.00003-1.00576)
-- Overall gap to top 3: ~3% (achievable with better C1!)
-- Current baseline: `quick_fix` submission (untrained model)
-
-**Target:** Top 3 placement requires C1 < 0.93
-
-### Recent Work (October 26-29, 2025)
-
-#### Validation Analysis (October 28-29)
-**Discovered:**
-- Random splits cause subject leakage → unreliable validation
-- Previous training attempts made C1 worse (1.0015 → 1.1398)
-- Untrained model performs better than some trained models!
-
-**Created Documentation:**
-- `VALIDATION_PROBLEM_ANALYSIS.md` - Complete technical analysis
-- `VALIDATION_ACTION_PLAN.md` - Step-by-step implementation plan
-- `VALIDATION_STRATEGY_SUMMARY.md` - Quick reference guide
-- `TODO_VALIDATION_IMPROVEMENT.md` - Detailed action checklist
-
-#### Training Experiments (October 28)
-**all_rsets_v1:**
-- Trained on ALL R-sets (41,071 samples) with random 90/10 split
-- Hypothesis: Test set is random mixture of R1-R4 (not R4-only)
-- CompactCNN, AdamW optimizer, early stopping at epoch 25/30
-- Val NRMSE: 0.9954 (but may not predict test due to subject leakage)
-- Submission ready, awaiting competition evaluation
-
-#### Submission Debugging & Fixes (October 29, 2025)
-
-**🔥 ROOT CAUSE FOUND - V1-V4 Failures:**
-- ❌ Used `__call__(X, challenge)` method (competition doesn't call this!)
-- ❌ Competition expects `challenge_1(X)` and `challenge_2(X)` methods WITH underscores
-- ❌ Our methods were never invoked → empty predictions → 0-byte scoring files
-- ❌ No error messages, just silent failure
-
-**Submission History:**
-- **V1 (Oct 29):** ❌ Failed - Checkpoint dict format (fixed, but API still wrong)
-- **V2 (Oct 29):** ❌ Failed - Architecture mismatch kernel sizes (fixed, but API still wrong)
-- **V3 (Oct 29):** ❌ Failed (0 bytes) - Device handling string vs object (fixed, but API still wrong)
-- **V4 (Oct 29):** ❌ Failed (0 bytes) - Better error handling (fixed, but API STILL wrong)
-- **V5 (Oct 29):** ✅ **API FIXED** - Replaced `__call__()` with `challenge_1()` and `challenge_2()`
-
-**V5 Solution - Correct Competition API:**
-```python
-class Submission:
-    def __init__(self, SFREQ, DEVICE):
-        """Competition passes SFREQ (int) and DEVICE (str)"""
-        self.device = torch.device(DEVICE) if isinstance(DEVICE, str) else DEVICE
-        self.sfreq = SFREQ
-        self.n_times = int(2 * SFREQ)  # 200 timepoints for SFREQ=100
-    
-    def get_model_challenge_1(self):
-        """Return Challenge 1 model"""
-        return self.model_c1
-    
-    def get_model_challenge_2(self):
-        """Return Challenge 2 model"""
-        return self.model_c2
-    
-    def challenge_1(self, X):
-        """Competition calls THIS for Challenge 1
-        Args: X (torch.Tensor) - shape [batch, channels, timepoints]
-        Returns: torch.Tensor - shape [batch,]
-        """
-        model = self.get_model_challenge_1()
-        X = X.to(self.device)
-        with torch.no_grad():
-            predictions = model(X).squeeze(-1)
-        return predictions
-    
-    def challenge_2(self, X):
-        """Competition calls THIS for Challenge 2
-        Args: X (torch.Tensor) - shape [batch, channels, timepoints]
-        Returns: torch.Tensor - shape [batch,]
-        """
-        model = self.get_model_challenge_2()
-        X = X.to(self.device)
-        with torch.no_grad():
-            predictions = model(X).squeeze(-1)
-        return predictions
-```
-
-**V5 Status (Oct 29, 2025):**
-- ✅ **Correct API:** `challenge_1(X)` and `challenge_2(X)` WITH underscores
-- ✅ **Correct I/O:** Input torch.Tensor, output torch.Tensor
-- ✅ Device handling fixed (string → torch.device conversion)
-- ✅ Architecture matches trained weights (kernel_size=5 all layers)
-- ✅ Checkpoint loading fixed (handles dict format)
-- ✅ Numpy import added
-- ✅ Local tests pass for Challenge 1
-- ✅ Ready to submit: `submissions/phase1_v5/submission_c1_all_rsets_v5.zip`
-
-#### Training Progress
-**Challenge 1:**
-- 🔄 **Status:** Training in progress (PID 1847269, started 09:44 AM)
-- 📊 **Model:** ImprovedEEGModel with EEGNeX + Channel Attention (168K params)
-- 💾 **Data:** Using cached H5 files (40,905 windows, loads in ~2 min)
-- 🎯 **Target:** Pearson correlation r ≥ 0.91
-- 📁 **Auto-save:** Best model → `checkpoints/c1_improved_best.pt`
-
-**Challenge 2:**
-- ⏳ Not started yet (waiting for Challenge 1 to complete)
-
-#### Repository Organization
-**Completed Cleanup (October 26, 2025):**
-- ✅ Moved 40+ files from root to organized subdirectories
-- ✅ Root reduced to 10 essential files (78% cleaner)
-- ✅ Created `DIRECTORY_INDEX.md` for easy navigation
-- ✅ All .sh scripts organized in `scripts/` subdirectories
-- ✅ Documentation updated and organized in `docs/`
-
-See `docs/status/CLEANUP_COMPLETE_OCT26.md` for full cleanup report.
-
-### Key Technical Achievements
-
-#### 1. Cached Data Pipeline ✅
-- **What:** Pre-processed EEG windows stored in H5 format
-- **Why:** 500x faster loading than raw BDF files
-- **Speed:** ~2 minutes to load 40,905 windows (vs hours for raw files)
-- **Location:** `data/cached/challenge1_*.h5`
-- **Structure:** Keys are 'eeg' and 'labels' (NOT 'segments'/'response_times')
-- **Details:** See `docs/CACHED_DATA_INFO.md`
-
-#### 2. Submission Architecture ✅
-- **Model:** EEGNeX from braindecode (battle-tested implementation)
-- **No Fallbacks:** Direct imports with clear error handling
-- **Weight Loading:** Handles checkpoint dict format with PyTorch 2.6+ compatibility
-- **Validation:** All tests pass locally before submission
-
-#### 3. Repository Organization ✅
-- **Clean Root:** Only essential files in root directory
-- **Categorized Files:** docs/, submissions/, scripts/, tests/
-- **Navigation:** Complete index in `DIRECTORY_INDEX.md`
-- **Maintainable:** Clear structure prevents future clutter
-
-### Training Methods
-
-**Current Approach:**
-- **Hardware:** CPU training with cached H5 data
-- **Speed:** ~2-4 hours for full training (vs 10+ hours with raw BDF)
-- **Data Loading:** Fast H5 format loads 40,905 windows in ~2 minutes
-- **Model:** EEGNeX backbone + Channel Attention + Frequency features
-- **Optimization:** AdamW optimizer with learning rate scheduling
-
-**Why Cached Data:**
-- Raw BDF files take hours to load and process
-- H5 caching provides 500x speedup
-- Same quality, much faster iteration
-- Enables rapid experimentation
-
-### Next Steps
-
-1. ⏳ **Wait for C1 training to complete** (~2-4 hours remaining)
-2. 📊 **Evaluate C1 results** - Check if Pearson r ≥ 0.91
-3. 🚀 **Upload submission v5** to Codabench if results are good
-4. 🔄 **Start C2 training** after C1 completes
-5. 📦 **Create v6 submission** if training improves weights
-
-**Competition Deadline:** November 2, 2025
+## 💡 Key Lessons Learned
+
+### 1. The 1.9e-4 Problem
+- V10 C1 at 1.00019 = only 1.9e-4 above baseline
+- At tiny margins: variance reduction > architecture changes
+- Focus shifted from model exploration to variance reduction
+
+### 2. Measured Improvements
+- **5-seed ensemble:** CV 0.62% (excellent consistency)
+- **Linear calibration:** 7.9e-5 improvement on validation (measured!)
+- **TTA:** 3 circular time shifts, no bias introduction
+
+### 3. Training Efficiency
+- C1 5-seed training: 11.2 minutes (not expected 41 hours!)
+- Compact model + HDF5 pipeline = fast iteration
+- Lesson: Profile before optimizing assumptions
+
+### 4. Competition Format
+Pre-verification caught critical issues:
+- Numpy input/output (not torch tensors)
+- Constructor: `__init__(SFREQ, DEVICE)`
+- Output shapes: `(batch,)` for both challenges
+- Proper type conversions
+
+### 5. Power Outage Recovery
+- Training interrupted at 88% completion
+- Used best 2 of 3 checkpoints (Seeds 42, 123)
+- Result: 2 quality seeds > 3 mediocre seeds
 
 ---
 
@@ -1122,1066 +95,186 @@ See `docs/status/CLEANUP_COMPLETE_OCT26.md` for full cleanup report.
 
 ```
 eeg2025/
-├── README.md                          # This file
-├── submission.py                      # Competition submission file
-├── test_submission_verbose.py         # Submission validator
+├── submissions/
+│   ├── phase1_v12.zip          # V12: Full variance reduction ⭐
+│   ├── phase1_v11.5.zip        # V11.5: 5-seed C1 test
+│   ├── phase1_v11.zip          # V11: Safe C2 improvement
+│   ├── phase1_v10/             # V10: Best verified (Rank #72)
+│   └── phase1_v9/              # V9: Baseline (Rank #88)
 │
-├── 📄 Active Documentation
-│   ├── CHALLENGE2_TRAINING_STATUS.md  # Training configuration & status
-│   ├── WATCHDOG_QUICK_REFERENCE.md    # Monitoring system guide
-│   └── ORGANIZATION_COMPLETE.md       # Project organization summary
+├── checkpoints/
+│   ├── c1_phase1_seed*.pt      # 5 C1 models
+│   ├── c2_phase2_seed*.pt      # 2 C2 models
+│   └── c1_calibration_params.json
 │
-├── 🔧 Active Scripts
-│   ├── train_challenge2_correct.py    # Challenge 2 training (running)
-│   ├── watchdog_challenge2.sh         # Crash/freeze monitor (running)
-│   ├── manage_watchdog.sh             # Watchdog control interface
-│   ├── monitor_challenge2.sh          # Full training monitor
-│   └── quick_training_status.sh       # Quick progress check
+├── scripts/
+│   ├── prepare_c1_data.py      # Data preparation
+│   ├── train_c1_phase1_aggressive.py  # 5-seed training
+│   ├── c1_calibration.py       # Calibration fitting
+│   └── training/               # Training scripts archive
 │
-├── 📁 scripts/                        # Organized scripts
-│   ├── README.md                      # Scripts documentation
-│   ├── monitoring/                    # Monitoring scripts
-│   │   ├── watchdog_challenge2.sh
-│   │   ├── manage_watchdog.sh
-│   │   ├── monitor_challenge2.sh
-│   │   └── quick_training_status.sh
-│   └── training/                      # Training scripts
-│       └── train_challenge2_correct.py
+├── data/
+│   └── processed/
+│       └── challenge1_data.h5  # 7,461 CCD segments (679 MB)
 │
-├── 📁 src/                            # Source code
-│   ├── models/                        # Model architectures
-│   ├── data/                          # Data loading utilities
-│   └── utils/                         # Helper functions
+├── docs/
+│   ├── C1_VARIANCE_REDUCTION_PLAN.md
+│   ├── V12_VERIFICATION_REPORT.md
+│   ├── VARIANCE_REDUCTION_COMPLETE.md
+│   ├── SESSION_SUMMARY_NOV1.md
+│   ├── archive/                # Historical docs
+│   ├── status-reports/         # Status reports
+│   └── strategies/             # Strategy documents
 │
-├── 📁 checkpoints/                    # Model checkpoints
-│   ├── challenge1_tcn_competition_best.pth  # Challenge 1 best model
-│   └── challenge2_*.pth               # Challenge 2 checkpoints
-│
-├── 📁 weights_*.pt                    # Submission weights
-│   ├── weights_challenge_1.pt         # Challenge 1 (ready)
-│   └── weights_challenge_2.pt         # Challenge 2 (will update)
-│
-├── 📁 logs/                           # Training logs
-│   ├── challenge2_correct_training.log
-│   ├── watchdog.log
-│   └── watchdog_output.log
-│
-├── 📁 archive/                        # Historical files
-│   ├── README.md                      # Archive documentation
-│   ├── scripts/                       # Old scripts
-│   │   ├── monitoring/
-│   │   ├── training/
-│   │   └── testing/
-│   └── docs/                          # Old documentation
-│       ├── status_reports/
-│       ├── sessions/
-│       ├── overnight/
-│       └── submission/
-│
-├── 📁 .github/instructions/           # Competition knowledge
-│   └── memory.instruction.md          # Comprehensive competition reference
-│
-├── 📁 config/                         # Configuration files
-├── 📁 data/                           # Dataset (not in repo)
-├── 📁 starter_kit_integration/        # Official starter kit code
-└── 📁 notebooks/                      # Jupyter notebooks
+└── README.md                   # This file
 ```
 
 ---
 
-## 🤖 Models
+## 🔬 Technical Details
 
-### Model Comparison Table
-
-| Feature | Challenge 1: TCN | Challenge 2: EEGNeX |
-|---------|------------------|---------------------|
-| **Architecture** | Temporal Convolutional Network | Lightweight CNN (braindecode) |
-| **Parameters** | 196,225 | ~50,000 (estimated) |
-| **Input Size** | 129 channels × 200 timepoints (2s) | 129 channels × 200 timepoints (2s) |
-| **Key Feature** | Dilated convolutions [1,2,4,8,16] | Depthwise separable convolutions |
-| **Receptive Field** | 373 timepoints (3.73s) | Adaptive to input |
-| **Design Goal** | Multi-scale temporal features | Generalization & robustness |
-| **Regularization** | Dropout (0.3), BatchNorm | Small size, L1 loss |
-| **Loss Function** | MSE (L2) | L1 (MAE) |
-| **Optimizer** | Adam (lr=0.001) | Adamax (lr=0.002) |
-| **Data Augmentation** | None (fixed windows) | Random cropping (4s → 2s) |
-| **Training Strategy** | Maximize accuracy | Prevent overfitting |
-| **Why This Model?** | Complex temporal patterns in RT | Subject-invariant representations |
-
-### Challenge 1: TCN (Temporal Convolutional Network)
-
-**Architecture:**
-
+### EnhancedCompactCNN (Challenge 1)
 ```python
-TCN_EEG(
-  input_channels=129,
-  output_size=1,
-  num_channels=[48, 48, 48, 48, 48],  # 5 layers
-  kernel_size=7,
-  dropout=0.3
-)
+Input: (batch, 129 channels, 200 timepoints)
 
-# 5 TemporalBlocks, each with:
-#   - Conv1d (kernel=7, dilation=[1,2,4,8,16])
-#   - BatchNorm1d
-#   - ReLU
-#   - Dropout(0.3)
-#   - Residual connection
+Conv1D(129→32, k=7, s=2) + BN + ReLU + Dropout(0.6)
+Conv1D(32→64, k=5, s=2) + BN + ReLU + Dropout(0.65)
+Conv1D(64→128, k=3, s=2) + BN + ReLU + Dropout(0.7)
 
-Total Parameters: 196,225
+Spatial Attention (channel weighting)
+AdaptiveAvgPool1D + FC(128→64) + FC(64→1)
+
+Output: (batch, 1) → squeeze → (batch,)
 ```
 
-**Key Features:**
+**Training:**
+- 5 seeds with different initializations
+- EMA (decay 0.999) for stability
+- Aggressive augmentation (TimeShift, GaussianNoise, ChannelDropout)
+- 50 epochs, ~2.2 min/seed on CPU
 
-- Multi-scale temporal feature extraction via dilated convolutions
-- Batch normalization for stable training
-- Residual connections for gradient flow
-- Dropout for regularization
+**Results:**
+- Mean NRMSE: 1.499130
+- CV: 0.62% (excellent)
+- Seeds: 42 (1.486), 123 (1.491), 456 (1.505), 789 (1.511), 1337 (1.502)
 
-**Why TCN for Challenge 1?**
-1. **Temporal Dynamics:** Response time depends on complex temporal patterns (ERPs, SSVEP)
-2. **Multi-Scale Features:** Dilated convolutions capture both fast (early ERPs) and slow (sustained attention) dynamics
-3. **Receptive Field:** 3.73s receptive field covers entire stimulus processing window
-4. **Proven Architecture:** TCNs excel at time-series prediction tasks
-
-### Challenge 2: EEGNeX
-
-**Architecture:**
-
+### EEGNeX (Challenge 2)
 ```python
-EEGNeX(
-  n_chans=129,
-  n_outputs=1,
-  n_times=200  # 2 seconds at 100 Hz
-)
+from braindecode.models import EEGNeX
 
-# Lightweight CNN from braindecode library
-# Optimized for generalization, not memorization
+model = EEGNeX(n_chans=129, n_outputs=1, n_times=200, sfreq=100)
 ```
 
-**Key Features:**
+**Training:**
+- 2 seeds (42, 123) with EMA
+- 50 epochs, early stopping (patience=10)
+- Val loss: Seed 42 (0.122), Seed 123 (0.126)
 
-- Designed for out-of-distribution robustness
-- Small parameter count to prevent overfitting
-- Efficient processing of EEG data
-- Focus on cross-subject generalization
+### Calibration (Challenge 1)
+```python
+# Fitted on 1,492 validation samples
+y_calibrated = 0.988 * y_pred + 0.027
 
-**Why EEGNeX for Challenge 2?**
-1. **Generalization First:** Small model size prevents memorizing subject-specific patterns
-2. **Clinical Target:** p_factor is a subject-level measure requiring robust, generalizable features
-3. **Cross-Subject Transfer:** Must work on unseen subjects from different sites
-4. **L1 Loss Compatibility:** Simple architecture works well with robust loss functions
-5. **Proven on EEG:** Braindecode models tested on multiple EEG benchmarks
-
-**Architecture Pattern:**
+# Ridge regression, alpha=0.1
+# Improvement: 7.9e-5 on validation
 ```
-Input (129 × 200) 
-    ↓
-Depthwise Conv (spatial filtering per channel)
-    ↓
-Pointwise Conv (channel mixing)
-    ↓
-Pooling (downsampling)
-    ↓
-Dense Layer (regression head)
-    ↓
-Output (p_factor prediction)
+
+### Test-Time Augmentation
+```python
+# 3 circular time shifts
+shifts = [-2, 0, +2]  # ±20ms at 100Hz
+
+# Total predictions per input
+15 = 5 seeds × 3 TTA transforms
 ```
 
 ---
 
-## 🚀 Training
+## 🛠️ Setup
 
-### Training Workflow
-
-```mermaid
-flowchart TB
-    subgraph C1Flow["Challenge 1 Workflow (Completed ✅)"]
-        style C1Flow fill:#065f46,stroke:#10b981,color:#fff
-        C1Data["Load HBN Data<br/>contrastChangeDetection"]
-        style C1Data fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C1Window["Extract 2s Windows<br/>+0.5s from stimulus"]
-        style C1Window fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C1Train["Train TCN<br/>MSE loss, Adam"]
-        style C1Train fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C1Val["Validate on R5<br/>NRMSE: 0.010170"]
-        style C1Val fill:#065f46,stroke:#10b981,color:#fff
-        C1Save["Save weights_challenge_1.pt<br/>✅ Ready"]
-        style C1Save fill:#065f46,stroke:#10b981,color:#fff
-        C1Data --> C1Window --> C1Train --> C1Val --> C1Save
-    end
-    
-    subgraph C2Flow["Challenge 2 Workflow (In Progress 🔄)"]
-        style C2Flow fill:#78350f,stroke:#f59e0b,color:#fff
-        C2Data["Load HBN Data<br/>contrastChangeDetection"]
-        style C2Data fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C2Window["Extract 4s Windows<br/>Random 2s crops"]
-        style C2Window fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        C2Train["Train EEGNeX<br/>L1 loss, Adamax"]
-        style C2Train fill:#78350f,stroke:#f59e0b,color:#fff
-        C2Monitor["Watchdog Monitoring<br/>Crash/Freeze Detection"]
-        style C2Monitor fill:#78350f,stroke:#f59e0b,color:#fff
-        C2Val["Validate on R5<br/>Early stopping patience=5"]
-        style C2Val fill:#78350f,stroke:#f59e0b,color:#fff
-        C2Save["Save weights_challenge_2.pt<br/>🔄 Training Epoch 1/20"]
-        style C2Save fill:#78350f,stroke:#f59e0b,color:#fff
-        C2Data --> C2Window --> C2Train
-        C2Train --> C2Monitor
-        C2Monitor --> C2Train
-        C2Train --> C2Val --> C2Save
-    end
-```
-
-### Challenge 1 (Completed)
-
-**Already trained and ready for submission.**
-
-Training was completed on October 17, 2025. The model achieved excellent validation performance (loss: 0.010170) and is ready for competition submission.
-
-| Metric | Value |
-|--------|-------|
-| Training Date | October 17, 2025 |
-| Model | TCN (196K params) |
-| Validation Loss | 0.010170 (NRMSE) |
-| Best Epoch | 2 |
-| Status | ✅ Ready for Submission |
-| Weights | `weights_challenge_1.pt` |
-
-### Challenge 2 (In Progress)
-
-**Current Training Status:**
+### Requirements
 ```bash
-# Check quick status
-./quick_training_status.sh
-
-# Full monitoring (auto-refresh)
-./monitor_challenge2.sh
-
-# Watchdog status
-./manage_watchdog.sh status
+pip install torch torchvision torchaudio
+pip install braindecode mne numpy pandas h5py
+pip install scikit-learn scipy matplotlib seaborn
 ```
 
-**Training Script:**
+### Quick Start
 ```bash
-# Already running in background
-# Started: October 19, 2025 at 13:52
-# PID: 548497
-# Log: logs/challenge2_correct_training.log
+# 1. Prepare data
+python scripts/prepare_c1_data.py
 
-# To check progress:
-tail -f logs/challenge2_correct_training.log
-```
+# 2. Train models (optional - checkpoints included)
+python scripts/train_c1_phase1_aggressive.py
 
-**After Training Completes:**
-```bash
-# 1. Copy trained weights
-cp weights_challenge_2_correct.pt weights_challenge_2.pt
+# 3. Fit calibration
+python scripts/c1_calibration.py
 
-# 2. Ensure submission.py has correct API (see Competition API Reference section)
-#    - Must have challenge_1(X) and challenge_2(X) methods
-#    - Must have get_model_challenge_1() and get_model_challenge_2()
-#    - Must accept torch.Tensor and return torch.Tensor
-
-# 3. Test submission locally
-python test_submission_verbose.py
-
-# 4. Create submission package
-zip -j submission.zip submission.py weights_challenge_1.pt weights_challenge_2.pt
-
-# 5. Submit to competition
-# Upload submission.zip to competition platform
-```
-
-**⚠️ Critical:** See the **Competition API Reference** section above for the exact interface your `submission.py` must implement. Using `__call__(X, challenge)` instead of `challenge_1(X)` and `challenge_2(X)` will cause silent failures (0-byte results).
-
----
-
-## 📊 Monitoring
-
-### Watchdog System 🐕
-
-An automated monitoring system that watches the training process 24/7 and alerts on issues.
-
-**Features:**
-- ❌ **Crash Detection:** Alerts if training process dies
-- ❄️ **Freeze Detection:** Alerts if no log updates for 5+ minutes
-- ⚠️ **Error Scanning:** Checks logs for errors and exceptions
-- 💾 **Memory Monitoring:** Warns if memory usage exceeds 90%
-- ✅ **Completion Detection:** Notifies when training finishes
-
-**Quick Commands:**
-```bash
-# Check status
-./manage_watchdog.sh status
-
-# View logs
-./manage_watchdog.sh logs
-
-# Follow live output
-./manage_watchdog.sh follow
-
-# Stop watchdog
-./manage_watchdog.sh stop
-```
-
-**Monitoring Scripts:**
-```bash
-# Quick status snapshot
-./quick_training_status.sh
-
-# Full monitor with auto-refresh
-./monitor_challenge2.sh
-
-# Live log tail
-tail -f logs/challenge2_correct_training.log
-```
-
----
-
-## 💻 Installation
-
-### Prerequisites
-
-- Python 3.9+
-- PyTorch 2.0+
-- (Optional) CUDA for NVIDIA GPU training
-- (Optional) ROCm for AMD GPU training - see [AMD GPU Setup](#-amd-gpu-rocm-sdk-builder-solution-optional) below
-
----
-
-## 🔥 AMD GPU ROCm SDK Builder Solution (OPTIONAL)
-
-> **ℹ️ NOTE:** This section is **OPTIONAL** and only needed if you want to use AMD GPUs for training.
-> 
-> **Current project training:** Uses CPU with cached H5 data (~2-4 hours).  
-> **GPU training:** Optional optimization that can speed up training.
-
-> **🚨 For AMD RX 5000/6000/7000 Series GPU Users Only**  
-> If you have an AMD consumer GPU and want to use it for training, you need this custom SDK.  
-> Standard PyTorch ROCm will crash with `HIP error: invalid device function` with EEGNeX/braindecode models.
-
-### The Problem (AMD GPU Only)
-
-**Symptom**: Training crashes with error:
-```
-RuntimeError: HIP error: invalid device function
-Compile with `TORCH_USE_HIP_DSA` to enable device-side assertions.
-```
-
-**Root Cause**: 
-- Standard PyTorch ROCm packages **only support server GPUs** (MI100, MI200, MI300)
-- Consumer GPUs (gfx1030, gfx1100, etc.) are **not officially supported**
-- PyTorch binaries lack GPU kernels for consumer architectures
-
-**Affected GPUs** (Verify with: `rocminfo | grep "Name:.*gfx"`):
-- AMD RX 5600 XT - **gfx1030** (NOT gfx1010! Hardware is Navi 10 but ISA is gfx1030)
-- AMD RX 5700 XT - **gfx1010** (True Navi 10)
-- AMD RX 6000 series (6700 XT, 6800 XT, 6900 XT) - **gfx1030**
-- AMD RX 7000 series (7900 XTX, 7900 XT) - **gfx1100**
-
-### The Solution: Custom ROCm SDK
-
-Use [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) by @lamikr to build PyTorch with your GPU's architecture:
-
-```bash
-# 1. Clone ROCm SDK Builder
-git clone https://github.com/lamikr/rocm_sdk_builder.git /tmp/rocm_sdk_builder
-cd /tmp/rocm_sdk_builder
-
-# 2. Install dependencies
-./install_deps.sh
-
-# 3. Configure for your GPU architecture
-# ⚠️ IMPORTANT: Verify your GPU ISA first!
-rocminfo | grep "Name:.*gfx"
-
-# For RX 5600 XT (gfx1030 - MOST COMMON):
-echo "GPU_BUILD_AMD_NAVI14_GFX1030=1" >> binfo/envsetup.sh
-
-# For RX 5700 XT (gfx1010):
-echo "GPU_BUILD_AMD_NAVI10_GFX1010=1" >> binfo/envsetup.sh
-
-# For RX 6000 series (gfx1030):
-# echo "GPU_BUILD_AMD_NAVI21_GFX1030=1" >> binfo/envsetup.sh
-
-# For RX 7000 series (gfx1100):
-# echo "GPU_BUILD_AMD_NAVI31_GFX1100=1" >> binfo/envsetup.sh
-
-# 4. Download sources and build (takes 3-4 hours, requires 50GB disk space)
-./babs.sh -i    # Initialize and download sources
-./babs.sh -b    # Build everything (PyTorch, ROCm, dependencies)
-```
-
-**What this builds**:
-- Complete ROCm SDK at `/opt/rocm_sdk_612`
-- PyTorch 2.4.1 with **native kernels for your GPU architecture**
-- braindecode 1.2.0
-- eegdash 0.4.1
-- All dependencies pre-configured
-
-### Using the SDK
-
-**Option 1: Activate SDK environment** (recommended):
-```bash
-# Source the activation script
-source activate_sdk.sh
-
-# Now use SDK Python for training
-sdk_python train_c2_sam_real_data.py
-```
-
-**Option 2: Manual environment setup**:
-```bash
-# Set environment variables
-export ROCM_SDK_PATH="/opt/rocm_sdk_612"
-export PYTHONPATH="${ROCM_SDK_PATH}/lib/python3.11/site-packages"
-export LD_LIBRARY_PATH="${ROCM_SDK_PATH}/lib:${ROCM_SDK_PATH}/lib64:${LD_LIBRARY_PATH}"
-export PATH="${ROCM_SDK_PATH}/bin:${PATH}"
-
-# IMPORTANT: Unset HSA override (not needed with proper build)
-unset HSA_OVERRIDE_GFX_VERSION
-
-# Run training with SDK Python
-${ROCM_SDK_PATH}/bin/python3 your_training_script.py
-```
-
-**Option 3: Tmux training session** (best for long runs):
-```bash
-tmux new-session -d -s training "
-export ROCM_SDK_PATH='/opt/rocm_sdk_612'
-export PYTHONPATH=\"\${ROCM_SDK_PATH}/lib/python3.11/site-packages\"
-export LD_LIBRARY_PATH=\"\${ROCM_SDK_PATH}/lib:\${ROCM_SDK_PATH}/lib64:\${LD_LIBRARY_PATH}\"
-export PATH=\"\${ROCM_SDK_PATH}/bin:\${PATH}\"
-unset HSA_OVERRIDE_GFX_VERSION
-
-echo '✅ Using ROCm SDK with gfx1010 PyTorch support'
-\${ROCM_SDK_PATH}/bin/python3 -u train_script.py 2>&1 | tee training.log
-"
-
-# Attach to session
-tmux attach -t training
-```
-
-### Verification
-
-Test that GPU works correctly:
-```bash
-# Using SDK Python
-/opt/rocm_sdk_612/bin/python3 -c "
-import torch
-print(f'PyTorch: {torch.__version__}')
-print(f'CUDA available: {torch.cuda.is_available()}')
-print(f'Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}')
-print(f'Device count: {torch.cuda.device_count()}')
-"
-```
-
-**Expected output**:
-```
-PyTorch: 2.4.1
-CUDA available: True
-Device: AMD Radeon RX 5600 XT
-Device count: 1
-```
-
-### Benefits (AMD GPU Users)
-
-- ✅ **Native GPU support** - No workarounds, no hacks needed
-- ✅ **Stable training** - No HIP errors or crashes
-- ✅ **Full PyTorch features** - All operations work correctly
-- ✅ **Faster than CPU** - Can accelerate training if needed
-- ✅ **Production ready** - Successfully tested with EEGNeX models
-
-**Note:** GPU training is optional. The project currently uses CPU training with cached H5 data, which provides good performance (~2-4 hours for full training).
-
-### Credit & Support
-
-**ROCm SDK Builder** by [@lamikr](https://github.com/lamikr)  
-GitHub: https://github.com/lamikr/rocm_sdk_builder
-
-⭐ **Please star this repo** - It enables ROCm on thousands of unsupported consumer AMD GPUs!
-
-This tool is a **game-changer** for AMD GPU users in deep learning. Without it, consumer GPUs are paperweights for PyTorch/ROCm. With it, they work perfectly.
-
----
-
-### Regular Setup (NVIDIA GPUs or CPU)
-
-```bash
-# Clone repository
-git clone https://github.com/hkevin01/eeg2025.git
-cd eeg2025
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install development dependencies (optional)
-pip install -r requirements-dev.txt
-```
-
-### Data Setup
-
-Download the HBN-EEG dataset from the competition website and place in `data/` directory.
-
-The dataset should follow BIDS format with releases R1-R5 available.
-
----
-
-## 🎮 Usage
-
-### Submission Workflow
-
-```mermaid
-flowchart LR
-    subgraph Prepare["Prepare Submission"]
-        style Prepare fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Check["Verify Models<br/>test_submission_verbose.py"]
-        style Check fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Files["Gather Files<br/>submission.py<br/>weights_*.pt"]
-        style Files fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Check --> Files
-    end
-    
-    subgraph Package["Create Package"]
-        style Package fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Zip["zip -j submission.zip<br/>3 files total"]
-        style Zip fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Verify["Verify Contents<br/>unzip -l submission.zip"]
-        style Verify fill:#1e3a8a,stroke:#3b82f6,color:#fff
-        Zip --> Verify
-    end
-    
-    subgraph Submit["Submit to Competition"]
-        style Submit fill:#065f46,stroke:#10b981,color:#fff
-        Upload["Upload submission.zip<br/>to NeurIPS Platform"]
-        style Upload fill:#065f46,stroke:#10b981,color:#fff
-        Wait["Wait for Evaluation<br/>~5-10 minutes"]
-        style Wait fill:#065f46,stroke:#10b981,color:#fff
-        Results["View Leaderboard<br/>NRMSE + L1 scores"]
-        style Results fill:#065f46,stroke:#10b981,color:#fff
-        Upload --> Wait --> Results
-    end
-    
-    Prepare --> Package --> Submit
-```
-
-### 🧪 Pre-Submission Verification (CRITICAL!)
-
-**⚠️ MANDATORY: Always run comprehensive verification before uploading!**
-
-After 6 failed submissions, we developed a comprehensive 10-step verification suite that catches issues before upload:
-
-```bash
-# Run comprehensive verification (10 tests)
-python scripts/verify_submission.py <path_to_submission.zip>
-```
-
-**Success Criteria:**
-- ✅ 10/10 tests pass = Perfect! Submit immediately
-- ✅ 9/10 tests pass = OK if only Challenge 2 fails locally (braindecode unavailable)
-- ❌ <9/10 tests pass = Fix issues before submitting!
-
-**What Gets Verified:**
-1. ZIP structure (3 files, flat structure)
-2. Submission class definition
-3. `__init__(SFREQ, DEVICE)` signature
-4. Required methods (challenge_1, challenge_2, get_model_*)
-5. Method signatures correct
-6. Instantiation with string/torch.device
-7. **Model loading** (architecture matches weights!)
-8. Predictions work (correct shape, no NaN/Inf)
-9. Value validation
-10. Deterministic behavior
-
-**Common Failures Caught:**
-- ❌ Architecture mismatch (V5: CompactCNN vs TCN weights)
-- ❌ Wrong API format (V1-V4: used `__call__` instead of `challenge_1`/`challenge_2`)
-- ❌ Excessive debug output
-- ❌ Weight loading errors
-
-**Documentation:**
-- Full test suite: `scripts/verify_submission.py` (500+ lines)
-- Quick reference: `memory-bank/SUBMISSION_VERIFICATION_QUICK_REF.md`
-- Example success: `submissions/phase1_v6/` (9/10 tests passed)
-
-**Never submit without verification!** This suite has saved us from multiple submission failures.
-
----
-
-### Testing Submission
-
-```bash
-# Verbose testing (recommended)
-python test_submission_verbose.py
-
-# Basic testing
+# 4. Test submission
+cd submissions/phase1_v12
 python submission.py
 ```
 
-### Creating Submission Package
+---
 
-```bash
-# Create submission.zip with all required files
-zip -j submission.zip submission.py weights_challenge_1.pt weights_challenge_2.pt
+## ✅ Verification
 
-# Verify contents
-unzip -l submission.zip
+All submissions passed comprehensive testing:
+- ✅ Package integrity (ZIP valid)
+- ✅ Code structure (required functions present)
+- ✅ Input/output format (numpy arrays, correct shapes/dtypes)
+- ✅ Batch processing (sizes 1, 5, 16, 32, 64)
+- ✅ No NaN/Inf values
+- ✅ Model loading (all 7 checkpoints)
+- ✅ TTA working (3 shifts, circular padding)
+- ✅ Calibration working (linear transform)
 
-# Expected output:
-# submission.py
-# weights_challenge_1.pt
-# weights_challenge_2.pt
-```
-
-### Training New Models
-
-See `CHALLENGE2_TRAINING_STATUS.md` for detailed training configuration and `scripts/README.md` for available training scripts.
+See `docs/V12_VERIFICATION_REPORT.md` for details.
 
 ---
 
-## � Competition API Reference
+## 📈 Next Steps
 
-### Required Submission Interface
-
-The competition expects your `submission.py` to implement this **EXACT API**:
-
-```python
-import numpy as np
-import torch
-import torch.nn as nn
-from pathlib import Path
-
-class Submission:
-    """Competition submission class - MUST match this interface exactly"""
-    
-    def __init__(self, SFREQ, DEVICE):
-        """Initialize submission
-        
-        Args:
-            SFREQ (int): Sampling frequency in Hz (typically 100)
-            DEVICE (str): Device string 'cpu' or 'cuda'
-        """
-        # Convert DEVICE string to torch.device
-        if isinstance(DEVICE, str):
-            self.device = torch.device(DEVICE)
-        elif isinstance(DEVICE, torch.device):
-            self.device = DEVICE
-        else:
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-        self.sfreq = SFREQ
-        self.n_chans = 129
-        self.n_times = int(2 * SFREQ)  # 200 timepoints for SFREQ=100
-        
-        # Models (lazy loading)
-        self.model_c1 = None
-        self.model_c2 = None
-    
-    def get_model_challenge_1(self):
-        """Load and return Challenge 1 model
-        
-        Returns:
-            torch.nn.Module: Model for response time prediction
-        """
-        if self.model_c1 is None:
-            # Load model here
-            self.model_c1 = YourModel()
-            weights = torch.load('weights_challenge_1.pt', map_location=self.device)
-            self.model_c1.load_state_dict(weights)
-            self.model_c1 = self.model_c1.to(self.device)
-            self.model_c1.eval()
-        return self.model_c1
-    
-    def get_model_challenge_2(self):
-        """Load and return Challenge 2 model
-        
-        Returns:
-            torch.nn.Module: Model for externalizing factor prediction
-        """
-        if self.model_c2 is None:
-            # Load model here
-            self.model_c2 = YourModel()
-            weights = torch.load('weights_challenge_2.pt', map_location=self.device)
-            self.model_c2.load_state_dict(weights)
-            self.model_c2 = self.model_c2.to(self.device)
-            self.model_c2.eval()
-        return self.model_c2
-    
-    def challenge_1(self, X):
-        """Make predictions for Challenge 1
-        
-        ⚠️ CRITICAL: Competition calls THIS method, not __call__()
-        
-        Args:
-            X (torch.Tensor): EEG data, shape [batch, n_chans, n_times]
-                            e.g., [32, 129, 200]
-        
-        Returns:
-            torch.Tensor: Predictions, shape [batch,]
-                         e.g., [32,] with response times
-        """
-        model = self.get_model_challenge_1()
-        X = X.to(self.device)
-        
-        with torch.no_grad():
-            predictions = model(X)
-            # Ensure output is [batch,] not [batch, 1]
-            if predictions.dim() > 1:
-                predictions = predictions.squeeze(-1)
-        
-        return predictions
-    
-    def challenge_2(self, X):
-        """Make predictions for Challenge 2
-        
-        ⚠️ CRITICAL: Competition calls THIS method, not __call__()
-        
-        Args:
-            X (torch.Tensor): EEG data, shape [batch, n_chans, n_times]
-                            e.g., [32, 129, 200]
-        
-        Returns:
-            torch.Tensor: Predictions, shape [batch,]
-                         e.g., [32,] with externalizing scores
-        """
-        model = self.get_model_challenge_2()
-        X = X.to(self.device)
-        
-        with torch.no_grad():
-            predictions = model(X)
-            # Ensure output is [batch,] not [batch, 1]
-            if predictions.dim() > 1:
-                predictions = predictions.squeeze(-1)
-        
-        return predictions
-```
-
-### Critical Points
-
-**✅ MUST HAVE:**
-- `__init__(self, SFREQ, DEVICE)` - Exact signature
-- `get_model_challenge_1(self)` - Returns model object
-- `get_model_challenge_2(self)` - Returns model object
-- `challenge_1(self, X)` - Takes torch.Tensor, returns torch.Tensor
-- `challenge_2(self, X)` - Takes torch.Tensor, returns torch.Tensor
-- Methods named with **underscores**: `challenge_1` not `challenge1`
-
-**❌ DO NOT:**
-- Use `__call__(self, X, challenge)` - Competition doesn't call this!
-- Return numpy arrays - Must return torch.Tensor
-- Expect numpy input - Input is torch.Tensor
-- Hardcode `n_times` - Calculate from SFREQ
-
-**📦 Submission Package:**
-```
-submission.zip
-├── submission.py          # Your Submission class
-├── weights_challenge_1.pt # Challenge 1 model weights
-└── weights_challenge_2.pt # Challenge 2 model weights
-```
-
-**🧪 Test Your Submission Locally:**
-```python
-# Test that your submission works
-submission = Submission(SFREQ=100, DEVICE='cpu')
-
-# Test Challenge 1
-X = torch.randn(4, 129, 200)  # Batch of 4
-pred1 = submission.challenge_1(X)
-assert pred1.shape == (4,), f"Expected (4,), got {pred1.shape}"
-assert isinstance(pred1, torch.Tensor), "Must return torch.Tensor"
-
-# Test Challenge 2
-pred2 = submission.challenge_2(X)
-assert pred2.shape == (4,), f"Expected (4,), got {pred2.shape}"
-assert isinstance(pred2, torch.Tensor), "Must return torch.Tensor"
-
-print("✅ Submission API correct!")
-```
+1. **Upload V12** to competition platform
+2. **Monitor results** (2-3 hours for evaluation)
+3. **Compare submissions:** V12 vs V11.5 vs V11
+4. **Analyze improvements:** Which variance reduction techniques helped most
+5. **Iterate:** Based on actual leaderboard feedback
 
 ---
 
-## �📚 Documentation
+## 📚 Documentation
 
-### Core Documentation
+**Key Documents:**
+- `docs/C1_VARIANCE_REDUCTION_PLAN.md` - Strategy and expected gains
+- `docs/V12_VERIFICATION_REPORT.md` - Comprehensive verification
+- `docs/VARIANCE_REDUCTION_COMPLETE.md` - Implementation details
+- `docs/SESSION_SUMMARY_NOV1.md` - Session summary
 
-- **README.md** (this file) - Project overview and quick start
-- **CHALLENGE2_TRAINING_STATUS.md** - Training configuration and status
-- **WATCHDOG_QUICK_REFERENCE.md** - Monitoring system guide
-- **ORGANIZATION_COMPLETE.md** - Project organization summary
-- **docs/model_control_plane.md** - Model Control Plane architecture and operations
-- **docs/rocm_troubleshooting.md** - ROCm GPU debugging and fallback strategies
-
-### Database Documentation
-
-- **docs/DATABASE_DESIGN.md** - Complete MongoDB schema and architecture (800+ lines)
-  - Full collection schemas with examples
-  - Query patterns and performance optimization
-  - Integration guide with training scripts
-  - Migration script from SQLite
-- **MONGODB_INTEGRATION.md** - Quick start guide for MongoDB setup
-- **MONGODB_SETUP_COMPLETE.md** - Comprehensive setup summary and benefits
-- **MONGODB_QUICK_REFERENCE.md** - One-page cheat sheet for common operations
-
-### Reference Documentation
-
-- **.github/instructions/memory.instruction.md** - Comprehensive competition knowledge base
-  - Challenge requirements and specifications
-  - Key differences between challenges
-  - Common mistakes to avoid
-  - Dataset details and preprocessing
-  - Submission format
-
-### Scripts Documentation
-
-- **scripts/README.md** - Active scripts documentation
-- **archive/README.md** - Historical files documentation
-
-### Competition Resources
-
-- **Competition Website:** https://eeg2025.github.io/
-- **Starter Kit:** `starter_kit_integration/`
-- **Challenge 1 Starter:** `starter_kit_integration/challenge_1.py`
-- **Challenge 2 Starter:** `starter_kit_integration/challenge_2.py`
-
----
-
-## 🎯 Key Insights
-
-### Challenge 1 (Response Time Prediction)
-
-**Task Focus:**
-- Predict trial-by-trial response time during active cognitive task
-- Stimulus-locked windows (+0.5s after stimulus onset, 2s duration)
-- ERP components and SSVEP signals important
-- Temporal dynamics are key
-
-**Model Strategy:**
-- TCN with dilated convolutions for multi-scale temporal features
-- Fixed time-locking to stimulus ensures consistent temporal structure
-- Larger model acceptable (196K params) - less overfitting risk
-
-### Challenge 2 (Externalizing Factor Prediction)
-
-**Task Focus:**
-- Predict subject-level clinical measure from EEG
-- Cross-subject generalization is paramount
-- Random cropping provides data augmentation
-- Must work on unseen subjects/sites
-
-**Model Strategy:**
-- Smaller model to prevent overfitting
-- L1 loss for robustness to outliers in clinical data
-- Random cropping = data augmentation
-- Focus on generalization, not training accuracy
-
-### Common Mistakes to Avoid
-
-❌ **Don't use resting task for Challenge 2** - Use contrastChangeDetection!  
-❌ **Don't overfit on training data** - Challenge 2 penalizes overfitting heavily  
-❌ **Don't ignore random cropping** - It's data augmentation, not just preprocessing  
-❌ **Don't use MSE for Challenge 2** - L1 loss is more robust for clinical targets
-
----
-
-## 🎓 Lessons Learned & Best Practices
-
-### Technical Insights
-
-#### 1. SAM Optimizer is Highly Effective
-- **Finding:** 70% improvement on Challenge 1 (1.0015 → 0.3008 validation)
-- **Why:** Finds flatter minima that generalize better to unseen subjects
-- **Implementation:** Two-step gradient: first step finds direction, second step updates
-- **Recommendation:** Use SAM for any EEG task requiring cross-subject generalization
-
-#### 2. GPU Support Critical for Consumer AMD GPUs
-- **Issue:** Standard PyTorch ROCm only supports server GPUs (MI100/200/300)
-- **Consumer GPUs:** RX 5000/6000/7000 series (gfx1010/1030/1100) not supported
-- **Solution:** Custom ROCm SDK with architecture-specific kernels
-- **Impact:** 3-8x speedup vs CPU (2-4 hours vs 8-12+ hours)
-- **Tool:** [ROCm SDK Builder](https://github.com/lamikr/rocm_sdk_builder) by @lamikr
-
-#### 3. Model Selection Matters
-- **C1:** CompactCNN (304K params) achieves 1.0015 test NRMSE
-- **C2:** EEGNeX (62K params) achieves 1.0087 test NRMSE
-- **Lesson:** Smaller models often generalize better for clinical targets
-- **Evidence:** Submit 87 used wrong model (EEGNeX for C1) → 60% worse (1.6035)
-
-#### 4. Subject-Level Cross-Validation Essential ⚠️ CRITICAL
-- **Why:** Prevents data leakage from same subjects in train/val
-- **Method:** GroupKFold by subject ID
-- **Impact:** More realistic validation scores that match test performance
-- **Proof:** C1 val → test scores very close (proper CV working)
-
-#### 5. Subject Leakage Destroys Validation Reliability 🚨 NEW DISCOVERY
-- **Problem Discovered:** Random train/val splits put same subject in BOTH sets
-- **Catastrophic Impact:** Validation metrics DO NOT predict test performance
-  - R4-only: Val NRMSE 0.1607 → Test 1.0020 (no correlation ❌)
-  - R1-R3 cross: Val NRMSE 0.1625 → Test 1.1398 (negative correlation! ❌)
-  - **Untrained model: Test 1.0015** (BEST score! ✅)
-- **Root Cause:** Model memorizes subject-specific patterns, fails on new subjects
-- **Evidence:** Lower validation NRMSE ≠ better test score
-- **Solution:** **Subject-aware validation** - split by subject ID, not samples
-  ```python
-  # ❌ WRONG: Random split (subject leakage)
-  train, val = train_test_split(data, test_size=0.1)
-  
-  # ✅ RIGHT: Subject-aware split (no leakage)
-  subjects = get_unique_subjects(data)
-  train_subj, val_subj = train_test_split(subjects, test_size=0.1)
-  train_data = data[data.subject.isin(train_subj)]
-  val_data = data[data.subject.isin(val_subj)]
-  ```
-- **Expected Improvement:** Validation scores will be HIGHER but PREDICTIVE
-  - Random split: Val 0.16 → Test 1.14 (useless)
-  - Subject-aware: Val 1.05 → Test 1.00 (trustworthy!)
-- **Key Insight:** Validation doesn't have to look good - it has to predict test!
-- **Status:** Implementation ready in `scripts/preprocessing/cache_challenge1_with_subjects.py`
-- **Next Step:** Re-cache data with subject IDs, train with subject-aware splits
-- **Documentation:** See `VALIDATION_PROBLEM_ANALYSIS.md` for full technical analysis
-
-#### 6. Data Augmentation Prevents Overfitting
-- **Temporal cropping:** 4s → 2s random windows
-- **Amplitude scaling:** 0.8-1.2x multiplier
-- **Channel dropout:** 5% channels zeroed (30% of batches)
-- **Result:** Better generalization, reduced train/val gap
-
-### Operational Insights
-
-#### 1. Always Use Tmux for Long Training
-- **Why:** Survives SSH disconnects, terminal closes, VSCode crashes
-- **How:** `tmux new-session -d -s training "python train.py | tee log.txt"`
-- **Monitoring:** `tmux attach -t training` or `tail -f log.txt`
-- **Lesson:** Nohup is insufficient, use proper process isolation
-
-#### 2. Version Control Your Weights
-- **Strategy:** Timestamped backups for all submissions
-- **Format:** `weights_challenge_X_YYYYMMDD_HHMMSS.pt`
-- **Why:** Easy rollback when experiments fail
-- **Example:** Quick fix used Oct 16 backup after Submit 87 regression
-
-#### 3. Document Everything in Real-Time
-- **Status docs:** Track training progress, decisions, results
-- **Comparison docs:** Analyze submission scores, identify regressions
-- **Technical docs:** GPU setup, SAM implementation, architecture choices
-- **Value:** Easy recovery after crashes, clear decision trail
-
-#### 4. Validate Submissions Locally First
-- **Tool:** `test_submission_verbose.py` catches API mismatches
-- **Check:** Model loading, input shapes, output ranges
-- **Saves:** Debugging time on competition platform
-- **Example:** Caught model mix-up before full evaluation
-
-### Debugging Strategies
-
-#### 1. When Scores Regress, Check Model Architecture
-- **Submit 87:** C1 went from 1.0015 → 1.6035 (60% worse)
-- **Root cause:** Used 758K EEGNeX instead of 304K CompactCNN
-- **Fix:** Restored correct model → 1.0015 restored exactly
-- **Lesson:** File size is a quick sanity check (304K vs 758K obvious)
-
-#### 2. Validation vs Test Score Gaps
-- **Expected:** Val and test scores should be similar with proper CV
-- **If diverge:** Check for data leakage, overfitting, or distribution shift
-- **SAM C1:** 0.3008 validation → expect 0.3-0.5 test (reasonable range)
-
-#### 3. GPU Compatibility Issues
-- **Symptom:** `RuntimeError: HIP error: invalid device function`
-- **Cause:** Missing GPU kernels for your architecture
-- **Solution:** Check PyTorch build, use custom SDK if needed
-- **Prevention:** Test GPU compatibility early with small models
-
----
-
-## � Solution Summary
-
-### Final Approach
-
-**Challenge 1: Response Time Prediction**
-- **Model:** CompactCNN (304K params) + SAM optimizer
-- **Current:** 1.0015 (test), 0.3008 (SAM validation)
-- **Key techniques:** Stimulus-locked windows, SAM optimizer, subject-CV
-- **Next:** Submit SAM model for potential 70% improvement
-
-**Challenge 2: Externalizing Factor Prediction**
-- **Model:** EEGNeX (62K params) + SAM optimizer
-- **Current:** 1.0087 (test), training SAM on GPU
-- **Key techniques:** Random cropping, L1 loss, strong regularization, SAM
-- **Next:** Submit SAM model targeting <0.9 NRMSE
-
-**Overall Strategy:**
-1. ✅ Established baseline (Oct 16: 1.3224)
-2. ✅ Fixed regression (Quick fix: 1.0065, +23.9%)
-3. 🔄 SAM training (Target: <0.6, +55%+ improvement)
-4. 🎯 Final submission with both SAM models
-
-### Why This Solution Works
-
-1. **SAM Optimizer:** Finds flatter minima → better generalization
-2. **Subject-Level CV:** Realistic validation → no overfitting
-3. **Right Models:** CompactCNN (C1) + EEGNeX (C2) → task-appropriate
-4. **Data Augmentation:** Temporal + amplitude + channel → robust features
-5. **GPU Training:** Fast iterations → more experiments, better hyperparameters
-
-### Reproducibility
-
-All training scripts, configurations, and weights are version-controlled:
-- **C1 CompactCNN:** `weights/BACKUP_C1_OCT16_1.0015.pt`
-- **C1 SAM:** `experiments/sam_advanced/20251024_184838/checkpoints/`
-- **C2 EEGNeX:** `weights/BACKUP_C2_SUBMIT87_1.00867.pt`
-- **C2 SAM:** `training_sam_c2_sdk.log` (training now)
-
-Training commands documented in:
-- `GPU_POLICY_MANDATORY.md` (GPU training templates)
-- `C2_SDK_TRAINING_STATUS.md` (C2 SAM setup)
-- `COMPETITION_SCORES_COMPARISON.md` (all results)
-
----
-
-## 📅 Timeline
-
-- **October 16, 2025:** Initial baseline submission (Overall: 1.3224) ✅
-- **October 24, 2025:** Submit 87 regression identified (C1: 1.6035) ⚠️
-- **October 24, 2025:** Quick fix submitted (Overall: 1.0065, +23.9%) ✅
-- **October 24, 2025:** SAM C1 training complete (Val: 0.3008, +70%!) ✅
-- **October 24, 2025:** SAM C2 training started on GPU 🔄
-- **October 25, 2025 (est):** SAM submission (Overall: <0.6 target) 🎯
-- **November 2, 2025:** Competition deadline
-
----
-
-## 🤝 Contributing
-
-This is a competition submission repository. Contributions are not currently accepted.
-
----
-
-## 📄 License
-
-MIT License - See LICENSE file for details
+**Archives:**
+- `docs/archive/` - Historical documentation
+- `docs/status-reports/` - Progress reports
+- `docs/strategies/` - Strategy evolution
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **NeurIPS 2025 EEG Foundation Challenge** organizers
-- **Healthy Brain Network** for the dataset
-- **Braindecode** library for baseline models
-- **PyTorch** and **MNE-Python** communities
+- NeurIPS 2025 EEG Challenge organizers
+- Braindecode team (EEGNeX architecture)
+- MNE-Python (EEG preprocessing)
+- PyTorch community
 
 ---
 
-## 📧 Contact
+## 📝 License
 
-For questions about this implementation, please open an issue on GitHub.
-
-For competition-related questions, refer to the [official competition website](https://eeg2025.github.io/).
+MIT License - See LICENSE file
 
 ---
 
-**Last Updated:** October 19, 2025  
-**Status:** Challenge 1 Ready | Challenge 2 Training | Repository Organized
+**Last Updated:** November 1, 2025, 2:15 PM  
+**Status:** V12 Verified and Ready for Upload 🚀  
+**Competition:** https://www.codabench.org/competitions/3350/
+
+---

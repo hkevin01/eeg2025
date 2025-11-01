@@ -1,0 +1,30 @@
+{
+  "submission_dir": "submissions/phase1_v9",
+  "checks_passed": 14,
+  "warnings": 2,
+  "errors": 0,
+  "passed": true,
+  "details": {
+    "checks_passed": [
+      "Directory exists: submissions/phase1_v9",
+      "Found submission.py (0.01 MB)",
+      "Found weights_challenge_1.pt (0.30 MB)",
+      "Found weights_challenge_2.pt (0.74 MB)",
+      "No unwanted files found",
+      "Python syntax is valid",
+      "submission.py imports successfully",
+      "Found class definition: CompactResponseTimeCNN",
+      "Found class import: EEGNeX",
+      "weights_challenge_1.pt is valid (state dict)",
+      "weights_challenge_2.pt is valid (checkpoint format)",
+      "Size within limit (0.94 MB < 100 MB)",
+      "Zip structure is correct (flat, no nested directories)",
+      "All required files present in zip"
+    ],
+    "warnings": [
+      "Extra file: VALIDATION_REPORT.json (not required, may cause issues)",
+      "Function not found: predict() (may be auto-called)"
+    ],
+    "errors": []
+  }
+}
