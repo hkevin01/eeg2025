@@ -9,6 +9,7 @@ Expected: C1 1.00019, C2 1.00049, Overall 1.00034
 import torch
 import torch.nn as nn
 from pathlib import Path
+import numpy as np
 
 
 def resolve_path(filename):
@@ -172,9 +173,17 @@ class Submission:
         """
         model = self.get_model_challenge_1()
         
+        # Convert numpy to torch if needed
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X).float()
+        
         with torch.no_grad():
             X = X.to(self.device)
             predictions = model(X).squeeze(-1)
+            
+        # Convert back to numpy
+        if isinstance(predictions, torch.Tensor):
+            predictions = predictions.cpu().numpy()
             
         return predictions
 
@@ -191,6 +200,10 @@ class Submission:
         """
         models = self.get_models_challenge_2()
         
+        # Convert numpy to torch if needed
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X).float()
+        
         with torch.no_grad():
             X = X.to(self.device)
             
@@ -202,6 +215,10 @@ class Submission:
             
             # Average predictions
             predictions = torch.stack(preds).mean(dim=0)
+        
+        # Convert back to numpy
+        if isinstance(predictions, torch.Tensor):
+            predictions = predictions.cpu().numpy()
             
         return predictions
 
