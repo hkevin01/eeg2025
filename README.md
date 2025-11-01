@@ -1222,38 +1222,157 @@ Total              ~1.5e-4
 
 ---
 
-## 🏆 Competition Insights
+## 🏆 Competition Context & Performance Gap
 
-### Top Performers (Leaderboard)
-- Best C1: 0.89854 (incredible!)
-- Best Overall: 0.97367
-- Our target: Break into top 50 (#50/150)
+### Leaderboard Analysis
 
-### What We Learned About Top Solutions
-- Likely using much more sophisticated ensembles
-- Possibly different architectures entirely
-- May have better data preprocessing pipelines
-- Probably extensive hyperparameter optimization
+| Position | C1 Score | C2 Score | Overall | Gap to Our V10 |
+|----------|----------|----------|---------|----------------|
+| Top 1 | 0.89854 | - | 0.97367 | -0.027 (-2.7%) |
+| Top 10 | ~0.92-0.95 | - | ~0.98-0.99 | -0.01 to -0.02 |
+| **Our V10** | **1.00019** | **1.00066** | **1.00052** | **Baseline** |
+| Rank #72 | - | - | - | - |
 
-### Our Competitive Advantage
-- Fast iteration (11 min training vs hours)
-- Systematic variance reduction approach
-- Comprehensive verification before upload
-- Strong understanding of tiny margins
+### Performance Gap Analysis
 
-### Our Challenges
-- Limited compute (CPU training, unstable GPU)
-- Competition platform compatibility issues
-- Late discovery of 1.9e-4 margin constraint
-- V12 submission failure setback
+To reach top 10 performance:
+- Need: ~0.01-0.02 (1-2%) improvement
+- Current approach: Variance reduction (expected ~0.0002 or 0.02%)
+- Gap indicates: Architectural or preprocessing differences likely needed
+
+### Top Performer Characteristics (Estimated)
+
+Possible distinguishing factors:
+- Advanced ensemble techniques (10+ models)
+- Different preprocessing approaches (filtering, artifact removal)
+- Alternative architectures (Transformers, Graph Neural Networks)
+- Extensive hyperparameter optimization
+- Cross-dataset pretraining
+
+### Our Approach Strengths
+
+| Strength | Value |
+|----------|-------|
+| Iteration speed | 11 min training (C1 5-seed) vs typical 40+ hours |
+| Systematic methodology | Documented variance reduction strategy |
+| Robust validation | Comprehensive pre-upload testing |
+| Reproducibility | All experiments documented and versioned |
+
+### Constraints
+
+| Constraint | Impact |
+|-----------|--------|
+| Compute resources | CPU training, AMD GPU instability |
+| Time limitations | Competition deadline approaching |
+| Platform compatibility | V12 PyTorch version issues |
+| Knowledge gap | Top performer techniques unknown |
 
 ---
 
-**Last Updated:** November 1, 2025, 3:00 PM  
-**Status:** V12 failed, V13 in development, learning and iterating  
-**Next Milestone:** V13 submission with robust compatibility
+## 📚 Documentation & Resources
+
+### Competition Materials
+- **Competition Page:** https://www.codabench.org/competitions/3350/
+- **Competition Rules:** Per official documentation
+- **Metric Definition:** NRMSE normalized to baseline performance
+- **Submission Format:** NumPy arrays via Submission class API
+
+### Project Documentation
+- **Technical Lessons:** `memory-bank/lessons-learned.md` (591 lines, 10 core lessons)
+- **Variance Reduction Strategy:** `docs/C1_VARIANCE_REDUCTION_PLAN.md`
+- **Verification Report:** `docs/V12_VERIFICATION_REPORT.md`
+- **Session Summaries:** `docs/SESSION_SUMMARY_NOV1.md`
+- **Upload Instructions:** `V13_UPLOAD_READY.md`
+
+### External References
+- **MNE-Python:** EEG preprocessing library
+- **braindecode:** EEG deep learning models (EEGNeX)
+- **PyTorch:** Deep learning framework
+- **Competition Papers:** NeurIPS 2025 EEG Foundation Model research
 
 ---
 
-*This README documents our complete competition journey - the successes, failures, pivots, and lessons learned. Every setback taught us something valuable about ML competitions, EEG analysis, and building robust submission pipelines.*
+## 📈 Current Status & Next Steps
+
+### Status Summary (November 1, 2025, 3:00 PM)
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| V10 Submission | ✅ Live | Score 1.00052, Rank #72/150 |
+| V11 Package | 📦 Ready | V10 C1 + 2-seed C2 |
+| V11.5 Package | 📦 Ready | 5-seed C1 + 2-seed C2 |
+| V12 Submission | ❌ Failed | PyTorch compatibility issue |
+| V13 Package | 🚀 Ready | Fixed + tested, 6.1 MB |
+| Documentation | ✅ Complete | README + memory bank + reports |
+
+### Immediate Next Steps
+
+1. **Upload V13** (Priority: High)
+   - Fixed PyTorch compatibility
+   - Full variance reduction stack
+   - Expected score: ~1.00030
+
+2. **Monitor Results** (2 hours)
+   - Ingestion phase: 5-10 min
+   - Scoring phase: 10-20 min
+   - Download results for analysis
+
+3. **Post-Upload Analysis**
+   - Compare actual vs expected performance
+   - Analyze variance reduction effectiveness
+   - Update documentation with results
+
+### Contingency Plans
+
+**If V13 succeeds:**
+- Document actual performance gains
+- Consider additional variance reduction (more seeds, more TTA)
+- Research architectural improvements for larger gains
+
+**If V13 fails:**
+- Upload V11 (simpler, proven V10-based)
+- Analyze V13 failure mode
+- Consider braindecode dependency issues
+
+**If V13 underperforms expectations:**
+- Compare to V10 baseline
+- Analyze which components helped/hurt
+- Upload V11.5 for controlled comparison
+
+---
+
+## 🎯 Repository Purpose Summary
+
+This repository serves three primary purposes:
+
+1. **Competition Participation:** Complete pipeline for NeurIPS 2025 EEG Foundation Challenge
+2. **Technical Documentation:** Comprehensive record of approaches, results, and learnings
+3. **Future Reference:** Reusable components and lessons for future ML competitions
+
+### Key Contributions
+
+- **Preprocessing Pipeline:** HDF5-based efficient EEG data loading (10x speedup)
+- **Model Architecture:** EnhancedCompactCNN with spatial attention (120K params, 2 min training)
+- **Variance Reduction:** Systematic approach with multi-seed + TTA + calibration
+- **Testing Framework:** Comprehensive pre-upload validation suite
+- **Documentation:** 1,200+ lines covering technical details, lessons, and strategy
+
+### For Future Users
+
+This repository provides:
+- Working EEG preprocessing code (MNE-Python + HDF5)
+- Compact CNN architecture for EEG (proven effective)
+- Competition submission template (API compliance)
+- Verification testing framework (avoid common pitfalls)
+- Documented lessons (10 core insights for ML competitions)
+
+---
+
+**Last Updated:** November 1, 2025, 3:30 PM  
+**Status:** V13 ready for upload, comprehensive documentation complete  
+**Next Milestone:** V13 submission and results analysis  
+
+**Repository maintained by:** hkevin01  
+**Competition:** NeurIPS 2025 EEG Foundation Challenge  
+**Goal:** Advance EEG foundation models for cognitive and clinical applications
 
