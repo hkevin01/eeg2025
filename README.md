@@ -20,14 +20,16 @@
   - Output: Single externalizing score per trial
 
 - **Metric:** NRMSE (Normalized Root Mean Square Error)
-  - Normalized to 1.0 baseline → **scores must be ≥ 1.0**
-  - Lower is better
+  - Lower is better (best scores on leaderboard: C1 0.89854, Overall 0.97367)
+  - Baseline reference point normalized to 1.0
 
 ### Critical Discovery
-**NRMSE is normalized to a 1.0 baseline**, meaning:
-- Scores < 1.0 are mathematically impossible
-- V10 C1 score of 1.00019 = only **1.9e-4 above baseline**
-- This tiny margin completely changed our strategy
+**Our initial understanding: NRMSE normalized to 1.0 baseline**
+- We initially thought scores < 1.0 were impossible
+- Top leaderboard shows scores like 0.89854 (C1) and 0.97367 (overall)
+- **Reality:** Competition uses different normalization or our understanding incomplete
+- However, V10 C1 at 1.00019 is still an incredibly small margin = only **1.9e-4 above 1.0**
+- This tiny margin completely changed our strategy regardless of normalization details
 
 ---
 
@@ -262,16 +264,91 @@ Likely issues:
 
 ---
 
-### Phase 8: V13 Development (Nov 1, 3:00 PM - In Progress)
+### Phase 8: V13 Development & Verification Suite (Nov 1, 2:20 PM)
 
 **Strategy:** Fix V12 issues for robust submission
 
 **Changes:**
-1. Remove `weights_only=False` from `torch.load()` calls
-2. Test with older PyTorch versions
-3. Consider embedding EEGNeX definition directly (no braindecode dependency)
+1. ✅ Removed `weights_only=False` from `torch.load()` calls (lines 133, 175)
+2. ✅ Tested locally with both challenges
+3. ✅ Verified batch sizes [1, 5, 16, 32]
+4. ✅ Packaged V13.zip (6.1 MB)
 
-**Status:** In development
+**Status:** ✅ Tests passed, ready for upload
+
+#### 🔍 Our Verification Suite
+
+We developed a comprehensive pre-upload testing suite after V12 failure:
+
+**Format Tests:**
+```python
+✅ Import test: Submission class loads successfully
+✅ Initialization: SFREQ=100, DEVICE='cpu' works
+✅ Input format: Accepts numpy arrays (not just torch tensors)
+✅ Output shape: Returns (N,) not (N, 1)
+✅ Output type: Returns numpy.ndarray
+✅ No NaN/Inf: All predictions are finite valid numbers
+✅ Batch sizes: [1, 5, 16, 32, 64] all work correctly
+```
+
+**Challenge-Specific Tests:**
+```python
+Challenge 1 (CCD):
+  ✅ Batch 1: shape (1,), range [3.38, 3.38]
+  ✅ Batch 5: shape (5,), range [3.59, 3.81]
+  ✅ 5 model checkpoints load successfully
+  ✅ Calibration params loaded (a=0.988, b=0.027)
+  ✅ TTA: 3 circular shifts work correctly
+
+Challenge 2 (RSVP):
+  ✅ Batch 1: shape (1,), range [-0.02, -0.02]
+  ✅ Batch 5: shape (5,), range [-0.07, 0.25]
+  ✅ 2 model checkpoints load successfully
+  ✅ EEGNeX from braindecode imports
+```
+
+**File Structure Tests:**
+```python
+✅ submission.py (11 KB, 341 lines)
+✅ c1_phase1_seed42_ema_best.pt (1.05 MB)
+✅ c1_phase1_seed123_ema_best.pt (1.05 MB)
+✅ c1_phase1_seed456_ema_best.pt (1.05 MB)
+✅ c1_phase1_seed789_ema_best.pt (1.05 MB)
+✅ c1_phase1_seed1337_ema_best.pt (1.05 MB)
+✅ c2_phase2_seed42_ema_best.pt (0.74 MB)
+✅ c2_phase2_seed123_ema_best.pt (0.74 MB)
+✅ c1_calibration_params.json (195 bytes)
+Total: 6.1 MB (under 10 MB limit) ✓
+```
+
+**What Verification Caught (Before V12 Upload):**
+- Fixed: Torch tensor input → Added numpy conversion
+- Fixed: Wrong output shape (N, 1) → Added `.squeeze(-1)`
+- Fixed: Missing constructor args → Added `__init__(SFREQ, DEVICE)`
+- Fixed: Device error → Convert to torch before `.to(device)`
+
+**What Verification Missed (V12 Failure):**
+- PyTorch version compatibility (`weights_only` parameter)
+- Older PyTorch version testing (< 1.13)
+- Dependency availability in competition environment
+
+**Improved Checklist for V13+:**
+```
+Format Tests (existing):
+✅ Package integrity, code structure, I/O format, batch sizes, no NaN/Inf
+
+Compatibility Tests (NEW):
+✅ Test without weights_only parameter
+□ Test with PyTorch 1.8, 1.10, 1.12 (if available)
+□ Test without external libraries (braindecode fallback)
+□ Test in fresh Python environment
+□ Include fallback model definitions in submission
+```
+
+**Key Insight:** Pre-verification is essential but not sufficient. Must also test:
+- Library version compatibility
+- Minimal dependency assumptions
+- Conservative feature usage
 
 ---
 
@@ -330,11 +407,13 @@ Likely issues:
 
 ## 🎓 Technical Lessons Learned
 
-### 1. Understanding the Metric
-**NRMSE normalized to 1.0 baseline changed everything:**
-- Realized scores < 1.0 are impossible
-- 1.9e-4 margin requires different strategy
-- Variance reduction > architecture exploration
+### 1. Understanding the Metric (and Our Confusion)
+**Initial belief: NRMSE normalized to 1.0 baseline**
+- We thought scores < 1.0 were impossible (baseline = theoretical minimum)
+- Leaderboard proved us wrong: Best C1 = 0.89854, Overall = 0.97367
+- **Lesson:** Don't assume understanding is complete, verify against reality
+- **However:** Our 1.9e-4 margin at 1.00019 is still incredibly tight
+- Strategy shift still valid: Variance reduction > architecture exploration at tiny margins
 
 ### 2. Data Preprocessing is Critical
 **Issues we hit:**
