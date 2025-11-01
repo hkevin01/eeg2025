@@ -1290,14 +1290,22 @@ checkpoint = torch.load(weights_path, map_location=device, weights_only=False)
 **Compatibility Testing Gaps:**
 - Format validation performed (passed)
 - PyTorch version compatibility not tested
-- braindecode availability not verified
-- Dependency version assumptions not validated
+- ~~braindecode availability not verified~~ → **NOW VERIFIED** (see DEPENDENCY_VERIFICATION.md)
+- ~~Dependency version assumptions not validated~~ → **NOW DOCUMENTED** (see requirements-submission.txt)
+
+**Verified Dependencies (Nov 1, 2025):**
+- ✅ **PyTorch 2.5.1+rocm6.2** - Local, supports `weights_only=False`
+- ✅ **braindecode 1.2.0** - Local, EEGNeX available
+- ✅ **NumPy 1.26.4** - Compatible
+- ⚠️ **Competition platform:** braindecode likely available (V10 works) but NOT OFFICIALLY VERIFIED
+- 📄 **Full report:** See `DEPENDENCY_VERIFICATION.md`
 
 **Corrective Actions for V13:**
-- Remove `weights_only` parameter from all `torch.load()` calls
-- Use conservative PyTorch API (compatible with 1.8+)
-- Test with minimal dependencies
-- Verify against competition requirements
+- ~~Remove `weights_only` parameter~~ → **INCORRECT FIX** (V10 uses it successfully)
+- Use `weights_only=False` (V10 proven approach)
+- Added braindecode to requirements.txt
+- Created requirements-submission.txt (minimal dependencies)
+- Documented dependency verification status
 
 ---
 

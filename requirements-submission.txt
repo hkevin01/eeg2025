@@ -1,0 +1,21 @@
+# Minimal Requirements for Competition Submission
+# These are the ONLY dependencies used in submission.py
+# Last verified: November 1, 2025
+
+# Core Dependencies (submission runtime)
+torch>=1.13.0,<3.0.0     # Neural network framework (weights_only param requires 1.13+)
+numpy>=1.20.0,<2.0.0     # Array operations (avoid NumPy 2.0 breaking changes)
+
+# EEG-Specific (Challenge 2 only)
+braindecode>=0.8.0,<2.0.0  # EEGNeX model for Challenge 2
+                            # WARNING: Availability on competition platform NOT VERIFIED
+                            # V10 success suggests it IS available
+
+# Optional (if needed by platform)
+scikit-learn>=1.0.0      # Ridge regression for calibration (V13 only)
+
+# Notes:
+# - Python 3.8+ required (competition likely uses 3.8-3.11)
+# - pathlib, json are standard library (no install needed)
+# - V10 submission works, suggesting these are available on platform
+# - braindecode is CRITICAL - if unavailable, need fallback version

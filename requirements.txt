@@ -9,6 +9,8 @@ pyyaml>=6.0
 # EEG/Neuroimaging
 mne>=1.5.0
 mne-bids>=0.13.0
+braindecode>=0.8.0  # EEG-specific deep learning models (EEGNeX) - CRITICAL for Challenge 2
+h5py>=3.8.0  # HDF5 file I/O for dataset storage
 pyedflib>=0.1.30
 pybv>=0.7.5
 
