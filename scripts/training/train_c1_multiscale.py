@@ -357,19 +357,34 @@ def train_model(seed=42):
     device = CONFIG['device']
     
     # Load data
-    train_paths = [
-        '/home/kevin/Projects/eeg2025/data/challenge_1/challenge1_data_train.h5',
-        '/home/kevin/Projects/eeg2025/data/challenge_1/challenge1_data_val.h5',
+    h5_files = [
+        'data/cached/challenge1_R1_windows.h5',
+        'data/cached/challenge1_R2_windows.h5',
+        'data/cached/challenge1_R3_windows.h5',
+        'data/cached/challenge1_R4_windows.h5'
     ]
-    test_path = '/home/kevin/Projects/eeg2025/data/challenge_1/challenge1_data_test.h5'
     
-    train_dataset = AdvancedH5Dataset(train_paths, augment=True)
-    test_dataset = AdvancedH5Dataset([test_path], augment=False)
+    dataset = AdvancedH5Dataset(h5_files, augment=False)
+    
+    # Split train/val 80/20
+    train_size = int(0.8 * len(dataset))
+    val_size = len(dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(
+        dataset, [train_size, val_size],
+        generator=torch.Generator().manual_seed(CONFIG['seed'])
+    )
+    
+    # Enable augmentation for train set
+    dataset.augment = True
     
     train_loader = DataLoader(train_dataset, batch_size=CONFIG['batch_size'],
                              shuffle=True, num_workers=4, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=CONFIG['batch_size'],
+    test_loader = DataLoader(val_dataset, batch_size=CONFIG['batch_size'],
                             shuffle=False, num_workers=4, pin_memory=True)
+    
+    print(f"\n📊 Dataset split:")
+    print(f"   Train: {len(train_dataset):,} samples")
+    print(f"   Val: {len(val_dataset):,} samples")
     
     # Create model
     model = MultiScaleCNN(

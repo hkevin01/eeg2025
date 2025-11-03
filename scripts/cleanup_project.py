@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Comprehensive Project Cleanup and Organization Script
-Organizes files by type and moves them to appropriate directories
+EEG2025 Project Cleanup and Reorganization Script
+Removes excessive documentation and reorganizes project structure
 """
 
 import os
@@ -9,275 +9,288 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-# Project root
+# Root directory
 ROOT = Path("/home/kevin/Projects/eeg2025")
 
-# File categories
-CATEGORIES = {
-    "status_docs": {
-        "patterns": [
-            "C2_*STATUS*.md", "C2_*COMPLETE*.md", "TRAINING_*STATUS*.md",
-            "STATUS_*.md", "SESSION_*SUMMARY*.md", "FINAL_*STATUS*.md",
-            "FINAL_*SUMMARY*.md", "ITERATION_COMPLETE*.md", "OVERNIGHT_PLAN.md",
-            "ROOT_CAUSE_FOUND.md", "ENSEMBLE_*ANALYSIS*.md", "INVESTIGATION_*.md",
-            "TRAINING_*SUMMARY*.md", "TRAINING_*RESULTS*.md", "TRAINING_*COMPARISON*.md"
-        ],
-        "destination": "archive/status_reports"
-    },
-    "submission_docs": {
-        "patterns": [
-            "SUBMISSION_*.md", "V*_SUBMISSION_*.md", "*_SUBMISSION_READY.md",
-            "V*_SUCCESS_REPORT.md"
-        ],
-        "destination": "archive/submissions"
-    },
-    "strategy_docs": {
-        "patterns": [
-            "*_STRATEGY*.md", "*_PLAN*.md", "ACTION_PLAN_*.md", 
-            "TOP3_*.md", "DUAL_*.md", "AGGRESSIVE_*.md"
-        ],
-        "destination": "docs/strategy"
-    },
-    "training_logs": {
-        "patterns": [
-            "training_*.log", "*.log"
-        ],
-        "destination": "logs/archive"
-    },
-    "training_scripts": {
-        "patterns": [
-            "train_c1_*.py", "train_c2_*.py", "finetune_*.py", 
-            "ssl_pretrain*.py", "extract_*.py"
-        ],
-        "destination": "scripts/training"
-    },
-    "submission_scripts": {
-        "patterns": [
-            "submission_*.py", "create_submission*.py", "create_ensemble*.py"
-        ],
-        "destination": "scripts/submissions"
-    },
-    "monitoring_scripts": {
-        "patterns": [
-            "monitor_*.sh", "watch_*.sh", "morning_*.sh", "verify_*.sh",
-            "run_training.sh", "start_*.sh"
-        ],
-        "destination": "scripts/monitoring"
-    },
-    "old_zips": {
-        "patterns": [
-            "*_result_*.zip", "submission_*_downloaded.zip"
-        ],
-        "destination": "archive/old_submissions"
-    },
-    "metadata_files": {
-        "patterns": [
-            "metadata", "scores.json"
-        ],
-        "destination": "archive/misc"
-    }
+# Files to KEEP (essential docs)
+KEEP_DOCS = {
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
 }
 
-# Files to keep in root (important docs)
-KEEP_IN_ROOT = [
-    "README.md", "LICENSE", "Makefile", "pyproject.toml",
-    "setup.py", "requirements.txt", "requirements-dev.txt",
-    ".env", ".gitignore", ".editorconfig"
+# Files to REMOVE (AI session artifacts, redundant docs)
+REMOVE_PATTERNS = [
+    "*SUMMARY*.md",
+    "*SESSION*.md",
+    "*ANALYSIS*.md",
+    "*STRATEGY*.md",
+    "*PROGRESS*.md",
+    "*STATUS*.md",
+    "*COMPLETE*.md",
+    "*READY*.md",
+    "*QUICKSTART*.md",
+    "*GUIDE*.md",
+    "*TODO*.md",
+    "*FAILURE*.md",
+    "*BREAKTHROUGH*.md",
+    "*IMPROVEMENT*.md",
+    "*UPLOAD*.md",
+    "*SUBMISSION*.md",
+    "*ENHANCEMENT*.md",
+    "*VERIFICATION*.md",
+    "*CHECKLIST*.md",
+    "*DEPENDENCY*.md",
+    "*TRAINING*.md",
+    "*NEXT_STEPS*.md",
+    "*QUICK_REF*.md",
+    "*START_HERE*.md",
+    "C1_*.md",
+    "V1*.md",
 ]
 
-# Current submission to keep
-KEEP_CURRENT = [
-    "phase1_v9_submission.zip"
+# Scripts to move to scripts/training/
+TRAINING_SCRIPTS = [
+    "train_c1_multiseed_v16.py",
+    "train_c1_quick_test.py",
 ]
 
-def create_directories():
-    """Create all necessary directories"""
-    print("📁 Creating directory structure...")
-    for category, config in CATEGORIES.items():
-        dest = ROOT / config["destination"]
-        dest.mkdir(parents=True, exist_ok=True)
-        print(f"   ✓ {config['destination']}")
+# Scripts to move to scripts/submission/
+SUBMISSION_SCRIPTS = [
+    "create_v15_submission.py",
+    "create_v16_submission.py",
+]
 
-def should_keep_in_root(filename):
-    """Check if file should stay in root"""
-    return filename in KEEP_IN_ROOT or filename in KEEP_CURRENT
+# Temporary/build files to remove
+TEMP_FILES = [
+    "*.pyc",
+    "__pycache__",
+    "*.patch",
+    "*EVAL_RESULTS.txt",
+]
 
-def match_pattern(filename, pattern):
-    """Simple pattern matching"""
-    from fnmatch import fnmatch
-    return fnmatch(filename, pattern)
+def create_archive_folder():
+    """Create archive folder with timestamp"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    archive_path = ROOT / "archive" / f"cleanup_{timestamp}"
+    archive_path.mkdir(parents=True, exist_ok=True)
+    return archive_path
 
-def organize_files():
-    """Organize files by category"""
-    print("\n📦 Organizing files...")
+def archive_file(file_path, archive_root):
+    """Move file to archive"""
+    rel_path = file_path.relative_to(ROOT)
+    dest = archive_root / rel_path
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(file_path), str(dest))
+    return dest
+
+def clean_root_md_files(archive_root):
+    """Remove excessive .md files from root"""
+    print("\n�� Cleaning root .md files...")
+    removed_count = 0
     
-    moved_count = 0
-    skipped_count = 0
+    for pattern in REMOVE_PATTERNS:
+        for md_file in ROOT.glob(pattern):
+            if md_file.is_file() and md_file.name not in KEEP_DOCS:
+                dest = archive_file(md_file, archive_root)
+                print(f"   Archived: {md_file.name} -> archive/")
+                removed_count += 1
     
-    # Get all files in root
-    root_files = [f for f in os.listdir(ROOT) if os.path.isfile(ROOT / f)]
+    print(f"   ✅ Archived {removed_count} excessive .md files")
+    return removed_count
+
+def reorganize_scripts(archive_root):
+    """Move scripts to appropriate folders"""
+    print("\n📜 Reorganizing scripts...")
+    moved = 0
     
-    for filename in root_files:
-        # Skip files that should stay in root
-        if should_keep_in_root(filename):
+    # Training scripts
+    training_dir = ROOT / "scripts" / "training"
+    training_dir.mkdir(parents=True, exist_ok=True)
+    for script in TRAINING_SCRIPTS:
+        src = ROOT / script
+        if src.exists():
+            dest = training_dir / script
+            shutil.move(str(src), str(dest))
+            print(f"   Moved: {script} -> scripts/training/")
+            moved += 1
+    
+    # Submission scripts
+    submission_dir = ROOT / "scripts" / "submission"
+    submission_dir.mkdir(parents=True, exist_ok=True)
+    for script in SUBMISSION_SCRIPTS:
+        src = ROOT / script
+        if src.exists():
+            dest = submission_dir / script
+            shutil.move(str(src), str(dest))
+            print(f"   Moved: {script} -> scripts/submission/")
+            moved += 1
+    
+    print(f"   ✅ Moved {moved} scripts to organized folders")
+    return moved
+
+def clean_temp_files():
+    """Remove temporary and build files"""
+    print("\n🧹 Cleaning temporary files...")
+    removed = 0
+    
+    for pattern in TEMP_FILES:
+        for temp_file in ROOT.glob(pattern):
+            if temp_file.is_file():
+                temp_file.unlink()
+                print(f"   Removed: {temp_file.name}")
+                removed += 1
+            elif temp_file.is_dir() and temp_file.name == "__pycache__":
+                shutil.rmtree(temp_file)
+                print(f"   Removed: {temp_file.name}/")
+                removed += 1
+    
+    print(f"   ✅ Removed {removed} temporary files")
+    return removed
+
+def ensure_structure():
+    """Ensure proper project structure exists"""
+    print("\n📁 Ensuring proper project structure...")
+    
+    required_dirs = [
+        "src",
+        "tests", 
+        "docs",
+        "config",
+        "scripts",
+        "scripts/training",
+        "scripts/submission",
+        "scripts/infrastructure",
+        "data",
+        "checkpoints",
+        "logs",
+        "submissions",
+        "archive",
+    ]
+    
+    created = 0
+    for dir_name in required_dirs:
+        dir_path = ROOT / dir_name
+        if not dir_path.exists():
+            dir_path.mkdir(parents=True, exist_ok=True)
+            print(f"   Created: {dir_name}/")
+            created += 1
+    
+    if created == 0:
+        print(f"   ✅ All required directories exist")
+    else:
+        print(f"   ✅ Created {created} directories")
+    
+    return created
+
+def clean_archive_folder():
+    """Clean up old archive folders, keep only essential"""
+    print("\n🗄️  Cleaning archive folder...")
+    
+    archive_dir = ROOT / "archive"
+    if not archive_dir.exists():
+        return 0
+    
+    # Keep these important archive items
+    keep_items = {
+        "COMPETITION_RULES.md",
+        "README.md",
+        "docs",
+        "weights",
+    }
+    
+    removed = 0
+    for item in archive_dir.iterdir():
+        if item.name not in keep_items and item.name.startswith("cleanup_"):
+            # These are our new cleanup archives, keep them
             continue
-            
-        # Find matching category
-        moved = False
-        for category, config in CATEGORIES.items():
-            for pattern in config["patterns"]:
-                if match_pattern(filename, pattern):
-                    source = ROOT / filename
-                    dest_dir = ROOT / config["destination"]
-                    dest = dest_dir / filename
-                    
-                    # Don't overwrite existing files
-                    if dest.exists():
-                        print(f"   ⚠️  Skipping {filename} (already exists in {config['destination']})")
-                        skipped_count += 1
-                    else:
-                        shutil.move(str(source), str(dest))
-                        print(f"   ✓ {filename} → {config['destination']}")
-                        moved_count += 1
-                    
-                    moved = True
-                    break
-            
-            if moved:
-                break
+        
+        if item.name not in keep_items:
+            if item.name.startswith(("old_", "README_OLD", "SESSION_", "SUBMISSION_", "TRAINING_")):
+                if item.is_file():
+                    item.unlink()
+                else:
+                    shutil.rmtree(item)
+                print(f"   Removed: archive/{item.name}")
+                removed += 1
     
-    print(f"\n✅ Moved {moved_count} files, skipped {skipped_count} files")
+    print(f"   ✅ Cleaned {removed} items from archive/")
+    return removed
 
-def clean_pycache():
-    """Remove __pycache__ directories"""
-    print("\n🧹 Cleaning __pycache__ directories...")
-    count = 0
-    for root, dirs, files in os.walk(ROOT):
-        if "__pycache__" in dirs:
-            pycache_path = os.path.join(root, "__pycache__")
-            shutil.rmtree(pycache_path)
-            count += 1
-            print(f"   ✓ Removed {pycache_path}")
-    print(f"✅ Removed {count} __pycache__ directories")
-
-def create_index():
-    """Create directory index"""
-    print("\n📋 Creating directory index...")
+def create_docs_readme():
+    """Create a clean docs/README.md"""
+    docs_dir = ROOT / "docs"
+    docs_dir.mkdir(exist_ok=True)
     
-    index_content = f"""# EEG2025 Project Directory Structure
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    readme = docs_dir / "README.md"
+    if not readme.exists():
+        content = """# EEG2025 Documentation
 
-## Root Directory
-Keep only essential files:
-- Configuration files (requirements.txt, pyproject.toml, setup.py)
-- Main documentation (README.md, LICENSE)
-- Current submission (phase1_v9_submission.zip)
+This directory contains project documentation.
 
-## Active Directories
+## Structure
 
-### `/src/` - Source Code
-Main codebase organized by functionality:
-- `models/` - Model architectures
-- `dataio/` - Data loading and processing
-- `training/` - Training infrastructure
-- `evaluation/` - Evaluation metrics
-- `gpu/` - GPU optimization
-
-### `/scripts/` - Utility Scripts
-Organized by purpose:
-- `training/` - Training scripts (train_c1_*.py, train_c2_*.py)
-- `submissions/` - Submission creation scripts
-- `monitoring/` - Monitoring and verification scripts
-- `organize_project.py` - This cleanup script
-
-### `/tests/` - Test Suite
-Unit and integration tests
-
-### `/configs/` - Configuration Files
-YAML configuration files for experiments
-
-### `/checkpoints/` - Model Checkpoints
-Saved model weights (.pt files)
-- `c1_v8_best.pt` - Best C1 model
-- `c2_phase1_best.pt` - Best C2 model
-
-### `/submissions/` - Submission Packages
-Organized competition submissions:
-- `phase1_v8/` - V8 submission (C1: 1.0002)
-- `phase1_v9/` - V9 submission (C1: 1.0002, C2: 1.0055-1.0075)
-
-### `/docs/` - Documentation
-- `strategy/` - Planning and strategy documents
+- `architecture/` - System architecture and design decisions
 - `api/` - API documentation
-- Technical documentation
+- `guides/` - User guides and tutorials
+- `development/` - Development notes and conventions
 
-### `/logs/` - Training Logs
-- Active logs in root
-- `archive/` - Historical logs
+## Quick Links
 
-## Archive Directory
-
-### `/archive/status_reports/` - Historical Status
-Training status and progress reports from past sessions
-
-### `/archive/submissions/` - Submission History
-Documentation of past submissions
-
-### `/archive/old_submissions/` - Old Submission Files
-Downloaded results and old zip files
-
-### `/archive/misc/` - Miscellaneous
-Metadata and other archived files
-
-## Ignored Directories
-(See .gitignore)
-- `/venv_*/` - Virtual environments
-- `/__pycache__/` - Python cache
-- `/.pytest_cache/` - Pytest cache
-- `/.mypy_cache/` - MyPy cache
-- `/data/` - Large datasets (not committed)
-- `/weights/` - Large weight files (not committed)
-
-## Key Files
-
-### Configuration
-- `requirements.txt` - Python dependencies
-- `pyproject.toml` - Project metadata
-- `.gitignore` - Git ignore patterns
-- `Makefile` - Build automation
-
-### Documentation
-- `README.md` - Main project documentation
-- `LICENSE` - Project license
-- `DIRECTORY_INDEX.md` - This file
-
-### Current Submission
-- `phase1_v9_submission.zip` - Latest submission package
+- [Main README](../README.md)
+- [Installation Guide](../README.md#installation)
+- [Training Guide](../README.md#training)
+- [Submission Guide](../README.md#submission)
 """
-    
-    index_path = ROOT / "DIRECTORY_INDEX.md"
-    with open(index_path, "w") as f:
-        f.write(index_content)
-    
-    print(f"✅ Created {index_path}")
+        readme.write_text(content)
+        print(f"\n📝 Created docs/README.md")
+
+def generate_report(stats):
+    """Generate cleanup report"""
+    print("\n" + "=" * 70)
+    print("📊 CLEANUP SUMMARY")
+    print("=" * 70)
+    print(f"Archived .md files:    {stats['md_files']}")
+    print(f"Moved scripts:         {stats['scripts']}")
+    print(f"Removed temp files:    {stats['temp_files']}")
+    print(f"Created directories:   {stats['dirs']}")
+    print(f"Cleaned archive items: {stats['archive_items']}")
+    print("=" * 70)
+    print("\n✅ Project cleanup complete!")
+    print(f"📦 Archived files saved in: archive/cleanup_{stats['timestamp']}/")
+    print("\n🎯 Next steps:")
+    print("   1. Review the cleaned project structure")
+    print("   2. Update README.md if needed")
+    print("   3. Commit changes to git")
+    print("=" * 70)
 
 def main():
-    print("=" * 60)
-    print("🧹 EEG2025 Project Cleanup and Organization")
-    print("=" * 60)
+    print("=" * 70)
+    print("🧹 EEG2025 Project Cleanup & Reorganization")
+    print("=" * 70)
+    print(f"📂 Working directory: {ROOT}")
+    print()
     
-    create_directories()
-    organize_files()
-    clean_pycache()
-    create_index()
+    # Create archive folder
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    archive_root = create_archive_folder()
+    print(f"📦 Archive folder: archive/cleanup_{timestamp}/")
     
-    print("\n" + "=" * 60)
-    print("✅ Cleanup complete!")
-    print("=" * 60)
-    print("\nNext steps:")
-    print("1. Review the organized structure")
-    print("2. Update .gitignore if needed")
-    print("3. Commit changes: git add . && git commit -m 'chore: organize project structure'")
+    # Perform cleanup
+    stats = {
+        'timestamp': timestamp,
+        'md_files': clean_root_md_files(archive_root),
+        'scripts': reorganize_scripts(archive_root),
+        'temp_files': clean_temp_files(),
+        'dirs': ensure_structure(),
+        'archive_items': clean_archive_folder(),
+    }
+    
+    # Create documentation
+    create_docs_readme()
+    
+    # Generate report
+    generate_report(stats)
 
 if __name__ == "__main__":
     main()
