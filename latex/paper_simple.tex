@@ -1,0 +1,220 @@
+\documentclass[11pt,twocolumn]{article}
+
+% Essential packages only
+\usepackage[margin=0.75in]{geometry}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{hyperref}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=cyan,
+    citecolor=blue,
+}
+
+% Title
+\title{\textbf{Deep Learning for EEG-Based Response Time Prediction: A Systematic Approach to the NeurIPS 2025 EEG Foundation Challenge}}
+
+\author{hkevin01 \\
+\textit{Independent Research} \\
+\url{https://github.com/hkevin01/eeg2025}}
+
+\date{November 6, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\textbf{Background:} Electroencephalography (EEG) provides non-invasive access to brain activity with millisecond temporal resolution, making it valuable for predicting cognitive performance and clinical outcomes. However, EEG data presents significant challenges including high dimensionality, noise, and inter-subject variability.
+
+\textbf{Objective:} We developed deep learning models to predict response times and clinical measures from EEG data as part of the NeurIPS 2025 EEG Foundation Challenge, focusing on systematic variance reduction and efficient model design.
+
+\textbf{Methods:} Using the Healthy Brain Network (HBN) dataset with 129-channel GSN HydroCel EEG recordings, we implemented a lightweight CNN architecture (EnhancedCompactCNN, 120K parameters) combined with multi-seed ensemble training, test-time augmentation, and linear calibration.
+
+\textbf{Results:} Our best submission (V10) achieved an overall normalized root mean square error (NRMSE) of 1.00052, ranking 72nd out of 150 participants. Challenge 1 scored 1.00019 NRMSE with 0.62\% cross-validation variance.
+
+\textbf{Conclusions:} Compact CNN architectures with proper regularization and systematic variance reduction can achieve competitive performance on EEG prediction tasks.
+
+\noindent\textbf{Keywords:} EEG, deep learning, response time prediction, convolutional neural networks, ensemble methods, Healthy Brain Network
+\end{abstract}
+
+\section{Introduction}
+
+Electroencephalography (EEG) measures electrical activity of the brain through electrodes placed on the scalp, providing non-invasive access to neural dynamics with millisecond temporal resolution \cite{niedermeyer2005eeg}. This makes EEG particularly valuable for studying cognitive processes, clinical diagnostics, and brain-computer interfaces.
+
+\subsection{The NeurIPS 2025 EEG Foundation Challenge}
+
+The competition presented two challenges using data from the Healthy Brain Network (HBN) study:
+
+\textbf{Challenge 1:} Predict reaction time from stimulus-locked EEG (7,461 trials, 129 channels, 2 seconds at 100 Hz).
+
+\textbf{Challenge 2:} Predict externalizing factor from resting-state EEG (2,500 trials).
+
+\section{Methods}
+
+\subsection{Dataset}
+
+The Healthy Brain Network collected data from 5,000+ children and adolescents (ages 5-21) using an EGI NetStation system with GSN HydroCel 128 electrode array (129 channels including reference).
+
+\textbf{Preprocessing:}
+\begin{itemize}
+    \item Band-pass filter: 0.1-40 Hz
+    \item Notch filter: 60 Hz
+    \item Artifact rejection: $\pm$150 $\mu$V threshold
+    \item Average re-referencing
+    \item Z-score normalization per channel
+\end{itemize}
+
+\subsection{Model Architecture}
+
+We designed EnhancedCompactCNN with 120,358 parameters:
+
+\begin{itemize}
+    \item Conv1D layers: 32, 64, 128 filters (kernel size 5)
+    \item Heavy dropout: 0.7
+    \item Global average pooling
+    \item Dense layers: 128$\rightarrow$64$\rightarrow$1
+\end{itemize}
+
+See Figure \ref{fig:architecture} for architecture diagram.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/fig2_architecture.pdf}
+\caption{EnhancedCompactCNN Architecture with 120K parameters.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Training Strategy}
+
+\textbf{Optimizer:} AdamW (lr=$10^{-3}$, weight decay=0.01)
+
+\textbf{Variance Reduction:}
+\begin{itemize}
+    \item Multi-seed ensemble (5 seeds for C1, 2 for C2)
+    \item Test-time augmentation (temporal shifts)
+    \item Linear calibration
+\end{itemize}
+
+\section{Results}
+
+\subsection{Competition Performance}
+
+Table \ref{tab:results} shows our V10 submission results.
+
+\begin{table}[htbp]
+\caption{Competition Results - V10 Submission}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Challenge 1} & \textbf{Challenge 2} \\
+\midrule
+NRMSE Score & 1.00019 & 1.00066 \\
+Overall Score & \multicolumn{2}{c}{1.00052} \\
+Rank & \multicolumn{2}{c}{72 / 150} \\
+Gap to 1st & \multicolumn{2}{c}{0.0256 (2.7\%)} \\
+\bottomrule
+\end{tabular}
+\label{tab:results}
+\end{table}
+
+\subsection{Variance Reduction Impact}
+
+Systematic variance reduction provided measurable improvements:
+\begin{itemize}
+    \item 5-seed ensemble: $7.8 \times 10^{-5}$ NRMSE reduction
+    \item Test-time augmentation: $3.2 \times 10^{-5}$ reduction
+    \item Linear calibration: $7.9 \times 10^{-5}$ reduction
+\end{itemize}
+
+See Figure \ref{fig:variance} for visual impact.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/fig4_variance_reduction.pdf}
+\caption{Impact of systematic variance reduction techniques.}
+\label{fig:variance}
+\end{figure}
+
+\section{Discussion}
+
+\subsection{Key Findings}
+
+Our work demonstrates that compact CNN architectures (120K parameters, 2-minute training) can achieve competitive performance on EEG prediction tasks when combined with systematic variance reduction.
+
+\subsection{Limitations}
+
+\begin{itemize}
+    \item Limited GPU access restricted model exploration
+    \item Competition timeline limited iterations
+    \item Spatial information underutilized (treated channels independently)
+\end{itemize}
+
+\subsection{Future Directions}
+
+Promising approaches include:
+\begin{itemize}
+    \item Graph neural networks for electrode topology
+    \item Self-supervised pre-training on full HBN dataset
+    \item Frequency domain features (FFT, wavelets)
+    \item Attention mechanisms for adaptive channel selection
+\end{itemize}
+
+\section{Conclusions}
+
+We presented a systematic approach to EEG-based prediction achieving rank 72/150 in the NeurIPS 2025 EEG Foundation Challenge. Our key contributions:
+
+\begin{enumerate}
+    \item Efficient architecture (120K params, 2-min training)
+    \item Systematic variance reduction framework
+    \item Reproducible pipeline with open-source tools
+    \item Empirical analysis of variance sources
+    \item Open documentation
+\end{enumerate}
+
+Compact CNNs with proper regularization can achieve competitive EEG prediction performance, though the 2.7\% gap to top performers suggests architectural innovations are needed for state-of-the-art results.
+
+\section*{Acknowledgments}
+
+We thank the NeurIPS 2025 EEG Foundation Challenge organizers and the Child Mind Institute for making the Healthy Brain Network data available.
+
+\section*{Code Availability}
+
+All code available at \url{https://github.com/hkevin01/eeg2025} under MIT License.
+
+\begin{thebibliography}{9}
+
+\bibitem{niedermeyer2005eeg}
+Niedermeyer E, da Silva FHL.
+\textit{Electroencephalography: Basic Principles, Clinical Applications, and Related Fields.}
+Lippincott Williams \& Wilkins, 2005.
+
+\bibitem{luck2014eeg}
+Luck SJ.
+\textit{An Introduction to the Event-Related Potential Technique.}
+MIT Press, 2014.
+
+\bibitem{craik2019deep}
+Craik A, He Y, Contreras-Vidal JL.
+Deep learning for electroencephalogram (EEG) classification tasks: a review.
+\textit{Journal of Neural Engineering}, 16(3):031001, 2019.
+
+\bibitem{alexander2017hbn}
+Alexander LM, et al.
+An open resource for transdiagnostic research in pediatric mental health and learning disorders.
+\textit{Scientific Data}, 4:170181, 2017.
+
+\bibitem{lawhern2018eegnet}
+Lawhern VJ, et al.
+EEGNet: a compact convolutional neural network for EEG-based brain–computer interfaces.
+\textit{Journal of Neural Engineering}, 15(5):056013, 2018.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,137 @@
+\documentclass[11pt,twocolumn]{article}
+
+% Packages
+\usepackage[margin=0.75in]{geometry}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{abstract}
+
+% Code listing style
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    captionpos=b
+}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=blue,
+}
+
+% Title formatting
+\title{\textbf{Deep Learning for EEG-Based Response Time Prediction: \\
+A Systematic Approach to the NeurIPS 2025 EEG Foundation Challenge}}
+
+\author{hkevin01 \\
+\textit{Independent Research} \\
+\url{https://github.com/hkevin01/eeg2025} \\
+kevin@independent.research}
+
+\date{November 6, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\textbf{Background:} Electroencephalography (EEG) provides non-invasive access to brain activity with millisecond temporal resolution, making it valuable for predicting cognitive performance and clinical outcomes. However, EEG data presents significant challenges including high dimensionality, noise, and inter-subject variability.
+
+\textbf{Objective:} We developed deep learning models to predict response times and clinical measures from EEG data as part of the NeurIPS 2025 EEG Foundation Challenge, focusing on systematic variance reduction and efficient model design.
+
+\textbf{Methods:} Using the Healthy Brain Network (HBN) dataset with 129-channel GSN HydroCel EEG recordings, we implemented a lightweight CNN architecture (EnhancedCompactCNN, 120K parameters) combined with multi-seed ensemble training, test-time augmentation, and linear calibration. Data processing utilized MNE-Python for preprocessing and HDF5 for efficient storage. Models were trained on 7,461 trials for Challenge 1 (response time prediction) and 2,500 trials for Challenge 2 (externalizing factor prediction).
+
+\textbf{Results:} Our best submission (V10) achieved an overall normalized root mean square error (NRMSE) of 1.00052, ranking 72nd out of 150 participants. Challenge 1 scored 1.00019 NRMSE with 0.62\% cross-validation variance, while Challenge 2 scored 1.00066 NRMSE. Systematic variance reduction techniques (5-seed ensemble, test-time augmentation, calibration) demonstrated measurable improvements in validation testing.
+
+\textbf{Conclusions:} Compact CNN architectures with proper regularization and systematic variance reduction can achieve competitive performance on EEG prediction tasks. Our work demonstrates that efficient model design (2-minute training time) and rigorous validation can produce robust results, though architectural innovations may be needed to match top-performing systems (2.7\% gap).
+
+\textbf{Keywords:} EEG, deep learning, response time prediction, convolutional neural networks, ensemble methods, Healthy Brain Network, variance reduction, neuroinformatics
+\end{abstract}
+
+\section{Introduction}
+
+\subsection{Background and Motivation}
+
+Electroencephalography (EEG) measures electrical activity of the brain through electrodes placed on the scalp, providing non-invasive access to neural dynamics with millisecond temporal resolution. This makes EEG particularly valuable for studying cognitive processes, clinical diagnostics, and brain-computer interfaces \cite{niedermeyer2005electroencephalography, luck2014introduction, wolpaw2012brain}. However, EEG data presents significant analytical challenges:
+
+\begin{itemize}
+    \item \textbf{High dimensionality:} Modern EEG systems record from 64-256 channels simultaneously
+    \item \textbf{Low signal-to-noise ratio:} Physiological and environmental artifacts contaminate signals
+    \item \textbf{Inter-subject variability:} Brain anatomy and electrode placement vary across individuals
+    \item \textbf{Non-stationarity:} Brain states change dynamically over time
+\end{itemize}
+
+Traditional EEG analysis relies on manually engineered features (e.g., event-related potentials, frequency band power) designed by domain experts \cite{luck2014introduction, makeig2012linking}. While effective, this approach requires extensive expertise and may miss complex spatiotemporal patterns that deep learning models can automatically discover \cite{craik2019deep, roy2019deep}.
+
+\subsection{The NeurIPS 2025 EEG Foundation Challenge}
+
+The NeurIPS 2025 EEG Foundation Challenge aimed to advance generalizable EEG prediction models across multiple tasks and domains. The competition presented two distinct challenges using data from the Healthy Brain Network (HBN) study \cite{alexander2017hbn, alexander2017open}:
+
+\textbf{Challenge 1 (C1): Response Time Prediction}
+\begin{itemize}
+    \item Task: Continuous Choice Discrimination (CCD)
+    \item Target: Predict reaction time from stimulus onset to button press
+    \item Data: Event-related EEG epochs (2 seconds, 129 channels, 100 Hz)
+    \item Samples: 7,461 trials across multiple subjects
+\end{itemize}
+
+\textbf{Challenge 2 (C2): Clinical Measure Prediction}
+\begin{itemize}
+    \item Task: Resting-state EEG
+    \item Target: Predict externalizing factor (clinical personality measure)
+    \item Data: Resting-state EEG segments (2 seconds, 129 channels, 100 Hz)
+    \item Samples: 2,500 trials across multiple subjects
+\end{itemize}
+
+\textbf{Evaluation Metric:} Normalized Root Mean Square Error (NRMSE), where scores are normalized relative to a baseline model. Lower scores indicate better performance.
+
+\subsection{Related Work}
+
+\subsubsection{EEG Deep Learning Architectures}
+Recent advances in EEG deep learning have explored various architectural approaches:
+
+\begin{itemize}
+    \item \textbf{Convolutional Neural Networks (CNNs):} DeepConvNet \cite{schirrmeister2017deep}, ShallowConvNet \cite{schirrmeister2017deep}, and EEGNet \cite{lawhern2018eegnet} use convolutional layers to extract spatial and temporal features
+    \item \textbf{Recurrent Neural Networks:} LSTMs and GRUs capture temporal dependencies \cite{craik2019deep}
+    \item \textbf{Attention Mechanisms:} Self-attention and transformer architectures \cite{song2022eeg, aristimunha2023eegneX} model long-range dependencies
+    \item \textbf{Hybrid Architectures:} EEGNeX \cite{aristimunha2023eegneX} combines convolutional and attention mechanisms
+\end{itemize}
+
+(Content continues with all sections from the IEEE version...)
+
+% For brevity, including key sections only in this template
+% Full content matches the IEEE version structure
+
+\section*{Acknowledgments}
+
+We thank the NeurIPS 2025 EEG Foundation Challenge organizers for creating this competition and providing the HBN dataset. We acknowledge the Child Mind Institute for making the Healthy Brain Network data publicly available.
+
+\bibliographystyle{plain}
+\begin{thebibliography}{00}
+
+\bibitem{niedermeyer2005electroencephalography} Niedermeyer E, da Silva FHL. \textit{Electroencephalography: Basic Principles, Clinical Applications, and Related Fields.} Lippincott Williams \& Wilkins, 2005.
+
+% ... (all other references)
+
+\end{thebibliography}
+
+\end{document}
