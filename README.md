@@ -148,17 +148,17 @@ trial_data = {
 
 ### Data Comparison: C1 vs C2
 
-| Aspect | Challenge 1 (C1) | Challenge 2 (C2) |
+| <sub>Aspect</sub> | <sub>Challenge 1 (C1)</sub> | <sub>Challenge 2 (C2)</sub> |
 |--------|-----------------|------------------|
-| **Task Type** | Active (button press response) | Passive (eyes-closed rest) |
-| **Signal Type** | Event-related potentials | Resting-state rhythms |
-| **Temporal Dynamics** | Sharp transients, event-locked | Smooth oscillations, continuous |
-| **Frequency Content** | Broadband (0.5-40 Hz) | Rhythm-dominant (1-30 Hz) |
-| **Target Variable** | Response time (ms) | Personality score (standardized) |
-| **Prediction Difficulty** | Trial-level variation | Stable trait measurement |
-| **Model Type** | CNN (spatial patterns) | EEGNeX (spatiotemporal + spectral) |
-| **Training Samples** | 7,461 trials | 2,500 trials |
-| **Data Size** | 679 MB (HDF5) | 250 MB (HDF5) |
+| <sub>**Task Type**</sub> | <sub>Active (button press response)</sub> | <sub>Passive (eyes-closed rest)</sub> |
+| <sub>**Signal Type**</sub> | <sub>Event-related potentials</sub> | <sub>Resting-state rhythms</sub> |
+| <sub>**Temporal Dynamics**</sub> | <sub>Sharp transients, event-locked</sub> | <sub>Smooth oscillations, continuous</sub> |
+| <sub>**Frequency Content**</sub> | <sub>Broadband (0.5-40 Hz)</sub> | <sub>Rhythm-dominant (1-30 Hz)</sub> |
+| <sub>**Target Variable**</sub> | <sub>Response time (ms)</sub> | <sub>Personality score (standardized)</sub> |
+| <sub>**Prediction Difficulty**</sub> | <sub>Trial-level variation</sub> | <sub>Stable trait measurement</sub> |
+| <sub>**Model Type**</sub> | <sub>CNN (spatial patterns)</sub> | <sub>EEGNeX (spatiotemporal + spectral)</sub> |
+| <sub>**Training Samples**</sub> | <sub>7,461 trials</sub> | <sub>2,500 trials</sub> |
+| <sub>**Data Size**</sub> | <sub>679 MB (HDF5)</sub> | <sub>250 MB (HDF5)</sub> |
 
 ---
 
@@ -286,11 +286,11 @@ mindmap
 
 ### Data Processing Stack
 
-| Technology | Purpose | Why Chosen |
+| <sub>Technology</sub> | <sub>Purpose</sub> | <sub>Why Chosen</sub> |
 |-----------|---------|------------|
-| **MNE-Python** | EEG file loading & preprocessing | Industry standard for EEG analysis, handles BrainVision format natively, extensive documentation |
-| **HDF5 (h5py)** | Efficient data storage | Fast random access, memory-mapped loading, compressed storage (679 MB for 7,461 samples), chunked access patterns |
-| **NumPy** | Array operations | Foundation for scientific computing, competition API requires NumPy arrays, fast vectorized operations |
+| <sub>**MNE-Python**</sub> | <sub>EEG file loading & preprocessing</sub> | <sub>Industry standard for EEG analysis, handles BrainVision format natively, extensive documentation</sub> |
+| <sub>**HDF5 (h5py)**</sub> | <sub>Efficient data storage</sub> | <sub>Fast random access, memory-mapped loading, compressed storage (679 MB for 7,461 samples), chunked access patterns</sub> |
+| <sub>**NumPy**</sub> | <sub>Array operations</sub> | <sub>Foundation for scientific computing, competition API requires NumPy arrays, fast vectorized operations</sub> |
 
 **HDF5 Storage Strategy:**
 ```python
@@ -304,11 +304,11 @@ compression: gzip level 4    # balance speed vs size
 
 ### Deep Learning Framework
 
-| Technology | Purpose | Why Chosen |
+| <sub>Technology</sub> | <sub>Purpose</sub> | <sub>Why Chosen</sub> |
 |-----------|---------|------------|
-| **PyTorch 1.10+** | Neural network framework | Dynamic computation graphs, extensive community support, competition-compatible, easier debugging than TensorFlow |
-| **braindecode** | EEG-specific models | Provides EEGNeX (state-of-art for EEG), pre-built layers for EEG, validated on public datasets |
-| **torchvision (transforms)** | Data augmentation | Standard augmentation ops, tested and reliable, compatible with PyTorch DataLoader |
+| <sub>**PyTorch 1.10+**</sub> | <sub>Neural network framework</sub> | <sub>Dynamic computation graphs, extensive community support, competition-compatible, easier debugging than TensorFlow</sub> |
+| <sub>**braindecode**</sub> | <sub>EEG-specific models</sub> | <sub>Provides EEGNeX (state-of-art for EEG), pre-built layers for EEG, validated on public datasets</sub> |
+| <sub>**torchvision (transforms)**</sub> | <sub>Data augmentation</sub> | <sub>Standard augmentation ops, tested and reliable, compatible with PyTorch DataLoader</sub> |
 
 **Why PyTorch over TensorFlow:**
 - More intuitive API for research
@@ -378,13 +378,13 @@ graph LR
 
 **Design Rationale:**
 
-| Component | Choice | Reason |
+| <sub>Component</sub> | <sub>Choice</sub> | <sub>Reason</sub> |
 |----------|--------|--------|
-| **3 Conv Layers** | Not deeper | Small dataset (7,461 samples), deeper = overfitting |
-| **Heavy Dropout (0.6-0.7)** | Aggressive regularization | Prevents overfitting, better than weight decay alone |
-| **Spatial Attention** | Channel-wise gating | EEG channels have varying importance, attention helps model focus |
-| **AdaptiveAvgPool** | Flexible pooling | Handles variable sequence lengths, more robust than fixed pooling |
-| **Stride 2** | Downsampling | Reduces parameters, acts as learned pooling, faster inference |
+| <sub>**3 Conv Layers**</sub> | <sub>Not deeper</sub> | <sub>Small dataset (7,461 samples), deeper = overfitting</sub> |
+| <sub>**Heavy Dropout (0.6-0.7)**</sub> | <sub>Aggressive regularization</sub> | <sub>Prevents overfitting, better than weight decay alone</sub> |
+| <sub>**Spatial Attention**</sub> | <sub>Channel-wise gating</sub> | <sub>EEG channels have varying importance, attention helps model focus</sub> |
+| <sub>**AdaptiveAvgPool**</sub> | <sub>Flexible pooling</sub> | <sub>Handles variable sequence lengths, more robust than fixed pooling</sub> |
+| <sub>**Stride 2**</sub> | <sub>Downsampling</sub> | <sub>Reduces parameters, acts as learned pooling, faster inference</sub> |
 
 **Parameter Count:** ~120K (compact enough to train on CPU in 2 minutes)
 
@@ -850,12 +850,12 @@ EMA model saved: checkpoints/c2_phase2_seed42_ema_best.pt
 
 **Why EEGNeX from braindecode:**
 
-| Factor | Advantage |
+| <sub>Factor</sub> | <sub>Advantage</sub> |
 |--------|-----------|
-| **State-of-art** | Published architecture, validated on multiple EEG datasets |
-| **Depthwise Convolutions** | Efficient parameter usage, captures spatial-temporal patterns |
-| **Designed for EEG** | Built specifically for EEG data characteristics (spatial structure, temporal dynamics) |
-| **Pre-validated** | Used in published research, less risk than custom architecture |
+| <sub>**State-of-art**</sub> | <sub>Published architecture, validated on multiple EEG datasets</sub> |
+| <sub>**Depthwise Convolutions**</sub> | <sub>Efficient parameter usage, captures spatial-temporal patterns</sub> |
+| <sub>**Designed for EEG**</sub> | <sub>Built specifically for EEG data characteristics (spatial structure, temporal dynamics)</sub> |
+| <sub>**Pre-validated**</sub> | <sub>Used in published research, less risk than custom architecture</sub> |
 
 **EEGNeX Structure:**
 ```
@@ -880,11 +880,11 @@ Output: (batch, 1)
 
 **Why AdamW over Adam/SGD:**
 
-| Optimizer | Pros | Cons | Our Choice |
+| <sub>Optimizer</sub> | <sub>Pros</sub> | <sub>Cons</sub> | <sub>Our Choice</sub> |
 |-----------|------|------|------------|
-| **SGD** | Proven, simple | Slow convergence, sensitive to LR | ❌ Too slow for competition |
-| **Adam** | Fast, adaptive | Poor weight decay | ❌ Overfitting issues |
-| **AdamW** | Fast + proper weight decay | More hyperparameters | ✅ Best of both worlds |
+| <sub>**SGD**</sub> | <sub>Proven, simple</sub> | <sub>Slow convergence, sensitive to LR</sub> | <sub>❌ Too slow for competition</sub> |
+| <sub>**Adam**</sub> | <sub>Fast, adaptive</sub> | <sub>Poor weight decay</sub> | <sub>❌ Overfitting issues</sub> |
+| <sub>**AdamW**</sub> | <sub>Fast + proper weight decay</sub> | <sub>More hyperparameters</sub> | <sub>✅ Best of both worlds</sub> |
 
 **Configuration:**
 ```python
@@ -929,12 +929,12 @@ EMA(
 
 **Why Multiple Seeds:**
 
-| Metric | Single Model | 5-Seed Ensemble | Improvement |
+| <sub>Metric</sub> | <sub>Single Model</sub> | <sub>5-Seed Ensemble</sub> | <sub>Improvement</sub> |
 |--------|-------------|-----------------|-------------|
-| **Mean NRMSE** | 1.486252 | ~1.481 | ~0.005 |
-| **Std Dev** | - | 0.009314 | Low variance ✓ |
-| **CV** | - | 0.62% | Excellent consistency |
-| **Variance Reduction** | 1x | 5x | √5 reduction |
+| <sub>**Mean NRMSE**</sub> | <sub>1.486252</sub> | <sub>~1.481</sub> | <sub>~0.005</sub> |
+| <sub>**Std Dev**</sub> | <sub>-</sub> | <sub>0.009314</sub> | <sub>Low variance ✓</sub> |
+| <sub>**CV**</sub> | <sub>-</sub> | <sub>0.62%</sub> | <sub>Excellent consistency</sub> |
+| <sub>**Variance Reduction**</sub> | <sub>1x</sub> | <sub>5x</sub> | <sub>√5 reduction</sub> |
 
 **Seed Selection:** 42, 123, 456, 789, 1337 (diverse initialization)
 
@@ -1007,15 +1007,15 @@ y_calibrated = a * y_predicted + b
 **Architecture Exploration:**
 Tried multiple architectures to find best performers:
 
-| Architecture | Challenge | Result | Why It Failed/Succeeded |
+| <sub>Architecture</sub> | <sub>Challenge</sub> | <sub>Result</sub> | <sub>Why It Failed/Succeeded</sub> |
 |-------------|-----------|--------|------------------------|
-| Basic CNN | C1 | ❌ Overfit | Too simple, no regularization |
-| EEGNet | C1 | ❌ Unstable | Gradient issues |
-| **CompactCNN** | C1 | ✅ Success | Good balance: 3 conv layers + attention |
-| TCN | C1 | ❌ Slow | Too deep for 2-second windows |
-| Transformer | C1 | ❌ Overfit | Too many parameters for small data |
-| LSTM | C2 | ❌ Underfit | Struggled with spatial structure |
-| **EEGNeX** | C2 | ✅ Success | State-of-art for EEG, depthwise convs |
+| <sub>Basic CNN</sub> | <sub>C1</sub> | <sub>❌ Overfit</sub> | <sub>Too simple, no regularization</sub> |
+| <sub>EEGNet</sub> | <sub>C1</sub> | <sub>❌ Unstable</sub> | <sub>Gradient issues</sub> |
+| <sub>**CompactCNN**</sub> | <sub>C1</sub> | <sub>✅ Success</sub> | <sub>Good balance: 3 conv layers + attention</sub> |
+| <sub>TCN</sub> | <sub>C1</sub> | <sub>❌ Slow</sub> | <sub>Too deep for 2-second windows</sub> |
+| <sub>Transformer</sub> | <sub>C1</sub> | <sub>❌ Overfit</sub> | <sub>Too many parameters for small data</sub> |
+| <sub>LSTM</sub> | <sub>C2</sub> | <sub>❌ Underfit</sub> | <sub>Struggled with spatial structure</sub> |
+| <sub>**EEGNeX**</sub> | <sub>C2</sub> | <sub>✅ Success</sub> | <sub>State-of-art for EEG, depthwise convs</sub> |
 
 **Key Learning:** Simpler models with proper regularization > complex architectures
 
@@ -1029,12 +1029,12 @@ Tried multiple architectures to find best performers:
 
 **Results:**
 
-| Metric | Value |
+| <sub>Metric</sub> | <sub>Value</sub> |
 |--------|-------|
-| Challenge 1 | 1.00077 |
-| Challenge 2 | 1.00870 |
-| Overall | 1.00648 |
-| Rank | #88/150 |
+| <sub>Challenge 1</sub> | <sub>1.00077</sub> |
+| <sub>Challenge 2</sub> | <sub>1.00870</sub> |
+| <sub>Overall</sub> | <sub>1.00648</sub> |
+| <sub>Rank</sub> | <sub>#88/150</sub> |
 
 **Technical Issues:**
 - C2 training showed loss oscillations
@@ -1065,21 +1065,21 @@ Tried multiple architectures to find best performers:
 
 **Data Augmentation Implementation:**
 
-| Augmentation | Parameters | Rationale |
+| <sub>Augmentation</sub> | <sub>Parameters</sub> | <sub>Rationale</sub> |
 |-------------|-----------|-----------|
-| TimeShift | ±10ms (±1 sample) | Temporal invariance, safe for EEG phase |
-| GaussianNoise | SNR=0.5 | Robustness to recording noise |
-| ChannelDropout | p=0.1 | Reduces channel-specific overfitting |
+| <sub>TimeShift</sub> | <sub>±10ms (±1 sample)</sub> | <sub>Temporal invariance, safe for EEG phase</sub> |
+| <sub>GaussianNoise</sub> | <sub>SNR=0.5</sub> | <sub>Robustness to recording noise</sub> |
+| <sub>ChannelDropout</sub> | <sub>p=0.1</sub> | <sub>Reduces channel-specific overfitting</sub> |
 
 **Results:**
 **V10 Competition Results:**
 
-| Metric | V9 | V10 | Improvement |
+| <sub>Metric</sub> | <sub>V9</sub> | <sub>V10</sub> | <sub>Improvement</sub> |
 |--------|-----|-----|-------------|
-| Challenge 1 | 1.00077 | 1.00019 | 5.8e-4 (58%) |
-| Challenge 2 | 1.00870 | 1.00066 | 8.0e-3 (92%) |
-| Overall | 1.00648 | 1.00052 | 6.0e-3 (92%) |
-| Rank | #88/150 | #72/150 | +16 positions |
+| <sub>Challenge 1</sub> | <sub>1.00077</sub> | <sub>1.00019</sub> | <sub>5.8e-4 (58%)</sub> |
+| <sub>Challenge 2</sub> | <sub>1.00870</sub> | <sub>1.00066</sub> | <sub>8.0e-3 (92%)</sub> |
+| <sub>Overall</sub> | <sub>1.00648</sub> | <sub>1.00052</sub> | <sub>6.0e-3 (92%)</sub> |
+| <sub>Rank</sub> | <sub>#88/150</sub> | <sub>#72/150</sub> | <sub>+16 positions</sub> |
 
 **Performance Analysis:**
 - C1 score of 1.00019 represents 0.00019 margin above 1.0 reference
@@ -1099,11 +1099,11 @@ Tried multiple architectures to find best performers:
 
 **Challenge 2 Phase 2 Training:**
 
-| Seed | Status | Val Loss | Notes |
+| <sub>Seed</sub> | <sub>Status</sub> | <sub>Val Loss</sub> | <sub>Notes</sub> |
 |------|--------|----------|-------|
-| 42 | Complete | 0.122 | Best checkpoint |
-| 123 | Complete | 0.126 | Second best |
-| 456 | Interrupted | N/A | Power outage on Oct 31 |
+| <sub>42</sub> | <sub>Complete</sub> | <sub>0.122</sub> | <sub>Best checkpoint</sub> |
+| <sub>123</sub> | <sub>Complete</sub> | <sub>0.126</sub> | <sub>Second best</sub> |
+| <sub>456</sub> | <sub>Interrupted</sub> | <sub>N/A</sub> | <sub>Power outage on Oct 31</sub> |
 
 Recovery decision: Use 2 high-quality seeds rather than retraining lower-quality 3rd seed
 
@@ -1119,11 +1119,11 @@ Training seeds: 42, 123, 456, 789, 1337
 
 **Training Performance:**
 
-| Metric | Estimated | Actual | Ratio |
+| <sub>Metric</sub> | <sub>Estimated</sub> | <sub>Actual</sub> | <sub>Ratio</sub> |
 |--------|-----------|--------|-------|
-| Time per seed | 8 hours | 2.2 min | 218x faster |
-| Total time (5 seeds) | 41 hours | 11.2 min | 220x faster |
-| Reason | - | Compact architecture + efficient I/O | - |
+| <sub>Time per seed</sub> | <sub>8 hours</sub> | <sub>2.2 min</sub> | <sub>218x faster</sub> |
+| <sub>Total time (5 seeds)</sub> | <sub>41 hours</sub> | <sub>11.2 min</sub> | <sub>220x faster</sub> |
+| <sub>Reason</sub> | <sub>-</sub> | <sub>Compact architecture + efficient I/O</sub> | <sub>-</sub> |
 
 **5-Seed Results:**
 ```
@@ -1153,19 +1153,19 @@ CV      0.62%
 
 Ridge regression to correct systematic prediction bias:
 
-| Step | Action | Details |
+| <sub>Step</sub> | <sub>Action</sub> | <sub>Details</sub> |
 |------|--------|---------|
-| 1 | Generate predictions | 5-seed ensemble on validation set (1,492 samples) |
-| 2 | Fit Ridge model | Test α ∈ [0.1, 0.5, 1.0, 5.0, 10.0] |
-| 3 | Select best α | Cross-validation, chose α=0.1 |
-| 4 | Apply transform | y_cal = a·y_pred + b |
+| <sub>1</sub> | <sub>Generate predictions</sub> | <sub>5-seed ensemble on validation set (1,492 samples)</sub> |
+| <sub>2</sub> | <sub>Fit Ridge model</sub> | <sub>Test α ∈ [0.1, 0.5, 1.0, 5.0, 10.0]</sub> |
+| <sub>3</sub> | <sub>Select best α</sub> | <sub>Cross-validation, chose α=0.1</sub> |
+| <sub>4</sub> | <sub>Apply transform</sub> | <sub>y_cal = a·y_pred + b</sub> |
 
 **Calibration Results:**
 
-| Metric | Before | After | Improvement |
+| <sub>Metric</sub> | <sub>Before</sub> | <sub>After</sub> | <sub>Improvement</sub> |
 |--------|--------|-------|-------------|
-| NRMSE | 1.473805 | 1.473726 | 7.9e-5 |
-| Percentage | - | - | 0.0054% |
+| <sub>NRMSE</sub> | <sub>1.473805</sub> | <sub>1.473726</sub> | <sub>7.9e-5</sub> |
+| <sub>Percentage</sub> | <sub>-</sub> | <sub>-</sub> | <sub>0.0054%</sub> |
 
 **Fitted Parameters:**
 ```python
@@ -1175,12 +1175,12 @@ b = 0.027255  # Bias correction (+0.027)
 
 **Test-Time Augmentation (TTA) Strategy:**
 
-| Parameter | Value | Rationale |
+| <sub>Parameter</sub> | <sub>Value</sub> | <sub>Rationale</sub> |
 |-----------|-------|-----------|
-| Shifts | [-2, 0, +2] samples | ±20ms at 100Hz sampling |
-| Method | Circular shift | Preserves signal continuity, no edge artifacts |
-| Predictions | 3 per model | Average reduces variance |
-| Expected gain | 1e-5 to 8e-5 | Based on variance reduction math |
+| <sub>Shifts</sub> | <sub>[-2, 0, +2] samples</sub> | <sub>±20ms at 100Hz sampling</sub> |
+| <sub>Method</sub> | <sub>Circular shift</sub> | <sub>Preserves signal continuity, no edge artifacts</sub> |
+| <sub>Predictions</sub> | <sub>3 per model</sub> | <sub>Average reduces variance</sub> |
+| <sub>Expected gain</sub> | <sub>1e-5 to 8e-5</sub> | <sub>Based on variance reduction math</sub> |
 
 **Complete Inference Pipeline:**
 
@@ -1268,11 +1268,11 @@ Comprehensive pre-upload testing:
 
 **Error File Analysis:**
 
-| File | Status | Content |
+| <sub>File</sub> | <sub>Status</sub> | <sub>Content</sub> |
 |------|--------|---------|
-| `prediction_result.zip` | Present | submission.py + 7 checkpoints extracted |
-| `scoring_result.zip` | Empty | 0 bytes - indicates pre-scoring crash |
-| `metadata` | Present | null exitCode, null elapsedTime |
+| <sub>`prediction_result.zip`</sub> | <sub>Present</sub> | <sub>submission.py + 7 checkpoints extracted</sub> |
+| <sub>`scoring_result.zip`</sub> | <sub>Empty</sub> | <sub>0 bytes - indicates pre-scoring crash</sub> |
+| <sub>`metadata`</sub> | <sub>Present</sub> | <sub>null exitCode, null elapsedTime</sub> |
 
 **Root Cause Identification:**
 
@@ -1315,12 +1315,12 @@ checkpoint = torch.load(weights_path, map_location=device, weights_only=False)
 
 **V13 Changes:**
 
-| Change | Location | Purpose |
+| <sub>Change</sub> | <sub>Location</sub> | <sub>Purpose</sub> |
 |--------|----------|---------|
-| Remove `weights_only=False` | Lines 133, 175 | PyTorch < 1.13 compatibility |
-| Test batch sizes [1, 5, 16, 32] | Local validation | Ensure variable batch handling |
-| Verify both challenges | C1 + C2 tests | Complete API coverage |
-| Package validation | V13.zip | Size check, structure verification |
+| <sub>Remove `weights_only=False`</sub> | <sub>Lines 133, 175</sub> | <sub>PyTorch < 1.13 compatibility</sub> |
+| <sub>Test batch sizes [1, 5, 16, 32]</sub> | <sub>Local validation</sub> | <sub>Ensure variable batch handling</sub> |
+| <sub>Verify both challenges</sub> | <sub>C1 + C2 tests</sub> | <sub>Complete API coverage</sub> |
+| <sub>Package validation</sub> | <sub>V13.zip</sub> | <sub>Size check, structure verification</sub> |
 
 **V13 Status:** All tests passed, 6.1 MB package ready
 
@@ -1334,15 +1334,15 @@ Comprehensive pre-submission testing developed after V12 failure:
 
 **Format Validation:**
 
-| Test | Purpose | Pass Criteria |
+| <sub>Test</sub> | <sub>Purpose</sub> | <sub>Pass Criteria</sub> |
 |------|---------|---------------|
-| Import test | Module loading | `from submission import Submission` succeeds |
-| Initialization | Constructor | `Submission(SFREQ=100, DEVICE='cpu')` works |
-| Input format | Type handling | Accepts NumPy arrays, not just torch tensors |
-| Output shape | Dimensionality | Returns (N,) not (N, 1) or other shapes |
-| Output type | API compliance | Returns `numpy.ndarray` per competition spec |
-| NaN/Inf check | Numerical stability | All predictions are finite values |
-| Batch sizes | Variable input | Works with batches [1, 5, 16, 32, 64] |
+| <sub>Import test</sub> | <sub>Module loading</sub> | <sub>`from submission import Submission` succeeds</sub> |
+| <sub>Initialization</sub> | <sub>Constructor</sub> | <sub>`Submission(SFREQ=100, DEVICE='cpu')` works</sub> |
+| <sub>Input format</sub> | <sub>Type handling</sub> | <sub>Accepts NumPy arrays, not just torch tensors</sub> |
+| <sub>Output shape</sub> | <sub>Dimensionality</sub> | <sub>Returns (N,) not (N, 1) or other shapes</sub> |
+| <sub>Output type</sub> | <sub>API compliance</sub> | <sub>Returns `numpy.ndarray` per competition spec</sub> |
+| <sub>NaN/Inf check</sub> | <sub>Numerical stability</sub> | <sub>All predictions are finite values</sub> |
+| <sub>Batch sizes</sub> | <sub>Variable input</sub> | <sub>Works with batches [1, 5, 16, 32, 64]</sub> |
 
 **Challenge-Specific Validation:**
 
@@ -1384,18 +1384,18 @@ graph TD
 
 **File Structure Validation:**
 
-| File | Size | Purpose |
+| <sub>File</sub> | <sub>Size</sub> | <sub>Purpose</sub> |
 |------|------|---------|
-| `submission.py` | 11 KB | Competition API implementation |
-| `c1_phase1_seed42_ema_best.pt` | 1.05 MB | C1 model checkpoint 1 |
-| `c1_phase1_seed123_ema_best.pt` | 1.05 MB | C1 model checkpoint 2 |
-| `c1_phase1_seed456_ema_best.pt` | 1.05 MB | C1 model checkpoint 3 |
-| `c1_phase1_seed789_ema_best.pt` | 1.05 MB | C1 model checkpoint 4 |
-| `c1_phase1_seed1337_ema_best.pt` | 1.05 MB | C1 model checkpoint 5 |
-| `c2_phase2_seed42_ema_best.pt` | 0.74 MB | C2 model checkpoint 1 |
-| `c2_phase2_seed123_ema_best.pt` | 0.74 MB | C2 model checkpoint 2 |
-| `c1_calibration_params.json` | 195 B | Calibration coefficients |
-| **Total** | **6.1 MB** | Under 10 MB limit ✓ |
+| <sub>`submission.py`</sub> | <sub>11 KB</sub> | <sub>Competition API implementation</sub> |
+| <sub>`c1_phase1_seed42_ema_best.pt`</sub> | <sub>1.05 MB</sub> | <sub>C1 model checkpoint 1</sub> |
+| <sub>`c1_phase1_seed123_ema_best.pt`</sub> | <sub>1.05 MB</sub> | <sub>C1 model checkpoint 2</sub> |
+| <sub>`c1_phase1_seed456_ema_best.pt`</sub> | <sub>1.05 MB</sub> | <sub>C1 model checkpoint 3</sub> |
+| <sub>`c1_phase1_seed789_ema_best.pt`</sub> | <sub>1.05 MB</sub> | <sub>C1 model checkpoint 4</sub> |
+| <sub>`c1_phase1_seed1337_ema_best.pt`</sub> | <sub>1.05 MB</sub> | <sub>C1 model checkpoint 5</sub> |
+| <sub>`c2_phase2_seed42_ema_best.pt`</sub> | <sub>0.74 MB</sub> | <sub>C2 model checkpoint 1</sub> |
+| <sub>`c2_phase2_seed123_ema_best.pt`</sub> | <sub>0.74 MB</sub> | <sub>C2 model checkpoint 2</sub> |
+| <sub>`c1_calibration_params.json`</sub> | <sub>195 B</sub> | <sub>Calibration coefficients</sub> |
+| <sub>**Total**</sub> | <sub>**6.1 MB**</sub> | <sub>Under 10 MB limit ✓</sub> |
 
 ### Verification Evolution
 
@@ -1442,14 +1442,14 @@ Phase 3: Compatibility Validation (NEW)
 
 **Testing Impact:**
 
-| Metric | Value |
+| <sub>Metric</sub> | <sub>Value</sub> |
 |--------|-------|
-| Testing time | ~10 minutes |
-| Issues caught (V12) | 4 format bugs |
-| Submissions saved | 4 potential failures |
-| Issues missed (V12) | 1 compatibility bug |
-| V13 improvements | Added compatibility checks |
-| ROI | 10 min testing → 4+ hours debugging saved |
+| <sub>Testing time</sub> | <sub>~10 minutes</sub> |
+| <sub>Issues caught (V12)</sub> | <sub>4 format bugs</sub> |
+| <sub>Submissions saved</sub> | <sub>4 potential failures</sub> |
+| <sub>Issues missed (V12)</sub> | <sub>1 compatibility bug</sub> |
+| <sub>V13 improvements</sub> | <sub>Added compatibility checks</sub> |
+| <sub>ROI</sub> | <sub>10 min testing → 4+ hours debugging saved</sub> |
 
 ---
 
@@ -1522,12 +1522,12 @@ Phase 3: Compatibility Validation (NEW)
 
 **Challenges Encountered:**
 
-| Issue | Impact | Solution |
+| <sub>Issue</sub> | <sub>Impact</sub> | <sub>Solution</sub> |
 |-------|--------|----------|
-| Event parsing confusion | Wrong trial boundaries | Changed `trial_start` → `buttonPress` markers |
-| Channel mismatch | Dimension errors | Standardized to 129 channels across datasets |
-| Missing preprocessed data | Slow training | Created HDF5 pipeline (679 MB, fast access) |
-| Memory constraints | OOM errors | Memory-mapped HDF5 loading |
+| <sub>Event parsing confusion</sub> | <sub>Wrong trial boundaries</sub> | <sub>Changed `trial_start` → `buttonPress` markers</sub> |
+| <sub>Channel mismatch</sub> | <sub>Dimension errors</sub> | <sub>Standardized to 129 channels across datasets</sub> |
+| <sub>Missing preprocessed data</sub> | <sub>Slow training</sub> | <sub>Created HDF5 pipeline (679 MB, fast access)</sub> |
+| <sub>Memory constraints</sub> | <sub>OOM errors</sub> | <sub>Memory-mapped HDF5 loading</sub> |
 
 **HDF5 Pipeline Benefits:**
 - 10x faster loading vs raw files
@@ -1589,14 +1589,14 @@ Phase 3: Compatibility Validation (NEW)
 
 **Effective workflow:**
 
-| Phase | Duration | Action |
+| <sub>Phase</sub> | <sub>Duration</sub> | <sub>Action</sub> |
 |-------|----------|--------|
-| Experiment | Minutes-hours | Test one hypothesis |
-| Validate | Immediate | Check val set performance |
-| Document | 5-10 min | Record results and config |
-| Test | 10 min | Pre-submission validation |
-| Upload | Variable | Submit to competition |
-| Analyze | Post-results | Compare actual vs expected |
+| <sub>Experiment</sub> | <sub>Minutes-hours</sub> | <sub>Test one hypothesis</sub> |
+| <sub>Validate</sub> | <sub>Immediate</sub> | <sub>Check val set performance</sub> |
+| <sub>Document</sub> | <sub>5-10 min</sub> | <sub>Record results and config</sub> |
+| <sub>Test</sub> | <sub>10 min</sub> | <sub>Pre-submission validation</sub> |
+| <sub>Upload</sub> | <sub>Variable</sub> | <sub>Submit to competition</sub> |
+| <sub>Analyze</sub> | <sub>Post-results</sub> | <sub>Compare actual vs expected</sub> |
 
 **Velocity:** 10+ configuration tests in 8 days vs typical 1-2 for competitors
 
@@ -1606,34 +1606,34 @@ Phase 3: Compatibility Validation (NEW)
 
 ### Competition Submissions Overview
 
-| Submission | C1 Score | C2 Score | Overall | Rank | Status | Key Features |
+| <sub>Submission</sub> | <sub>C1 Score</sub> | <sub>C2 Score</sub> | <sub>Overall</sub> | <sub>Rank</sub> | <sub>Status</sub> | <sub>Key Features</sub> |
 |-----------|----------|----------|---------|------|--------|--------------|
-| **V9** | 1.00077 | 1.00870 | 1.00648 | #88 | ✅ Success | CompactCNN + EEGNeX baseline |
-| **V10** | 1.00019 | 1.00066 | 1.00052 | #72 | ✅ Success | Enhanced architectures + EMA |
-| **V11** | TBD | TBD | TBD | TBD | 📦 Ready | V10 C1 + 2-seed C2 ensemble |
-| **V11.5** | TBD | TBD | TBD | TBD | 📦 Ready | 5-seed C1 + 2-seed C2 |
-| **V12** | - | - | - | - | ❌ Failed | PyTorch compatibility issue |
-| **V13** | TBD | TBD | TBD | TBD | 🚀 Ready | V12 fix + full variance reduction |
+| <sub>**V9**</sub> | <sub>1.00077</sub> | <sub>1.00870</sub> | <sub>1.00648</sub> | <sub>#88</sub> | <sub>✅ Success</sub> | <sub>CompactCNN + EEGNeX baseline</sub> |
+| <sub>**V10**</sub> | <sub>1.00019</sub> | <sub>1.00066</sub> | <sub>1.00052</sub> | <sub>#72</sub> | <sub>✅ Success</sub> | <sub>Enhanced architectures + EMA</sub> |
+| <sub>**V11**</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>📦 Ready</sub> | <sub>V10 C1 + 2-seed C2 ensemble</sub> |
+| <sub>**V11.5**</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>📦 Ready</sub> | <sub>5-seed C1 + 2-seed C2</sub> |
+| <sub>**V12**</sub> | <sub>-</sub> | <sub>-</sub> | <sub>-</sub> | <sub>-</sub> | <sub>❌ Failed</sub> | <sub>PyTorch compatibility issue</sub> |
+| <sub>**V13**</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>TBD</sub> | <sub>🚀 Ready</sub> | <sub>V12 fix + full variance reduction</sub> |
 
 ### V13 Expected Performance
 
 **Variance Reduction Components:**
 
-| Component | Expected Improvement | Confidence |
+| <sub>Component</sub> | <sub>Expected Improvement</sub> | <sub>Confidence</sub> |
 |-----------|---------------------|------------|
-| 5-seed ensemble | 5e-5 to 1.2e-4 | High (measured CV 0.62%) |
-| TTA (3 shifts) | 1e-5 to 8e-5 | Medium (theoretical) |
-| Calibration | 7.9e-5 | High (measured on val set) |
-| **Total C1** | ~1.5e-4 | Medium-High |
-| **Total C2** | ~1.7e-4 | Medium (2-seed only) |
+| <sub>5-seed ensemble</sub> | <sub>5e-5 to 1.2e-4</sub> | <sub>High (measured CV 0.62%)</sub> |
+| <sub>TTA (3 shifts)</sub> | <sub>1e-5 to 8e-5</sub> | <sub>Medium (theoretical)</sub> |
+| <sub>Calibration</sub> | <sub>7.9e-5</sub> | <sub>High (measured on val set)</sub> |
+| <sub>**Total C1**</sub> | <sub>~1.5e-4</sub> | <sub>Medium-High</sub> |
+| <sub>**Total C2**</sub> | <sub>~1.7e-4</sub> | <sub>Medium (2-seed only)</sub> |
 
 **Projected Scores:**
 
-| Metric | V10 Baseline | V13 Expected | Improvement | Expected Rank |
+| <sub>Metric</sub> | <sub>V10 Baseline</sub> | <sub>V13 Expected</sub> | <sub>Improvement</sub> | <sub>Expected Rank</sub> |
 |--------|--------------|--------------|-------------|---------------|
-| Challenge 1 | 1.00019 | ~1.00011 | 8e-5 | - |
-| Challenge 2 | 1.00066 | ~1.00049 | 1.7e-4 | - |
-| Overall | 1.00052 | ~1.00030 | 2.2e-4 | #45-55 (est) |
+| <sub>Challenge 1</sub> | <sub>1.00019</sub> | <sub>~1.00011</sub> | <sub>8e-5</sub> | <sub>-</sub> |
+| <sub>Challenge 2</sub> | <sub>1.00066</sub> | <sub>~1.00049</sub> | <sub>1.7e-4</sub> | <sub>-</sub> |
+| <sub>Overall</sub> | <sub>1.00052</sub> | <sub>~1.00030</sub> | <sub>2.2e-4</sub> | <sub>#45-55 (est)</sub> |
 
 ---
 
@@ -1709,16 +1709,16 @@ eeg2025/
 
 ### Key Directories Explained
 
-| Directory | Purpose | Key Contents |
+| <sub>Directory</sub> | <sub>Purpose</sub> | <sub>Key Contents</sub> |
 |-----------|---------|--------------|
-| `submissions/` | Competition submissions | V10-V13 packages with submission.py |
-| `src/` | Reusable source code | Models, data loaders, trainers |
-| `checkpoints/` | Trained model weights | EMA checkpoints from multi-seed training |
-| `data/processed/` | Preprocessed datasets | HDF5 files for fast loading |
-| `scripts/` | One-off utilities | Data prep, training, calibration |
-| `tests/` | Validation suite | Pre-upload testing framework |
-| `docs/` | Technical documentation | Strategy docs, verification reports |
-| `memory-bank/` | Lessons learned | Competition insights for future reference |
+| <sub>`submissions/`</sub> | <sub>Competition submissions</sub> | <sub>V10-V13 packages with submission.py</sub> |
+| <sub>`src/`</sub> | <sub>Reusable source code</sub> | <sub>Models, data loaders, trainers</sub> |
+| <sub>`checkpoints/`</sub> | <sub>Trained model weights</sub> | <sub>EMA checkpoints from multi-seed training</sub> |
+| <sub>`data/processed/`</sub> | <sub>Preprocessed datasets</sub> | <sub>HDF5 files for fast loading</sub> |
+| <sub>`scripts/`</sub> | <sub>One-off utilities</sub> | <sub>Data prep, training, calibration</sub> |
+| <sub>`tests/`</sub> | <sub>Validation suite</sub> | <sub>Pre-upload testing framework</sub> |
+| <sub>`docs/`</sub> | <sub>Technical documentation</sub> | <sub>Strategy docs, verification reports</sub> |
+| <sub>`memory-bank/`</sub> | <sub>Lessons learned</sub> | <sub>Competition insights for future reference</sub> |
 
 ---
 
@@ -1801,12 +1801,12 @@ Total              ~1.5e-4
 
 ### Leaderboard Analysis
 
-| Position | C1 Score | C2 Score | Overall | Gap to Our V10 |
+| <sub>Position</sub> | <sub>C1 Score</sub> | <sub>C2 Score</sub> | <sub>Overall</sub> | <sub>Gap to Our V10</sub> |
 |----------|----------|----------|---------|----------------|
-| Top 1 | 0.89854 | - | 0.97367 | -0.027 (-2.7%) |
-| Top 10 | ~0.92-0.95 | - | ~0.98-0.99 | -0.01 to -0.02 |
-| **Our V10** | **1.00019** | **1.00066** | **1.00052** | **Baseline** |
-| Rank #72 | - | - | - | - |
+| <sub>Top 1</sub> | <sub>0.89854</sub> | <sub>-</sub> | <sub>0.97367</sub> | <sub>-0.027 (-2.7%)</sub> |
+| <sub>Top 10</sub> | <sub>~0.92-0.95</sub> | <sub>-</sub> | <sub>~0.98-0.99</sub> | <sub>-0.01 to -0.02</sub> |
+| <sub>**Our V10**</sub> | <sub>**1.00019**</sub> | <sub>**1.00066**</sub> | <sub>**1.00052**</sub> | <sub>**Baseline**</sub> |
+| <sub>Rank #72</sub> | <sub>-</sub> | <sub>-</sub> | <sub>-</sub> | <sub>-</sub> |
 
 ### Performance Gap Analysis
 
@@ -1826,21 +1826,21 @@ Possible distinguishing factors:
 
 ### Our Approach Strengths
 
-| Strength | Value |
+| <sub>Strength</sub> | <sub>Value</sub> |
 |----------|-------|
-| Iteration speed | 11 min training (C1 5-seed) vs typical 40+ hours |
-| Systematic methodology | Documented variance reduction strategy |
-| Robust validation | Comprehensive pre-upload testing |
-| Reproducibility | All experiments documented and versioned |
+| <sub>Iteration speed</sub> | <sub>11 min training (C1 5-seed) vs typical 40+ hours</sub> |
+| <sub>Systematic methodology</sub> | <sub>Documented variance reduction strategy</sub> |
+| <sub>Robust validation</sub> | <sub>Comprehensive pre-upload testing</sub> |
+| <sub>Reproducibility</sub> | <sub>All experiments documented and versioned</sub> |
 
 ### Constraints
 
-| Constraint | Impact |
+| <sub>Constraint</sub> | <sub>Impact</sub> |
 |-----------|--------|
-| Compute resources | CPU training, AMD GPU instability |
-| Time limitations | Competition deadline approaching |
-| Platform compatibility | V12 PyTorch version issues |
-| Knowledge gap | Top performer techniques unknown |
+| <sub>Compute resources</sub> | <sub>CPU training, AMD GPU instability</sub> |
+| <sub>Time limitations</sub> | <sub>Competition deadline approaching</sub> |
+| <sub>Platform compatibility</sub> | <sub>V12 PyTorch version issues</sub> |
+| <sub>Knowledge gap</sub> | <sub>Top performer techniques unknown</sub> |
 
 ---
 
@@ -1871,14 +1871,14 @@ Possible distinguishing factors:
 
 ### Status Summary (November 1, 2025, 3:00 PM)
 
-| Component | Status | Details |
+| <sub>Component</sub> | <sub>Status</sub> | <sub>Details</sub> |
 |-----------|--------|---------|
-| V10 Submission | ✅ Live | Score 1.00052, Rank #72/150 |
-| V11 Package | 📦 Ready | V10 C1 + 2-seed C2 |
-| V11.5 Package | 📦 Ready | 5-seed C1 + 2-seed C2 |
-| V12 Submission | ❌ Failed | PyTorch compatibility issue |
-| V13 Package | 🚀 Ready | Fixed + tested, 6.1 MB |
-| Documentation | ✅ Complete | README + memory bank + reports |
+| <sub>V10 Submission</sub> | <sub>✅ Live</sub> | <sub>Score 1.00052, Rank #72/150</sub> |
+| <sub>V11 Package</sub> | <sub>📦 Ready</sub> | <sub>V10 C1 + 2-seed C2</sub> |
+| <sub>V11.5 Package</sub> | <sub>📦 Ready</sub> | <sub>5-seed C1 + 2-seed C2</sub> |
+| <sub>V12 Submission</sub> | <sub>❌ Failed</sub> | <sub>PyTorch compatibility issue</sub> |
+| <sub>V13 Package</sub> | <sub>🚀 Ready</sub> | <sub>Fixed + tested, 6.1 MB</sub> |
+| <sub>Documentation</sub> | <sub>✅ Complete</sub> | <sub>README + memory bank + reports</sub> |
 
 ### Immediate Next Steps
 
@@ -1950,4 +1950,3 @@ This repository provides:
 **Repository maintained by:** hkevin01  
 **Competition:** NeurIPS 2025 EEG Foundation Challenge  
 **Goal:** Advance EEG foundation models for cognitive and clinical applications
-
