@@ -320,4 +320,3 @@ This LaTeX document and figures are part of the eeg2025 repository, released und
 **Last Updated:** November 6, 2025  
 **Status:** ✅ Publication-ready  
 **Next Steps:** Review content → Convert to target venue format → Submit
-
