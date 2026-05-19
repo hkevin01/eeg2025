@@ -12,12 +12,12 @@ This test suite validates:
 
 ## 📋 Test Files
 
-| Test | Description | Duration |
+| <sub>Test</sub> | <sub>Description</sub> | <sub>Duration</sub> |
 |------|-------------|----------|
-| `test_01_basic_operations.py` | Fundamental PyTorch GPU ops | ~5s |
-| `test_02_convolutions.py` | Conv1d/Conv2d operations | ~10s |
-| `test_03_training_loop.py` | Full training workflow | ~15s |
-| `test_04_memory_stress.py` | HSA aperture bug detection | ~120s |
+| <sub>`test_01_basic_operations.py`</sub> | <sub>Fundamental PyTorch GPU ops</sub> | <sub>~5s</sub> |
+| <sub>`test_02_convolutions.py`</sub> | <sub>Conv1d/Conv2d operations</sub> | <sub>~10s</sub> |
+| <sub>`test_03_training_loop.py`</sub> | <sub>Full training workflow</sub> | <sub>~15s</sub> |
+| <sub>`test_04_memory_stress.py`</sub> | <sub>HSA aperture bug detection</sub> | <sub>~120s</sub> |
 
 ## 🚀 Usage
 
@@ -117,4 +117,3 @@ When testing a new environment:
 4. **Debug ROCm 6.2.2** - If venv_rocm622 freezes, investigate workarounds
 
 5. **Choose training environment** - Based on test results
-
