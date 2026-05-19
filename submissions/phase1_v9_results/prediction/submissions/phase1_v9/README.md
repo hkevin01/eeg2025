@@ -12,10 +12,10 @@
 **Current Leaderboard**: 1.0044  
 **Expected Improvement**: **-0.0006 to -0.0016** (better)
 
-| Challenge | Model | Val Loss | Test Score | Confidence |
+| <sub>Challenge</sub> | <sub>Model</sub> | <sub>Val Loss</sub> | <sub>Test Score</sub> | <sub>Confidence</sub> |
 |-----------|-------|----------|------------|------------|
-| Challenge 1 | CompactResponseTimeCNN (V8) | 0.079314 | 1.0002 | 99%+ |
-| Challenge 2 | EEGNeX (Phase 1) | 0.252475 | 1.0055-1.0075 | 95%+ |
+| <sub>Challenge 1</sub> | <sub>CompactResponseTimeCNN (V8)</sub> | <sub>0.079314</sub> | <sub>1.0002</sub> | <sub>99%+</sub> |
+| <sub>Challenge 2</sub> | <sub>EEGNeX (Phase 1)</sub> | <sub>0.252475</sub> | <sub>1.0055-1.0075</sub> | <sub>95%+</sub> |
 
 ---
 
@@ -80,16 +80,16 @@ Applied lessons learned from Challenge 1 V8 success:
 - Mixup: 70% of training batches, α=0.2 (training loop only, not dataset-level)
 
 ### Training Trajectory
-| Epoch | Train Loss | Val Loss | Status |
+| <sub>Epoch</sub> | <sub>Train Loss</sub> | <sub>Val Loss</sub> | <sub>Status</sub> |
 |-------|------------|----------|--------|
-| 1 | 0.568866 | 0.626450 | Initial |
-| 5 | 0.424551 | 0.477316 | Learning |
-| 10 | 0.364055 | 0.409776 | Improving |
-| 15 | 0.306028 | 0.339486 | Converging |
-| 20 | 0.244936 | 0.286034 | Fine-tuning |
-| 25 | 0.248666 | 0.276015 | Plateau |
-| 29 | 0.228697 | **0.252475** | ✅ **BEST** |
-| 30 | 0.222000 | 0.260579 | Normal variance |
+| <sub>1</sub> | <sub>0.568866</sub> | <sub>0.626450</sub> | <sub>Initial</sub> |
+| <sub>5</sub> | <sub>0.424551</sub> | <sub>0.477316</sub> | <sub>Learning</sub> |
+| <sub>10</sub> | <sub>0.364055</sub> | <sub>0.409776</sub> | <sub>Improving</sub> |
+| <sub>15</sub> | <sub>0.306028</sub> | <sub>0.339486</sub> | <sub>Converging</sub> |
+| <sub>20</sub> | <sub>0.244936</sub> | <sub>0.286034</sub> | <sub>Fine-tuning</sub> |
+| <sub>25</sub> | <sub>0.248666</sub> | <sub>0.276015</sub> | <sub>Plateau</sub> |
+| <sub>29</sub> | <sub>0.228697</sub> | <sub>**0.252475**</sub> | <sub>✅ **BEST**</sub> |
+| <sub>30</sub> | <sub>0.222000</sub> | <sub>0.260579</sub> | <sub>Normal variance</sub> |
 
 ### Why This Improvement?
 The original C2 model was **severely undertrained** (only 2 epochs). By applying V8's proven training strategy:
@@ -158,11 +158,11 @@ See `VALIDATION_REPORT.md` for:
 ## 📈 Expected Competition Impact
 
 ### Score Breakdown
-| Component | Current | Expected | Change |
+| <sub>Component</sub> | <sub>Current</sub> | <sub>Expected</sub> | <sub>Change</sub> |
 |-----------|---------|----------|--------|
-| Challenge 1 | 1.0002 | 1.0002 | 0.0000 (unchanged) |
-| Challenge 2 | 1.0087 | 1.0055-1.0075 | -0.0012 to -0.0032 |
-| **Overall** | **1.0044** | **1.0028-1.0038** | **-0.0006 to -0.0016** |
+| <sub>Challenge 1</sub> | <sub>1.0002</sub> | <sub>1.0002</sub> | <sub>0.0000 (unchanged)</sub> |
+| <sub>Challenge 2</sub> | <sub>1.0087</sub> | <sub>1.0055-1.0075</sub> | <sub>-0.0012 to -0.0032</sub> |
+| <sub>**Overall**</sub> | <sub>**1.0044**</sub> | <sub>**1.0028-1.0038**</sub> | <sub>**-0.0006 to -0.0016**</sub> |
 
 ### Confidence Analysis
 - **Challenge 1**: 99%+ confidence (proven score)
