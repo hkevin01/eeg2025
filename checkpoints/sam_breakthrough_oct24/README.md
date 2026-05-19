@@ -52,10 +52,10 @@ python test_submission_verbose.py
 
 ## Key Results
 
-| Challenge | Architecture | Optimizer | Val NRMSE | Baseline | Improvement |
+| <sub>Challenge</sub> | <sub>Architecture</sub> | <sub>Optimizer</sub> | <sub>Val NRMSE</sub> | <sub>Baseline</sub> | <sub>Improvement</sub> |
 |-----------|-------------|-----------|-----------|----------|-------------|
-| C1 | EEGNeX (62K) | SAM + AdamW | **0.3008** | 1.0015 | **70% better** |
-| C2 | EEGNeX (758K) | SAM + Adamax | < 0.9 target | 1.0087 | ~10-20% |
+| <sub>C1</sub> | <sub>EEGNeX (62K)</sub> | <sub>SAM + AdamW</sub> | <sub>**0.3008**</sub> | <sub>1.0015</sub> | <sub>**70% better**</sub> |
+| <sub>C2</sub> | <sub>EEGNeX (758K)</sub> | <sub>SAM + Adamax</sub> | <sub>< 0.9 target</sub> | <sub>1.0087</sub> | <sub>~10-20%</sub> |
 
 ## Documentation
 
@@ -65,12 +65,12 @@ python test_submission_verbose.py
 
 ## Competition Timeline
 
-| Date | Submission | C1 | C2 | Overall | Notes |
+| <sub>Date</sub> | <sub>Submission</sub> | <sub>C1</sub> | <sub>C2</sub> | <sub>Overall</sub> | <sub>Notes</sub> |
 |------|-----------|----|----|---------|-------|
-| Oct 16 | Baseline | 1.0015 | 1.4599 | 1.3224 | Original |
-| Oct 24 | Submit 87 | 1.6035 ❌ | 1.0087 | 1.1871 | Wrong model |
-| Oct 24 | Quick Fix | 1.0015 ✅ | 1.0087 ✅ | 1.0065 | Restored |
-| Oct 24 | SAM C1 | **0.3008** 🎉 | N/A | N/A | This checkpoint! |
+| <sub>Oct 16</sub> | <sub>Baseline</sub> | <sub>1.0015</sub> | <sub>1.4599</sub> | <sub>1.3224</sub> | <sub>Original</sub> |
+| <sub>Oct 24</sub> | <sub>Submit 87</sub> | <sub>1.6035 ❌</sub> | <sub>1.0087</sub> | <sub>1.1871</sub> | <sub>Wrong model</sub> |
+| <sub>Oct 24</sub> | <sub>Quick Fix</sub> | <sub>1.0015 ✅</sub> | <sub>1.0087 ✅</sub> | <sub>1.0065</sub> | <sub>Restored</sub> |
+| <sub>Oct 24</sub> | <sub>SAM C1</sub> | <sub>**0.3008** 🎉</sub> | <sub>N/A</sub> | <sub>N/A</sub> | <sub>This checkpoint!</sub> |
 
 ## What's Special About This Checkpoint?
 
